@@ -1,0 +1,53 @@
+[project]
+name = "erp"
+version = "0.1.0"
+description = "ERP desktop offline-first para pequenos comércios"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-only" }
+dependencies = [
+    "PySide6>=6.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-qt>=4.4",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "import-linter>=2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/erp"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["erp"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+mypy_path = "src"
+packages = ["erp"]
+
+[[tool.mypy.overrides]]
+module = ["PySide6.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+qt_api = "pyside6"
+addopts = "-q"
