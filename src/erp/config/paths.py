@@ -1,18 +1,24 @@
-import os
+"""Application paths using platformdirs."""
+from __future__ import annotations
 
-from platformdirs import user_data_dir
+from pathlib import Path
 
-APP_NAME = "ERP_Pequenos_Comercios"
-APP_AUTHOR = "OpenSource"
+from platformdirs import user_data_dir, user_log_dir
 
-
-def get_data_dir() -> str:
-    path = user_data_dir(APP_NAME, APP_AUTHOR)
-    os.makedirs(path, exist_ok=True)
-    return path
+_APP_NAME = "NexoERP"
+_APP_AUTHOR = "NexoERP"
 
 
-def get_logs_dir() -> str:
-    path = os.path.join(get_data_dir(), "logs")
-    os.makedirs(path, exist_ok=True)
-    return path
+def data_dir() -> Path:
+    """Return the platform-specific data directory."""
+    return Path(user_data_dir(appname=_APP_NAME, appauthor=_APP_AUTHOR))
+
+
+def log_dir() -> Path:
+    """Return the platform-specific log directory."""
+    return Path(user_log_dir(appname=_APP_NAME, appauthor=_APP_AUTHOR))
+
+
+def db_path() -> Path:
+    """Return the default database path."""
+    return data_dir() / "erp.db"
