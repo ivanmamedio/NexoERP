@@ -3,7 +3,6 @@ from erp.shared.infrastructure.database import Base
 from .hasher import BcryptHasher
 from .models import PermissionModel, RoleModel, UserModel
 from .repository import (
-    SqlAlchemyIdentityUnitOfWork,
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,

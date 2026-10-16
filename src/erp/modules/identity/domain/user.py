@@ -16,7 +16,7 @@ class User(Entity):
     password_hash: str = field(default="")
     must_change_password: bool = field(default=False)
     failed_login_attempts: int = field(default=0)
-    locked_until: str | None = field(default=None)
+    locked_until: datetime | None = field(default=None)
     is_active: bool = field(default=True)
     company_id: int | None = field(default=None)
 
@@ -26,7 +26,7 @@ class User(Entity):
         if self.failed_login_attempts >= 5:
             from datetime import datetime, timedelta
 
-            self.locked_until = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
+            self.locked_until = datetime.now(datetime.UTC) + timedelta(minutes=30)
 
     def reset_failed_logins(self) -> None:
         """Zera tentativas falhas após login bem-sucedido."""
@@ -39,4 +39,4 @@ class User(Entity):
             return False
         from datetime import datetime
 
-        return datetime.utcnow().isoformat() < self.locked_until
+        return datetime.now(datetime.UTC) < self.locked_until

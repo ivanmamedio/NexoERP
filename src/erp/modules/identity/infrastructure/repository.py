@@ -73,7 +73,7 @@ class SqlAlchemyUserRepository(UserRepository):
             password_hash=model.password_hash,
             must_change_password=model.must_change_password,
             failed_login_attempts=model.failed_login_attempts,
-            locked_until=model.locked_until.isoformat() if model.locked_until else None,
+            locked_until=model.locked_until,
             is_active=model.is_active,
             company_id=model.company_id,
         )
@@ -105,6 +105,37 @@ class SqlAlchemyRoleRepository:
         self._session.add(model)
         self._session.flush()
         role.id = model.id
+
+    def add_permission_to_role(self, role_name: str, permission_code: str) -> None:
+        """Associa uma permissão a um papel na tabela role_permissions."""
+        from sqlalchemy import insert, select
+
+        role_model = self._session.execute(
+            select(RoleModel).where(RoleModel.name == role_name)
+        ).scalar_one_or_none()
+        perm_model = self._session.execute(
+            select(PermissionModel).where(PermissionModel.code == permission_code)
+        ).scalar_one_or_none()
+
+        if role_model is None or perm_model is None:
+            return
+
+        existing = self._session.execute(
+            select(role_permission).where(
+                role_permission.c.role_id == role_model.id,
+                role_permission.c.permission_id == perm_model.id,
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            return
+
+        self._session.execute(
+            insert(role_permission).values(
+                role_id=role_model.id,
+                permission_id=perm_model.id,
+            )
+        )
+        self._session.flush()
 
 
 class SqlAlchemyPermissionRepository:

@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from sqlalchemy import Engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from erp.config.paths import get_data_dir
 from erp.shared.infrastructure.database.engine import build_engine
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 def get_engine() -> Engine:

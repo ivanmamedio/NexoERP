@@ -17,6 +17,9 @@ class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
     """Unit of Work implementation using SQLAlchemy session."""
 
     def __init__(self, engine) -> None:
+        from sqlalchemy.engine import Engine
+        if not isinstance(engine, Engine):
+            raise TypeError("engine must be a SQLAlchemy Engine instance")
         self._engine = engine
         self._session_factory = get_session_factory(engine)
         self._session: Session | None = None
@@ -31,7 +34,12 @@ class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
         self.permissions = SqlAlchemyPermissionRepository(self._session)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None:
         if exc_type is not None:
             self.rollback()
         if self._session is not None:
