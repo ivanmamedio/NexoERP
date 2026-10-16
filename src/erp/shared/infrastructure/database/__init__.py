@@ -1,11 +1,16 @@
-import os
-from datetime import datetime
+"""Database infrastructure: engine, session factory, and declarative base."""
 
-from sqlalchemy import Engine, create_engine, event
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+
+from sqlalchemy import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.types import DateTime
 
 from erp.config.paths import get_data_dir
+from erp.shared.infrastructure.database.engine import build_engine
 
 
 class Base(DeclarativeBase):
@@ -18,20 +23,14 @@ class Base(DeclarativeBase):
 
 
 def get_engine() -> Engine:
+    """Create the default engine using the platform data directory."""
     data_dir = get_data_dir()
-    db_path = os.path.join(data_dir, "erp.db")
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
-
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection: object, connection_record: object) -> None:
-        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA busy_timeout=5000")
-        cursor.close()
-
-    return engine
+    db_path = data_dir / "erp.db"
+    return build_engine(db_path)
 
 
 def get_session_factory(engine: Engine) -> sessionmaker[Session]:
     return sessionmaker(bind=engine, expire_on_commit=False)
+
+
+__all__ = ["Base", "build_engine", "get_engine", "get_session_factory"]

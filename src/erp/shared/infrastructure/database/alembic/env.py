@@ -6,7 +6,7 @@ from logging.config import fileConfig  # noqa: F401 (kept for Alembic compat)
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from erp.shared.infrastructure.database.models import Base
+from erp.shared.infrastructure.database import Base
 
 config = context.config
 target_metadata = Base.metadata

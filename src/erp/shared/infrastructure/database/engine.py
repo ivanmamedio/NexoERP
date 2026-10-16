@@ -1,15 +1,10 @@
 """SQLite engine factory with the PRAGMAs required by the project."""
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
-
-from erp.shared.infrastructure.database.models import Base
-
-_logger = logging.getLogger(__name__)
 
 
 def _apply_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore[no-untyped-def]
@@ -29,4 +24,4 @@ def build_engine(db_path: Path) -> Engine:
     return engine
 
 
-__all__ = ["Base", "build_engine"]
+__all__ = ["build_engine"]

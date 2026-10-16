@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy.engine import Engine
 
 from erp.config import paths as app_paths
-from erp.config.logging_config import configure_logging
+from erp.config.logging_config import setup_logging
 from erp.shared.infrastructure.database.engine import build_engine
 from erp.shared.infrastructure.database.migrations import run_migrations
 
@@ -25,10 +25,10 @@ class AppContext:
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     """Initialise logging, paths, database engine and run migrations."""
-    resolved_data_dir = data_dir or app_paths.data_dir()
+    resolved_data_dir = data_dir or app_paths.get_data_dir()
     resolved_data_dir.mkdir(parents=True, exist_ok=True)
 
-    configure_logging(log_dir=app_paths.log_dir())
+    setup_logging()
     _logger.info("Starting ERP bootstrap (data_dir=%s)", resolved_data_dir)
 
     db_path = resolved_data_dir / "erp.db"
