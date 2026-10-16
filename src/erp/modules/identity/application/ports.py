@@ -1,0 +1,29 @@
+"""Ports (interfaces) for identity application layer."""
+
+from __future__ import annotations
+
+from typing import Protocol, runtime_checkable
+
+from erp.modules.identity.domain.permission import Permission
+from erp.modules.identity.domain.role import Role
+from erp.modules.identity.domain.user import User
+
+
+@runtime_checkable
+class UserRepository(Protocol):
+    """Repository port for User aggregates."""
+
+    def add(self, user: User) -> None: ...
+    def get_by_id(self, user_id: int) -> User | None: ...
+    def get_by_username(self, username: str) -> User | None: ...
+    def get_roles(self, user: User) -> list[Role]: ...
+    def get_permissions(self, user: User) -> list[Permission]: ...
+    def save(self, user: User) -> None: ...
+
+
+@runtime_checkable
+class PasswordHasher(Protocol):
+    """Password hashing port."""
+
+    def hash(self, password: str) -> str: ...
+    def verify(self, password: str, password_hash: str) -> bool: ...

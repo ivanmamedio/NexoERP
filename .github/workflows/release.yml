@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "uv"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --all-groups --dev --group build
+
+      - name: Build with PyInstaller (onedir)
+        run: |
+          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
+
+      - name: Create Linux AppImage
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          # AppImage requires appimagetool; install if missing
+          if [ ! -f ./appimagetool ]; then
+            wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+            chmod +x appimagetool
+          fi
+
+          mkdir -p AppDir/usr/bin
+          cp -r dist/ubuntu-22.04/ERP/* AppDir/usr/bin/
+          cp packaging/linux/erp.desktop AppDir/erp.desktop
+          cp packaging/linux/erp.desktop AppDir/usr/share/applications/erp.desktop
+
+          # Create AppRun
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          exec "$(dirname "$0")/usr/bin/ERP" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          ./appimagetool AppDir nexoerp-${{ github.ref_name }}-x86_64.AppImage
+
+      - name: Create .deb with nfpm
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          if [ ! -f ./nfpm ]; then
+            wget "https://github.com/goreleaser/nfpm/releases/download/v2/v2_$(uname -s)_$(uname -m).tar.gz" -O nfpm.tar.gz
+            tar xzf nfpm.tar.gz
+          fi
+
+          ./nfpm package --target dist/nexoerp-${{ github.ref_name }}-amd64.deb --packager deb -f packaging/linux/nfpm.yaml
+
+      - name: Create Windows installer (Inno Setup)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Inno Setup is pre-installed on windows-latest runners
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging/windows/installer.iss
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ matrix.os }}
+          path: |
+            dist/**
+            nexoerp-*.AppImage
+            nexoerp-*.deb
+            NexoERP-Setup.exe
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/**/*
+          draft: false
+          prerelease: false

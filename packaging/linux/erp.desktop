@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=NexoERP
+GenericName=ERP Desktop
+Comment=ERP offline-first para pequenos comércios
+Exec=erp
+Icon=erp
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true
+MimeType=application/x-nexoerp;

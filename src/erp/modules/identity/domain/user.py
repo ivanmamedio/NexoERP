@@ -1,0 +1,41 @@
+"""User entity with password policy and lockout after 5 failed attempts."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from erp.shared.domain.entities import Entity
+
+
+@dataclass(slots=True)
+class User(Entity):
+    """Usuário do sistema com controle de senha e bloqueio por tentativas falhas."""
+
+    username: str = field(default="")
+    password_hash: str = field(default="")
+    must_change_password: bool = field(default=False)
+    failed_login_attempts: int = field(default=0)
+    locked_until: str | None = field(default=None)
+    is_active: bool = field(default=True)
+    company_id: int | None = field(default=None)
+
+    def record_failed_login(self) -> None:
+        """Incrementa tentativas falhas e bloqueia após 5."""
+        self.failed_login_attempts += 1
+        if self.failed_login_attempts >= 5:
+            from datetime import datetime, timedelta
+
+            self.locked_until = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
+
+    def reset_failed_logins(self) -> None:
+        """Zera tentativas falhas após login bem-sucedido."""
+        self.failed_login_attempts = 0
+        self.locked_until = None
+
+    def is_locked(self) -> bool:
+        """Retorna True se o usuário está bloqueado."""
+        if self.locked_until is None:
+            return False
+        from datetime import datetime
+
+        return datetime.utcnow().isoformat() < self.locked_until
