@@ -6,20 +6,14 @@ from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
-from sqlalchemy.types import DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, sessionmaker
 
 from erp.config.paths import get_data_dir
 from erp.shared.infrastructure.database.engine import build_engine
 
 
 class Base(DeclarativeBase):
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    pass
 
 
 def get_engine() -> Engine:

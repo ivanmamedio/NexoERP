@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, clear_mappers
+from typing import Generator
 
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
@@ -19,7 +20,7 @@ from erp.modules.identity.infrastructure.repository import (
 
 
 @pytest.fixture()
-def session() -> Session:
+def session() -> Generator[Session, None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     session = Session(engine)

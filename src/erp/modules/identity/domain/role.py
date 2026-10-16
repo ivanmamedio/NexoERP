@@ -11,6 +11,7 @@ from erp.shared.domain.entities import Entity
 class Role(Entity):
     """Papel de usuário no sistema (ex.: Administrador, Caixa, Financeiro)."""
 
+    id: int | None = field(default=None)
     name: str = field(default="")
     description: str = field(default="")
     is_active: bool = field(default=True)

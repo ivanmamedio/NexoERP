@@ -11,6 +11,7 @@ from erp.shared.domain.entities import Entity
 class User(Entity):
     """Usuário do sistema com controle de senha e bloqueio por tentativas falhas."""
 
+    id: int | None = field(default=None)
     username: str = field(default="")
     password_hash: str = field(default="")
     must_change_password: bool = field(default=False)
