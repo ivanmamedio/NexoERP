@@ -10,7 +10,7 @@ deb:
   architectures:
     - amd64
   contents:
-    - src: dist/onedir/ERP
+    - src: dist/ubuntu-22.04/ERP/ERP
       dst: /usr/bin/erp
     - src: packaging/linux/erp.desktop
       dst: /usr/share/applications/erp.desktop

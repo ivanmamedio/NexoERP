@@ -41,6 +41,7 @@ jobs:
           fi
 
           mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
           cp -r dist/ubuntu-22.04/ERP/* AppDir/usr/bin/
           cp packaging/linux/erp.desktop AppDir/erp.desktop
           cp packaging/linux/erp.desktop AppDir/usr/share/applications/erp.desktop

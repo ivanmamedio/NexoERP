@@ -31,8 +31,8 @@ Name: "portuguese"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "dist/onedir/*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "dist/onedir/{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist/windows-latest/ERP/*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "dist/windows-latest/ERP/{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
