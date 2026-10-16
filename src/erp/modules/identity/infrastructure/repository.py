@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,13 +31,13 @@ class SqlAlchemyUserRepository(UserRepository):
         self._session.flush()
         user.id = model.id
 
-    def get_by_id(self, user_id: int) -> Optional[User]:
+    def get_by_id(self, user_id: int) -> User | None:
         model = self._session.get(UserModel, user_id)
         if model is None:
             return None
         return self._model_to_domain(model)
 
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> User | None:
         stmt = select(UserModel).where(UserModel.username == username)
         model = self._session.execute(stmt).scalar_one_or_none()
         if model is None:
@@ -87,12 +85,17 @@ class SqlAlchemyRoleRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_by_name(self, name: str) -> Optional[Role]:
+    def get_by_name(self, name: str) -> Role | None:
         stmt = select(RoleModel).where(RoleModel.name == name)
         model = self._session.execute(stmt).scalar_one_or_none()
         if model is None:
             return None
-        return Role(id=model.id, name=model.name, description=model.description or "", is_active=model.is_active)
+        return Role(
+            id=model.id,
+            name=model.name,
+            description=model.description or "",
+            is_active=model.is_active,
+        )
 
     def add(self, role: Role) -> None:
         model = RoleModel()
@@ -110,7 +113,7 @@ class SqlAlchemyPermissionRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_by_code(self, code: str) -> Optional[Permission]:
+    def get_by_code(self, code: str) -> Permission | None:
         stmt = select(PermissionModel).where(PermissionModel.code == code)
         model = self._session.execute(stmt).scalar_one_or_none()
         if model is None:

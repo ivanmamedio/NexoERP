@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from erp.modules.identity.domain.permission import Permission
-from erp.modules.identity.domain.user import User
 from erp.modules.identity.application.ports import UserRepository
 
 

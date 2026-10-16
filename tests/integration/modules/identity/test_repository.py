@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, clear_mappers
-from typing import Generator
+from sqlalchemy.orm import Session
 
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
-from erp.modules.identity.infrastructure.models import RoleModel, PermissionModel  # noqa: F401
+from erp.modules.identity.infrastructure.models import (
+    PermissionModel,
+    RoleModel,
+)  # noqa: F401
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
@@ -27,7 +31,6 @@ def session() -> Generator[Session, None, None]:
     session = Session(engine)
     yield session
     session.close()
-    clear_mappers()
 
 
 def test_user_crud(session: Session) -> None:

@@ -1,21 +1,22 @@
 from erp.shared.infrastructure.database import Base
 from .hasher import BcryptHasher
-from .models import UserModel, RoleModel, PermissionModel
+from .models import PermissionModel, RoleModel, UserModel
 from .repository import (
+    SqlAlchemyIdentityUnitOfWork,
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
-from .unit_of_work import SqlAlchemyIdentityUnitOfWork
+from .unit_of_work import SqlAlchemyIdentityUnitOfWork as _UoW  # noqa: F401
 
 __all__ = [
     "Base",
     "BcryptHasher",
-    "UserModel",
-    "RoleModel",
     "PermissionModel",
-    "SqlAlchemyUserRepository",
-    "SqlAlchemyRoleRepository",
-    "SqlAlchemyPermissionRepository",
+    "RoleModel",
     "SqlAlchemyIdentityUnitOfWork",
+    "SqlAlchemyPermissionRepository",
+    "SqlAlchemyRoleRepository",
+    "SqlAlchemyUserRepository",
+    "UserModel",
 ]

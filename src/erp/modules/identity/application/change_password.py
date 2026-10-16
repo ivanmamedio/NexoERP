@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from erp.modules.identity.domain.user import User
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 
 
@@ -36,11 +35,10 @@ class ChangePassword:
         if user is None:
             raise ValueError("Usuário não encontrado")
 
-        if data.current_password is not None:
-            if not self._password_hasher.verify(
-                data.current_password, user.password_hash
-            ):
-                raise ValueError("Senha atual inválida")
+        if data.current_password is not None and not self._password_hasher.verify(
+            data.current_password, user.password_hash
+        ):
+            raise ValueError("Senha atual inválida")
 
         user.password_hash = self._password_hasher.hash(data.new_password)
         user.must_change_password = False

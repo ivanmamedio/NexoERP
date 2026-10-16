@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
-from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 
 
 @dataclass(slots=True, frozen=True)

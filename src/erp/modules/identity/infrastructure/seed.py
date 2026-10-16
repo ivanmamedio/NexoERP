@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-from erp.modules.identity.domain.permission import (
-    ALL_PERMISSIONS,
-    ROLE_PERMISSIONS,
-    Permission,
-)
+from erp.modules.identity.domain.permission import ALL_PERMISSIONS, ROLE_PERMISSIONS
+from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
+from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
-from erp.modules.identity.infrastructure.hasher import BcryptHasher
+from sqlalchemy.orm import Session
 
 
-def seed(*, session, password_hasher: BcryptHasher) -> None:
+def seed(*, session: Session, password_hasher: BcryptHasher) -> None:
     """Popula papéis, permissões e usuário admin inicial."""
     role_repo = SqlAlchemyRoleRepository(session)
     permission_repo = SqlAlchemyPermissionRepository(session)

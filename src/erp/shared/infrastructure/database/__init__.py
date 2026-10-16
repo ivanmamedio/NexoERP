@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import declarative_base, Session, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from erp.config.paths import get_data_dir
 from erp.shared.infrastructure.database.engine import build_engine

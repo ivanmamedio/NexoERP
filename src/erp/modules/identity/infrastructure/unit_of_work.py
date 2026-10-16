@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from erp.modules.identity.infrastructure.repository import (
+    SqlAlchemyPermissionRepository,
+    SqlAlchemyRoleRepository,
+    SqlAlchemyUserRepository,
+)
 from erp.shared.application.ports import UnitOfWork
 from erp.shared.infrastructure.database import get_session_factory
-from erp.modules.identity.infrastructure.repository import (
-    SqlAlchemyUserRepository,
-    SqlAlchemyRoleRepository,
-    SqlAlchemyPermissionRepository,
-)
+from sqlalchemy.orm import Session
 
 
 class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
@@ -17,12 +18,12 @@ class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
     def __init__(self, engine) -> None:
         self._engine = engine
         self._session_factory = get_session_factory(engine)
-        self._session = None
+        self._session: Session | None = None
         self.users: SqlAlchemyUserRepository | None = None
         self.roles: SqlAlchemyRoleRepository | None = None
         self.permissions: SqlAlchemyPermissionRepository | None = None
 
-    def __enter__(self) -> "SqlAlchemyIdentityUnitOfWork":
+    def __enter__(self) -> SqlAlchemyIdentityUnitOfWork:
         self._session = self._session_factory()
         self.users = SqlAlchemyUserRepository(self._session)
         self.roles = SqlAlchemyRoleRepository(self._session)

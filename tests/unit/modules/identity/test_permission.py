@@ -6,9 +6,6 @@ import pytest
 
 from erp.modules.identity.domain.permission import (
     ALL_PERMISSIONS,
-    PERMISSION_CASH_SANGRIA,
-    PERMISSION_PRODUCT_PRICE_UPDATE,
-    PERMISSION_TREASURY_VIEW,
     Permission,
 )
 

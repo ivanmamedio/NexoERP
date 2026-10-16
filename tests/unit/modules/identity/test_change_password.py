@@ -44,7 +44,12 @@ class FakePasswordHasher(PasswordHasher):
 
 
 def test_change_password_with_current_password() -> None:
-    user = User(id=1, username="joao", password_hash="hash(senha_antiga)", is_active=True)
+    user = User(
+        id=1,
+        username="joao",
+        password_hash="hash(senha_antiga)",
+        is_active=True,
+    )
     repo = FakeUserRepository(user)
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher)
@@ -64,7 +69,13 @@ def test_change_password_with_current_password() -> None:
 
 def test_change_password_without_current_password() -> None:
     """Quando current_password é None (primeiro acesso, must_change_password=True)."""
-    user = User(id=1, username="joao", password_hash="hash(temp)", is_active=True, must_change_password=True)
+    user = User(
+        id=1,
+        username="joao",
+        password_hash="hash(temp)",
+        is_active=True,
+        must_change_password=True,
+    )
     repo = FakeUserRepository(user)
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher)
@@ -83,7 +94,12 @@ def test_change_password_without_current_password() -> None:
 
 
 def test_change_password_wrong_current() -> None:
-    user = User(id=1, username="joao", password_hash="hash(senha_antiga)", is_active=True)
+    user = User(
+        id=1,
+        username="joao",
+        password_hash="hash(senha_antiga)",
+        is_active=True,
+    )
     repo = FakeUserRepository(user)
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher)

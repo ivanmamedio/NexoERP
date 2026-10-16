@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from erp.modules.identity.domain.user import User
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 
 

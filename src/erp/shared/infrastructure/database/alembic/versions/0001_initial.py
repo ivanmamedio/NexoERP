@@ -1,4 +1,4 @@
-"""Initial empty migration.
+"""Create initial schema
 
 Revision ID: 0001_initial
 Revises:
@@ -6,8 +6,8 @@ Create Date: 2024-01-01 00:00:00.000000
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "0001_initial"
@@ -17,8 +17,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    pass
+    op.create_table(
+        "alembic_version",
+        sa.Column("version_num", sa.String(length=32), nullable=False),
+        sa.PrimaryKeyConstraint("version_num"),
+    )
 
 
 def downgrade() -> None:
-    pass
+    op.drop_table("alembic_version")

@@ -55,28 +55,34 @@ ALL_PERMISSIONS: frozenset[Permission] = frozenset(
 
 # Permissões por papel (seed)
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
-    "Administrador": {p.code for p in ALL_PERMISSIONS},
-    "Gerente": {
-        "product.price.update",
-        "treasury.view",
-        "cash.sangria",
-        "sale.discount",
-        "sale.cancel",
-        "user.manage",
-        "company.manage",
-        "catalog.manage",
-        "cash.open_close",
-        "receipt.print",
-        "reports.view",
-    },
-    "Caixa": {
-        "sale.discount",
-        "sale.cancel",
-        "cash.open_close",
-        "receipt.print",
-    },
-    "Financeiro": {
-        "treasury.view",
-        "reports.view",
-    },
+    "Administrador": frozenset({p.code for p in ALL_PERMISSIONS}),
+    "Gerente": frozenset(
+        {
+            "product.price.update",
+            "treasury.view",
+            "cash.sangria",
+            "sale.discount",
+            "sale.cancel",
+            "user.manage",
+            "company.manage",
+            "catalog.manage",
+            "cash.open_close",
+            "receipt.print",
+            "reports.view",
+        }
+    ),
+    "Caixa": frozenset(
+        {
+            "sale.discount",
+            "sale.cancel",
+            "cash.open_close",
+            "receipt.print",
+        }
+    ),
+    "Financeiro": frozenset(
+        {
+            "treasury.view",
+            "reports.view",
+        }
+    ),
 }

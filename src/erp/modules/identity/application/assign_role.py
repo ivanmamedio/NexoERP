@@ -5,9 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from erp.modules.identity.domain.role import Role
-from erp.modules.identity.domain.user import User
 from erp.modules.identity.application.ports import UserRepository
+from erp.modules.identity.domain.role import Role
 
 
 @dataclass(slots=True, frozen=True)
