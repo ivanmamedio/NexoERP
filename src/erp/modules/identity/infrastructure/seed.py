@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from erp.modules.identity.domain.permission import ALL_PERMISSIONS, ROLE_PERMISSIONS
-from erp.modules.identity.domain.permission import Permission
+from sqlalchemy.orm import Session
+
+from erp.modules.identity.domain.permission import ALL_PERMISSIONS, ROLE_PERMISSIONS, Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
@@ -12,7 +13,6 @@ from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
-from sqlalchemy.orm import Session
 
 
 def seed(*, session: Session, password_hasher: BcryptHasher) -> None:

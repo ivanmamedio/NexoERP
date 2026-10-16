@@ -1,13 +1,19 @@
 """SQLAlchemy models for identity module."""
 
 from datetime import datetime
-from typing import List
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from erp.shared.infrastructure.database import Base
-
 
 # Tabela de associação many-to-many: role <-> permission
 role_permission = Table(
@@ -45,7 +51,7 @@ class UserModel(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    roles: Mapped[List["RoleModel"]] = relationship(
+    roles: Mapped[list["RoleModel"]] = relationship(
         secondary=user_company_role, back_populates="users"
     )
 
@@ -64,10 +70,10 @@ class RoleModel(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    users: Mapped[List["UserModel"]] = relationship(
+    users: Mapped[list["UserModel"]] = relationship(
         secondary=user_company_role, back_populates="roles"
     )
-    permissions: Mapped[List["PermissionModel"]] = relationship(
+    permissions: Mapped[list["PermissionModel"]] = relationship(
         secondary=role_permission, back_populates="roles"
     )
 
@@ -84,6 +90,6 @@ class PermissionModel(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    roles: Mapped[List["RoleModel"]] = relationship(
+    roles: Mapped[list["RoleModel"]] = relationship(
         secondary=role_permission, back_populates="permissions"
     )

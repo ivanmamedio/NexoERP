@@ -12,10 +12,6 @@ from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
-from erp.modules.identity.infrastructure.models import (
-    PermissionModel,
-    RoleModel,
-)  # noqa: F401
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,

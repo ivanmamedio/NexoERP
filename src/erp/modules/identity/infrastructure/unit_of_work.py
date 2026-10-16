@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.orm import Session
+
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
@@ -9,7 +11,6 @@ from erp.modules.identity.infrastructure.repository import (
 )
 from erp.shared.application.ports import UnitOfWork
 from erp.shared.infrastructure.database import get_session_factory
-from sqlalchemy.orm import Session
 
 
 class SqlAlchemyIdentityUnitOfWork(UnitOfWork):

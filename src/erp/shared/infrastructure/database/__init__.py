@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from erp.config.paths import get_data_dir
 from erp.shared.infrastructure.database.engine import build_engine
 
-
 Base = declarative_base()
 
 

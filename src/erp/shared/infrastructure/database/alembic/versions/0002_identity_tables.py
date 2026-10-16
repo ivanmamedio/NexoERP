@@ -5,12 +5,11 @@ Revises: 0001_initial
 Create Date: 2024-01-02 00:00:00.000000
 """
 from __future__ import annotations
-from alembic import op
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "0002_identity_tables"
