@@ -11,12 +11,13 @@ from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
-from erp.modules.identity.infrastructure.models import Base
+from erp.modules.identity.infrastructure.models import RoleModel, PermissionModel  # noqa: F401
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
+from erp.shared.infrastructure.database import Base
 
 
 @pytest.fixture()

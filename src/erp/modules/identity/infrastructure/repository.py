@@ -21,15 +21,14 @@ class SqlAlchemyUserRepository(UserRepository):
         self._session = session
 
     def add(self, user: User) -> None:
-        model = UserModel(
-            username=user.username,
-            password_hash=user.password_hash,
-            must_change_password=user.must_change_password,
-            failed_login_attempts=user.failed_login_attempts,
-            locked_until=user.locked_until,
-            is_active=user.is_active,
-            company_id=user.company_id,
-        )
+        model = UserModel()
+        model.username = user.username
+        model.password_hash = user.password_hash
+        model.must_change_password = user.must_change_password
+        model.failed_login_attempts = user.failed_login_attempts
+        model.locked_until = user.locked_until
+        model.is_active = user.is_active
+        model.company_id = user.company_id
         self._session.add(model)
         self._session.flush()
         user.id = model.id
@@ -96,11 +95,10 @@ class SqlAlchemyRoleRepository:
         return Role(id=model.id, name=model.name, description=model.description or "", is_active=model.is_active)
 
     def add(self, role: Role) -> None:
-        model = RoleModel(
-            name=role.name,
-            description=role.description,
-            is_active=role.is_active,
-        )
+        model = RoleModel()
+        model.name = role.name
+        model.description = role.description
+        model.is_active = role.is_active
         self._session.add(model)
         self._session.flush()
         role.id = model.id
@@ -125,6 +123,7 @@ class SqlAlchemyPermissionRepository:
         return [Permission(code=m.code) for m in models]
 
     def add(self, permission: Permission) -> None:
-        model = PermissionModel(code=permission.code)
+        model = PermissionModel()
+        model.code = permission.code
         self._session.add(model)
         self._session.flush()
