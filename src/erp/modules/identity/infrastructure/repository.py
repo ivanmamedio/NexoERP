@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
 from erp.modules.identity.application.ports import UserRepository
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
-from erp.modules.identity.infrastructure.models import PermissionModel, RoleModel, UserModel, role_permission
+from erp.modules.identity.infrastructure.models import (
+    PermissionModel,
+    RoleModel,
+    UserModel,
+    role_permission,
+)
 
 
 class SqlAlchemyUserRepository(UserRepository):
@@ -108,8 +113,6 @@ class SqlAlchemyRoleRepository:
 
     def add_permission_to_role(self, role_name: str, permission_code: str) -> None:
         """Associa uma permissão a um papel na tabela role_permissions."""
-        from sqlalchemy import insert, select
-
         role_model = self._session.execute(
             select(RoleModel).where(RoleModel.name == role_name)
         ).scalar_one_or_none()
@@ -121,11 +124,11 @@ class SqlAlchemyRoleRepository:
             return
 
         existing = self._session.execute(
-            select(role_permission).where(
+            select(role_permission.c.role_id).where(
                 role_permission.c.role_id == role_model.id,
                 role_permission.c.permission_id == perm_model.id,
             )
-        ).scalar_one_or_none()
+        ).first()
         if existing is not None:
             return
 

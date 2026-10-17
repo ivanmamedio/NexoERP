@@ -7,7 +7,7 @@ from .repository import (
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
-from .unit_of_work import SqlAlchemyIdentityUnitOfWork as _UoW  # noqa: F401
+from .unit_of_work import SqlAlchemyIdentityUnitOfWork
 
 __all__ = [
     "Base",

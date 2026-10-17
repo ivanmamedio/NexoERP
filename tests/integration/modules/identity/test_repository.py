@@ -3,21 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
-from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
+from erp.modules.identity.infrastructure.models import (
+    PermissionModel,
+    RoleModel,
+    role_permission,
+)
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
+from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.shared.infrastructure.database import Base
 
 
@@ -100,23 +106,24 @@ def test_role_permission_persistence(session: Session) -> None:
     perm_repo.add(perm)
 
     role_repo.add_permission_to_role("Caixa", "product.price.update")
+    # Segunda chamada deve ser idempotente (não duplica a associação)
+    role_repo.add_permission_to_role("Caixa", "product.price.update")
     session.commit()
 
     # Verificar que a associação existe (recuperar papel e verificar permissão)
     saved_role = role_repo.get_by_name("Caixa")
     assert saved_role is not None
 
-    # A associação deve estar no banco (verificar via query direta)
-    from erp.modules.identity.infrastructure.models import role_permission
-    from sqlalchemy import select
+    permission_id = session.execute(
+        select(PermissionModel.id).where(PermissionModel.code == "product.price.update")
+    ).scalar_one()
 
-    result = session.execute(
-        select(role_permission).where(
-            role_permission.c.role_id == saved_role.id,
-        )
-    ).scalars().all()
-    assert len(result) == 1
-    assert result[0].permission_id is not None
+    # A associação deve estar no banco (query direta: .all() devolve Rows, não escalares)
+    rows = session.execute(
+        select(role_permission).where(role_permission.c.role_id == saved_role.id)
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].permission_id == permission_id
 
 
 def test_seed_idempotent(session: Session) -> None:
@@ -177,6 +184,32 @@ def test_user_lockout_before_during_after(session: Session) -> None:
     assert user.locked_until is not None
 
     # Simular expiração do bloqueio (definir locked_until no passado)
-    from datetime import datetime, timezone, timedelta
-    user.locked_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+    user.locked_until = datetime.now(UTC) - timedelta(minutes=1)
     assert user.is_locked() is False  # Depois do prazo: desbloqueado
+
+
+def test_locked_until_roundtrip_is_timezone_aware(session: Session) -> None:
+    """locked_until lido do banco deve ser aware, senão is_locked() levanta TypeError."""
+    repo = SqlAlchemyUserRepository(session)
+    user = User(username="bloqueado", password_hash="hash123")
+    for _ in range(5):
+        user.record_failed_login()
+    repo.add(user)
+    session.commit()
+    session.expire_all()  # força a releitura do banco
+
+    loaded = repo.get_by_username("bloqueado")
+    assert loaded is not None
+    assert loaded.locked_until is not None
+    assert loaded.locked_until.tzinfo is not None
+    assert loaded.is_locked() is True
+
+
+def test_created_at_is_generated_per_row(session: Session) -> None:
+    """created_at deve ser calculado no INSERT, não uma única vez na importação."""
+    before = datetime.now(UTC)
+    SqlAlchemyRoleRepository(session).add(Role(name="Auditoria"))
+    after = datetime.now(UTC)
+
+    model = session.execute(select(RoleModel).where(RoleModel.name == "Auditoria")).scalar_one()
+    assert before <= model.created_at <= after
