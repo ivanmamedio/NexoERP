@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from erp.modules.identity.infrastructure.repository import (
@@ -16,11 +17,10 @@ from erp.shared.infrastructure.database import get_session_factory
 class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
     """Unit of Work implementation using SQLAlchemy session."""
 
-    def __init__(self, engine) -> None:
-        from sqlalchemy.engine import Engine
+    def __init__(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
             raise TypeError("engine must be a SQLAlchemy Engine instance")
-        self._engine = engine
+        self._engine: Engine = engine
         self._session_factory = get_session_factory(engine)
         self._session: Session | None = None
         self.users: SqlAlchemyUserRepository | None = None

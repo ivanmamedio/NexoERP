@@ -1,6 +1,6 @@
 """SQLAlchemy models for identity module."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
@@ -45,10 +45,13 @@ class UserModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     company_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), nullable=False
+        DateTime, default=datetime.now(timezone.utc), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), onupdate=datetime.now(datetime.UTC), nullable=False
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
     )
 
     roles: Mapped[list["RoleModel"]] = relationship(
@@ -64,10 +67,13 @@ class RoleModel(Base):
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), nullable=False
+        DateTime, default=datetime.now(timezone.utc), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), onupdate=datetime.now(datetime.UTC), nullable=False
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
     )
 
     users: Mapped[list["UserModel"]] = relationship(
@@ -84,10 +90,13 @@ class PermissionModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), nullable=False
+        DateTime, default=datetime.now(timezone.utc), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(datetime.UTC), onupdate=datetime.now(datetime.UTC), nullable=False
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
     )
 
     roles: Mapped[list["RoleModel"]] = relationship(

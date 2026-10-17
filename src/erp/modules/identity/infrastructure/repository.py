@@ -9,7 +9,7 @@ from erp.modules.identity.application.ports import UserRepository
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
-from erp.modules.identity.infrastructure.models import PermissionModel, RoleModel, UserModel
+from erp.modules.identity.infrastructure.models import PermissionModel, RoleModel, UserModel, role_permission
 
 
 class SqlAlchemyUserRepository(UserRepository):

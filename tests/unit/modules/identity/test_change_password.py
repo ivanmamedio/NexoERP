@@ -9,6 +9,8 @@ from erp.modules.identity.application.change_password import (
     ChangePasswordInput,
 )
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
+from erp.modules.identity.domain.permission import Permission
+from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 
 
@@ -25,10 +27,10 @@ class FakeUserRepository(UserRepository):
     def get_by_username(self, username: str) -> User | None:
         return self._user
 
-    def get_roles(self, user: User) -> list:
+    def get_roles(self, user: User) -> list[Role]:
         return []
 
-    def get_permissions(self, user: User) -> list:
+    def get_permissions(self, user: User) -> list[Permission]:
         return []
 
     def save(self, user: User) -> None:

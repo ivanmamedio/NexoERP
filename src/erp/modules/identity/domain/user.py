@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 from erp.shared.domain.entities import Entity
 
@@ -24,9 +25,7 @@ class User(Entity):
         """Incrementa tentativas falhas e bloqueia após 5."""
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= 5:
-            from datetime import datetime, timedelta
-
-            self.locked_until = datetime.now(datetime.UTC) + timedelta(minutes=30)
+            self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
 
     def reset_failed_logins(self) -> None:
         """Zera tentativas falhas após login bem-sucedido."""
@@ -37,6 +36,4 @@ class User(Entity):
         """Retorna True se o usuário está bloqueado."""
         if self.locked_until is None:
             return False
-        from datetime import datetime
-
-        return datetime.now(datetime.UTC) < self.locked_until
+        return datetime.now(timezone.utc) < self.locked_until

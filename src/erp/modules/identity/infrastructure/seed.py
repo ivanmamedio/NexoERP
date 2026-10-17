@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -57,7 +56,7 @@ def create_first_admin(
     password_hasher: BcryptHasher,
     username: str,
     password: str,
-) -> Optional[User]:
+) -> User | None:
     """Cria o primeiro usuário administrador, se ainda não existir.
 
     Não recria nem redefine a senha se o usuário já existe.
@@ -80,7 +79,7 @@ def create_first_admin(
     return admin_user
 
 
-def get_admin_seed_password() -> Optional[str]:
+def get_admin_seed_password() -> str | None:
     """Lê a senha de seed do admin de variável de ambiente, se configurada.
 
     Não é usada automaticamente. Apenas disponível para scripts de
