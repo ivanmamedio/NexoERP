@@ -14,6 +14,7 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
@@ -32,6 +33,7 @@ class AppContext:
     db_path: Path
     companies_services: CompaniesServices | None = None
     audit_services: AuditService | None = None
+    catalog_services: SqlAlchemyCatalogServices | None = None
     event_bus: EventBus | None = None
 
 
@@ -73,11 +75,19 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     audit_services = AuditService(engine)
     AuditEventSubscriber(event_bus=event_bus, audit_service=audit_services)
 
+    # Catalog services (permissions are checked per-use-case; no logged-in user yet)
+    catalog_services = SqlAlchemyCatalogServices(
+        engine=engine,
+        event_bus=event_bus,
+        user_permissions=set(),
+    )
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
         db_path=db_path,
         companies_services=CompaniesServices(engine),
         audit_services=audit_services,
+        catalog_services=catalog_services,
         event_bus=event_bus,
     )
