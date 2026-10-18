@@ -18,6 +18,7 @@ from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
+from erp.modules.pricing.application.services import PricingServices
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
 from erp.shared.infrastructure.database.migrations import run_migrations
@@ -34,6 +35,7 @@ class AppContext:
     companies_services: CompaniesServices | None = None
     audit_services: AuditService | None = None
     catalog_services: SqlAlchemyCatalogServices | None = None
+    pricing_services: PricingServices | None = None
     event_bus: EventBus | None = None
 
 
@@ -82,6 +84,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         user_permissions=set(),
     )
 
+    # Pricing services
+    pricing_services = PricingServices(engine=engine, catalog_services=catalog_services)
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -89,5 +94,6 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         companies_services=CompaniesServices(engine),
         audit_services=audit_services,
         catalog_services=catalog_services,
+        pricing_services=pricing_services,
         event_bus=event_bus,
     )
