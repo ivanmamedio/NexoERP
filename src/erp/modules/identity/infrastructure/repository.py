@@ -50,6 +50,11 @@ class SqlAlchemyUserRepository(UserRepository):
             return None
         return self._model_to_domain(model)
 
+    def list_all(self) -> list[User]:
+        stmt = select(UserModel).order_by(UserModel.username)
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
     def get_roles(self, user: User) -> list[Role]:
         if user.id is None:
             return []
@@ -154,6 +159,27 @@ class SqlAlchemyRoleRepository:
             description=model.description or "",
             is_active=model.is_active,
         )
+
+    def list_all(self) -> list[Role]:
+        stmt = select(RoleModel).order_by(RoleModel.name)
+        models = self._session.execute(stmt).scalars().all()
+        return [
+            Role(
+                id=m.id,
+                name=m.name,
+                description=m.description or "",
+                is_active=m.is_active,
+            )
+            for m in models
+        ]
+
+    def get_permissions(self, role: Role) -> list[Permission]:
+        if role.id is None:
+            return []
+        model = self._session.get(RoleModel, role.id)
+        if model is None:
+            return []
+        return [Permission(code=p.code) for p in model.permissions]
 
     def add(self, role: Role) -> None:
         model = RoleModel()

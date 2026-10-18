@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from erp.modules.identity.application.permission_gate import PermissionGate
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 from erp.modules.identity.domain.password_policy import validate_password_policy
+from erp.modules.identity.domain.permission import PERMISSION_USER_MANAGE
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 
 
 @dataclass(slots=True, frozen=True)
 class CreateUserInput:
+    actor_id: int
     username: str
     password: str
     role_name: str
@@ -27,21 +30,25 @@ class CreateUserOutput:
 
 
 class CreateUser:
-    """Cria um novo usuário associado a um papel."""
+    """Cria um novo usuário associado a um papel (requer user.manage)."""
 
     def __init__(
         self,
         user_repo: UserRepository,
         password_hasher: PasswordHasher,
+        gate: PermissionGate,
     ) -> None:
         self._user_repo = user_repo
         self._password_hasher = password_hasher
+        self._gate = gate
 
     def execute(
         self,
         data: CreateUserInput,
         role: Role,
     ) -> CreateUserOutput:
+        self._gate.require(data.actor_id, PERMISSION_USER_MANAGE.code)
+
         if self._user_repo.get_by_username(data.username) is not None:
             raise ValueError(f"Usuário '{data.username}' já existe")
 
