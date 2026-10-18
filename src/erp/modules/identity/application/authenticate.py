@@ -17,6 +17,7 @@ class AuthenticateInput:
 class AuthenticateOutput:
     user_id: int
     username: str
+    company_id: int | None
     must_change_password: bool
 
 
@@ -53,5 +54,7 @@ class Authenticate:
         return AuthenticateOutput(
             user_id=user.id or 0,
             username=user.username,
+            company_id=user.company_id,
             must_change_password=user.must_change_password,
         )
+

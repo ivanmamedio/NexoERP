@@ -47,6 +47,7 @@ class LoginPresenter:
 
         self._session.user_id = output.user_id
         self._session.username = output.username
+        self._session.company_id = output.company_id
         self.must_change_password = output.must_change_password
         self._view.accept()
         return True

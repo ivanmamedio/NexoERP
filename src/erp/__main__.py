@@ -24,8 +24,9 @@ from erp.modules.identity.application.services import IdentityServices
 from erp.shared.application.session import CurrentSession
 
 if TYPE_CHECKING:
-    from erp.app.main_window import MainWindow
     from PySide6.QtWidgets import QApplication
+
+    from erp.app.main_window import MainWindow
 
 _logger = logging.getLogger(__name__)
 
@@ -37,11 +38,11 @@ class _AppContextHolder:
 class _App:
     """Orquestra janelas de login, troca de senha e janela principal."""
 
-    def __init__(self, app: "QApplication", services: IdentityServices) -> None:
+    def __init__(self, app: QApplication, services: IdentityServices) -> None:
         self._app = app
         self._services = services
         self._session = CurrentSession()
-        self._main_window: "MainWindow | None" = None
+        self._main_window: MainWindow | None = None
 
     def run(self) -> int:
         while True:

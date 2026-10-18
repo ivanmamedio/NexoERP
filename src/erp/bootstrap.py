@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from erp.config import paths as app_paths
 from erp.config.logging_config import setup_logging
+from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.shared.infrastructure.database.engine import build_engine
@@ -25,6 +26,7 @@ class AppContext:
     engine: Engine
     data_dir: Path
     db_path: Path
+    companies_services: CompaniesServices | None = None
 
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
@@ -57,4 +59,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
             )
             _logger.info("Initial admin ensured for user %r", username)
 
-    return AppContext(engine=engine, data_dir=resolved_data_dir, db_path=db_path)
+    return AppContext(
+        engine=engine,
+        data_dir=resolved_data_dir,
+        db_path=db_path,
+        companies_services=CompaniesServices(engine),
+    )
