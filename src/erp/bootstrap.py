@@ -14,6 +14,7 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.cash.application.services import CashServices
 from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
@@ -36,6 +37,7 @@ class AppContext:
     audit_services: AuditService | None = None
     catalog_services: SqlAlchemyCatalogServices | None = None
     pricing_services: PricingServices | None = None
+    cash_services: CashServices | None = None
     event_bus: EventBus | None = None
 
 
@@ -87,6 +89,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     # Pricing services
     pricing_services = PricingServices(engine=engine, catalog_services=catalog_services)
 
+    # Cash services (permissions are checked per-use-case; no logged-in user yet)
+    cash_services = CashServices(engine=engine)
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -95,5 +100,6 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         audit_services=audit_services,
         catalog_services=catalog_services,
         pricing_services=pricing_services,
+        cash_services=cash_services,
         event_bus=event_bus,
     )
