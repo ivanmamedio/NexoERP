@@ -16,6 +16,7 @@ class FakeUserRepository(UserRepository):
     def __init__(self, user: User | None = None) -> None:
         self._user = user
         self.saved = False
+        self.assigned_role = None
 
     def add(self, user: User) -> None:
         pass
@@ -31,6 +32,9 @@ class FakeUserRepository(UserRepository):
 
     def get_permissions(self, user: User) -> list:
         return []
+
+    def assign_role(self, user: User, role, company_id=None) -> None:
+        self.assigned_role = role
 
     def save(self, user: User) -> None:
         self.saved = True

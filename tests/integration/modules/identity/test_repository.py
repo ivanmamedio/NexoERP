@@ -9,6 +9,10 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
+from erp.modules.identity.application.check_permission import (
+    CheckPermission,
+    CheckPermissionInput,
+)
 from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
@@ -213,3 +217,56 @@ def test_created_at_is_generated_per_row(session: Session) -> None:
 
     model = session.execute(select(RoleModel).where(RoleModel.name == "Auditoria")).scalar_one()
     assert before <= model.created_at <= after
+
+
+def test_caixa_role_permissions_end_to_end(session: Session) -> None:
+    """Regra central da Tarefa 1.1: o Caixa NÃO tem product.price.update
+    nem treasury.view (verificado via CheckPermission real sobre o seed)."""
+    hasher = BcryptHasher()
+    seed(session=session, password_hasher=hasher)
+
+    user_repo = SqlAlchemyUserRepository(session)
+    role_repo = SqlAlchemyRoleRepository(session)
+
+    caixa_role = role_repo.get_by_name("Caixa")
+    assert caixa_role is not None
+
+    user = User(username="ops_caixa", password_hash="h", is_active=True)
+    user_repo.add(user)
+    user_repo.assign_role(user, caixa_role)
+    session.commit()
+
+    check = CheckPermission(user_repo)
+    result = check.execute(
+        CheckPermissionInput(user_id=user.id, permission_code="product.price.update")
+    )
+    assert result.has_permission is False
+
+    result = check.execute(
+        CheckPermissionInput(user_id=user.id, permission_code="treasury.view")
+    )
+    assert result.has_permission is False
+
+
+def test_admin_role_has_all_permissions_end_to_end(session: Session) -> None:
+    """Administrador (via create_first_admin) tem todas as permissões do seed."""
+    hasher = BcryptHasher()
+    seed(session=session, password_hasher=hasher)
+
+    admin = create_first_admin(
+        session=session,
+        password_hasher=hasher,
+        username="admin",
+        password="senha_segura_123",
+    )
+    assert admin is not None
+    session.commit()
+
+    user_repo = SqlAlchemyUserRepository(session)
+    check = CheckPermission(user_repo)
+
+    for code in ("product.price.update", "treasury.view", "backup.manage"):
+        result = check.execute(
+            CheckPermissionInput(user_id=admin.id, permission_code=code)
+        )
+        assert result.has_permission is True, f"admin deveria ter {code}"

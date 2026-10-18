@@ -17,6 +17,7 @@ class FakeUserRepository(UserRepository):
     def __init__(self) -> None:
         self._users: dict[str, User] = {}
         self._next_id = 1
+        self.assigned_roles: dict[int, Role] = {}
 
     def add(self, user: User) -> None:
         if user.username in self._users:
@@ -39,6 +40,9 @@ class FakeUserRepository(UserRepository):
 
     def get_permissions(self, user: User) -> list:
         return []
+
+    def assign_role(self, user: User, role, company_id=None) -> None:
+        self.assigned_roles[user.id] = role
 
     def save(self, user: User) -> None:
         self._users[user.username] = user

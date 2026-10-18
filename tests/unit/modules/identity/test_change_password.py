@@ -33,6 +33,9 @@ class FakeUserRepository(UserRepository):
     def get_permissions(self, user: User) -> list[Permission]:
         return []
 
+    def assign_role(self, user: User, role, company_id=None) -> None:
+        pass
+
     def save(self, user: User) -> None:
         self._user = user
 
@@ -49,7 +52,7 @@ def test_change_password_with_current_password() -> None:
     user = User(
         id=1,
         username="joao",
-        password_hash="hash(senha_antiga)",
+        password_hash="hash(senha_antiga1)",
         is_active=True,
     )
     repo = FakeUserRepository(user)
@@ -59,13 +62,13 @@ def test_change_password_with_current_password() -> None:
     result = uc.execute(
         ChangePasswordInput(
             user_id=1,
-            current_password="senha_antiga",
-            new_password="senha_nova",
+            current_password="senha_antiga1",
+            new_password="senha_nova1",
         )
     )
 
     assert result.user_id == 1
-    assert user.password_hash == "hash(senha_nova)"
+    assert user.password_hash == "hash(senha_nova1)"
     assert user.must_change_password is False
 
 
@@ -86,12 +89,12 @@ def test_change_password_without_current_password() -> None:
         ChangePasswordInput(
             user_id=1,
             current_password=None,
-            new_password="senha_nova",
+            new_password="senha_nova1",
         )
     )
 
     assert result.user_id == 1
-    assert user.password_hash == "hash(senha_nova)"
+    assert user.password_hash == "hash(senha_nova1)"
     assert user.must_change_password is False
 
 
@@ -99,7 +102,7 @@ def test_change_password_wrong_current() -> None:
     user = User(
         id=1,
         username="joao",
-        password_hash="hash(senha_antiga)",
+        password_hash="hash(senha_antiga1)",
         is_active=True,
     )
     repo = FakeUserRepository(user)
@@ -111,7 +114,7 @@ def test_change_password_wrong_current() -> None:
             ChangePasswordInput(
                 user_id=1,
                 current_password="senha_errada",
-                new_password="senha_nova",
+                new_password="senha_nova1",
             )
         )
 

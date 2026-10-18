@@ -14,6 +14,7 @@ from erp.modules.identity.infrastructure.models import (
     RoleModel,
     UserModel,
     role_permission,
+    user_company_role,
 )
 
 
@@ -50,12 +51,64 @@ class SqlAlchemyUserRepository(UserRepository):
         return self._model_to_domain(model)
 
     def get_roles(self, user: User) -> list[Role]:
-        # Implementação simplificada - retorna vazio
-        return []
+        if user.id is None:
+            return []
+        model = self._session.get(UserModel, user.id)
+        if model is None:
+            return []
+        return [
+            Role(
+                id=r.id,
+                name=r.name,
+                description=r.description or "",
+                is_active=r.is_active,
+            )
+            for r in model.roles
+            if r.is_active
+        ]
 
     def get_permissions(self, user: User) -> list[Permission]:
-        # Implementação simplificada - retorna vazio
-        return []
+        if user.id is None:
+            return []
+        model = self._session.get(UserModel, user.id)
+        if model is None:
+            return []
+        seen: set[str] = set()
+        permissions: list[Permission] = []
+        for role in model.roles:
+            if not role.is_active:
+                continue
+            for perm in role.permissions:
+                if perm.code in seen:
+                    continue
+                seen.add(perm.code)
+                permissions.append(Permission(code=perm.code))
+        return permissions
+
+    def assign_role(
+        self, user: User, role: Role, company_id: int | None = None
+    ) -> None:
+        if user.id is None:
+            raise ValueError("User must be persisted before assigning a role")
+        if role.id is None:
+            raise ValueError("Role must be persisted before assigning")
+
+        # Idempotente: não duplica vínculo user-role já existente
+        existing = self._session.execute(
+            select(user_company_role).where(
+                user_company_role.c.user_id == user.id,
+                user_company_role.c.role_id == role.id,
+            )
+        ).first()
+        if existing is not None:
+            return
+
+        self._session.execute(
+            insert(user_company_role).values(
+                user_id=user.id, role_id=role.id, company_id=company_id
+            )
+        )
+        self._session.flush()
 
     def save(self, user: User) -> None:
         stmt = select(UserModel).where(UserModel.id == user.id)

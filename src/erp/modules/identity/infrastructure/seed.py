@@ -63,6 +63,7 @@ def create_first_admin(
     Não grava senha em texto puro em nenhum log ou arquivo.
     """
     user_repo = SqlAlchemyUserRepository(session)
+    role_repo = SqlAlchemyRoleRepository(session)
 
     existing = user_repo.get_by_username(username)
     if existing is not None:
@@ -75,6 +76,12 @@ def create_first_admin(
         is_active=True,
     )
     user_repo.add(admin_user)
+
+    # Vincula o papel Administrador (necessário para o admin ter permissões)
+    admin_role = role_repo.get_by_name("Administrador")
+    if admin_role is not None:
+        user_repo.assign_role(admin_user, admin_role)
+
     session.commit()
     return admin_user
 

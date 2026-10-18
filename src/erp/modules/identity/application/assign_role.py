@@ -13,6 +13,7 @@ from erp.modules.identity.domain.role import Role
 class AssignRoleInput:
     user_id: int
     role_name: str
+    company_id: int | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -45,7 +46,10 @@ class AssignRole:
         if role is None:
             raise ValueError(f"Papel '{data.role_name}' não encontrado")
 
-        # A associação user-role é feita pelo repositório concreto
+        # Persiste o vínculo user-role (gravação real no repositório)
+        self._user_repo.assign_role(
+            user, role, company_id=data.company_id or user.company_id
+        )
         self._user_repo.save(user)
 
         return AssignRoleOutput(

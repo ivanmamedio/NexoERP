@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
+from erp.modules.identity.domain.password_policy import validate_password_policy
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 
@@ -44,6 +45,7 @@ class CreateUser:
         if self._user_repo.get_by_username(data.username) is not None:
             raise ValueError(f"Usuário '{data.username}' já existe")
 
+        validate_password_policy(data.password)
         password_hash = self._password_hasher.hash(data.password)
 
         user = User(
@@ -53,6 +55,7 @@ class CreateUser:
             company_id=data.company_id,
         )
         self._user_repo.add(user)
+        self._user_repo.assign_role(user, role, company_id=data.company_id)
         self._user_repo.save(user)
 
         return CreateUserOutput(

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
+from erp.modules.identity.domain.password_policy import validate_password_policy
 
 
 @dataclass(slots=True, frozen=True)
@@ -40,6 +41,7 @@ class ChangePassword:
         ):
             raise ValueError("Senha atual inválida")
 
+        validate_password_policy(data.new_password)
         user.password_hash = self._password_hasher.hash(data.new_password)
         user.must_change_password = False
         user.reset_failed_logins()
