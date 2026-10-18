@@ -71,16 +71,63 @@ uv run import-linter lint
 
 ## Build e empacotamento
 
+### Testar o build do PyInstaller localmente
+
 ```bash
-# Build com PyInstaller
-uv run pyinstaller packaging/pyinstaller.spec --distpath dist/linux
+# 1. Instalar o grupo de dependencias de build (PyInstaller)
+uv sync --group build
 
-# Pacote .deb (Linux)
-./nfpm package --target dist/nexoerp-v0.1.0-amd64.deb --packager deb -f packaging/linux/nfpm.yaml
+# 2. Gerar o build onedir (sai em dist/ERP/ERP + dist/ERP/_internal/)
+uv run pyinstaller packaging/pyinstaller.spec
 
-# Instalador Windows (apenas no Windows)
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging/windows/installer.iss
+# 3. Executar o binario empacotado
+./dist/ERP/ERP                # Linux
+dist\ERP\ERP.exe              # Windows
+
+# 3b. Smoke test headless (sem UI): valida bootstrap + migracoes no bundle
+env -u DISPLAY XDG_DATA_HOME=/tmp/erp-frozen-test ./dist/ERP/ERP
+# Esperado: exit code 0 e banco criado em /tmp/erp-frozen-test/NexoERP/erp.db
+# (o app detecta ausencia de DISPLAY, roda o bootstrap e sai sem abrir janela)
 ```
+
+O mesmo comando serve para validar após qualquer alteração de dependência.
+Se o bundle falhar com "Database migration failed", verifique se o
+diretório `alembic/` está presente em `dist/ERP/_internal/erp/shared/infrastructure/database/`
+(incluído via `datas` no `packaging/pyinstaller.spec`).
+
+### Gerar pacotes Linux (AppImage e .deb) localmente
+
+```bash
+# Build na mesma estrutura usada pelo CI
+uv run pyinstaller packaging/pyinstaller.spec --distpath dist/ubuntu-22.04
+
+# .deb com nfpm (baixar o binario em https://github.com/goreleaser/nfpm/releases)
+VERSION=0.1.0
+sed "s/__VERSION__/${VERSION}/" packaging/linux/nfpm.yaml > /tmp/nfpm.rendered.yaml
+nfpm package --config /tmp/nfpm.rendered.yaml --packager deb --target dist/nexoerp-${VERSION}-amd64.deb
+
+# AppImage (baixar appimagetool em https://github.com/AppImage/AppImageKit/releases)
+mkdir -p AppDir/usr/bin
+cp -r dist/ubuntu-22.04/ERP/* AppDir/usr/bin/
+cp packaging/linux/erp.desktop AppDir/erp.desktop
+cp packaging/linux/icons/erp.png AppDir/erp.png
+printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/usr/bin/ERP" "$@"' > AppDir/AppRun
+chmod +x AppDir/AppRun
+./appimagetool AppDir nexoerp-${VERSION}-x86_64.AppImage
+```
+
+### Instalador Windows
+
+```powershell
+# Requer Inno Setup 6 e o build gerado com --distpath dist/windows-latest
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\installer.iss
+# Saida: dist/windows/NexoERP-Setup.exe
+```
+
+### CI
+
+- `.github/workflows/ci.yml` — ruff, mypy, import-linter e pytest em `ubuntu-22.04` e `windows-latest` (push/PR para `main`).
+- `.github/workflows/release.yml` — dispara em tag `v*`, gera `.exe` (Inno Setup), AppImage e `.deb`, e publica no GitHub Releases.
 
 ## Limitações conhecidas
 

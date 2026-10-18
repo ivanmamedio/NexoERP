@@ -1,32 +1,41 @@
-deb:
-  name: nexoerp
-  description: "ERP offline-first para pequenos comércios"
-  maintainer: "NexoERP <contato@nexoerp.com>"
-  vendor: "NexoERP"
-  homepage: "https://github.com/ivanmamedio/NexoERP"
-  license: "AGPL-3.0-only"
-  section: "office"
-  priority: "optional"
-  architectures:
-    - amd64
-  contents:
-    - src: dist/ubuntu-22.04/ERP/ERP
-      dst: /usr/bin/erp
-    - src: packaging/linux/erp.desktop
-      dst: /usr/share/applications/erp.desktop
-  depends:
-    - libxcb-icccm4
-    - libxcb-image0
-    - libxcb-keysyms1
-    - libxcb-randr0
-    - libxcb-render-util0
-    - libxcb-shape0
-    - libxcb-shm0
-    - libxcb-xfixes0
-    - libxcb-xinerama0
-    - libxcb-xkb1
-    - libxkbcommon-x11-0
-    - libfontconfig1
-    - libfreetype6
-    - libgl1
-    - libgles2
+# Config nfpm — pacote .deb do NexoERP
+# ATENCAO: o campo 'version' usa o placeholder __VERSION__, substituido no CI:
+#   sed "s/__VERSION__/${VERSION}/" packaging/linux/nfpm.yaml > nfpm.rendered.yaml
+# Schema: https://nfpm.goreleaser.com/docs/configuration/
+name: nexoerp
+arch: amd64
+platform: linux
+version: __VERSION__
+section: office
+priority: optional
+maintainer: "NexoERP <contato@nexoerp.com>"
+description: ERP offline-first para pequenos comercios (build PyInstaller onedir)
+homepage: "https://github.com/ivanmamedio/NexoERP"
+license: "AGPL-3.0-only"
+contents:
+  # App onedir do PyInstaller (binario + _internal/) em /opt/nexoerp
+  - src: dist/ubuntu-22.04/ERP/
+    dst: /opt/nexoerp
+  - src: /opt/nexoerp/ERP
+    dst: /usr/bin/erp
+    type: symlink
+  - src: packaging/linux/erp.desktop
+    dst: /usr/share/applications/erp.desktop
+  - src: packaging/linux/icons/erp.png
+    dst: /usr/share/pixmaps/erp.png
+depends:
+  - libxcb-icccm4
+  - libxcb-image0
+  - libxcb-keysyms1
+  - libxcb-randr0
+  - libxcb-render-util0
+  - libxcb-shape0
+  - libxcb-shm0
+  - libxcb-xfixes0
+  - libxcb-xinerama0
+  - libxcb-xkb1
+  - libxkbcommon-x11-0
+  - libfontconfig1
+  - libfreetype6
+  - libgl1
+  - libgles2

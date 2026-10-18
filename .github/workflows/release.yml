@@ -4,6 +4,9 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -15,61 +18,54 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "uv"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: uv sync --all-groups --dev --group build
+        run: uv sync --group build
 
       - name: Build with PyInstaller (onedir)
-        run: |
-          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
+        run: uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
 
-      - name: Create Linux AppImage
+      - name: Package Linux (AppImage + .deb)
         if: matrix.os == 'ubuntu-22.04'
+        shell: bash
         run: |
-          # AppImage requires appimagetool; install if missing
-          if [ ! -f ./appimagetool ]; then
-            wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
-            chmod +x appimagetool
-          fi
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # --- AppImage ---
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          # Extrair evita depender de FUSE, ausente em runners
+          ./appimagetool --appimage-extract > /dev/null
 
           mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/applications
           cp -r dist/ubuntu-22.04/ERP/* AppDir/usr/bin/
           cp packaging/linux/erp.desktop AppDir/erp.desktop
-          cp packaging/linux/erp.desktop AppDir/usr/share/applications/erp.desktop
-
-          # Create AppRun
-          cat > AppDir/AppRun <<'EOF'
-          #!/bin/sh
-          exec "$(dirname "$0")/usr/bin/ERP" "$@"
-          EOF
+          cp packaging/linux/icons/erp.png AppDir/erp.png
+          printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/usr/bin/ERP" "$@"' > AppDir/AppRun
           chmod +x AppDir/AppRun
 
-          ./appimagetool AppDir nexoerp-${{ github.ref_name }}-x86_64.AppImage
+          ./squashfs-root/AppRun AppDir "nexoerp-${VERSION}-x86_64.AppImage"
 
-      - name: Create .deb with nfpm
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          if [ ! -f ./nfpm ]; then
-            wget "https://github.com/goreleaser/nfpm/releases/download/v2/v2_$(uname -s)_$(uname -m).tar.gz" -O nfpm.tar.gz
-            tar xzf nfpm.tar.gz
-          fi
+          # --- .deb (nfpm versao fixada; URL oficial goreleaser/nfpm) ---
+          NFPM_VERSION=2.48.0
+          wget -q "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" -O nfpm.tar.gz
+          tar xzf nfpm.tar.gz nfpm
+          sed "s/__VERSION__/${VERSION}/" packaging/linux/nfpm.yaml > nfpm.rendered.yaml
+          ./nfpm package --config nfpm.rendered.yaml --packager deb --target "dist/nexoerp-${VERSION}-amd64.deb"
 
-          ./nfpm package --target dist/nexoerp-${{ github.ref_name }}-amd64.deb --packager deb -f packaging/linux/nfpm.yaml
-
-      - name: Create Windows installer (Inno Setup)
+      - name: Package Windows (Inno Setup)
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
-          # Inno Setup is pre-installed on windows-latest runners
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging/windows/installer.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\installer.iss
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -78,12 +74,13 @@ jobs:
           path: |
             dist/**
             nexoerp-*.AppImage
-            nexoerp-*.deb
-            NexoERP-Setup.exe
+          if-no-files-found: error
 
   publish:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -93,7 +90,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release-artifacts/**/*
+          files: release-artifacts/**/*
           draft: false
           prerelease: false

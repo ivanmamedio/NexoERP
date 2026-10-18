@@ -1,7 +1,8 @@
 ; Inno Setup script for NexoERP (Windows)
-; Gerado automaticamente - revisar antes de usar em produção
+; Caminhos relativos sao resolvidos em relacao a este script (packaging/windows/).
 
 #define MyAppName "NexoERP"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "NexoERP"
 #define MyAppURL "https://github.com/ivanmamedio/NexoERP"
 #define MyAppExeName "ERP.exe"
@@ -9,15 +10,17 @@
 [Setup]
 AppId={{875EFFD8-4404-4E6E-898F-8CEC9416F7EA}}
 AppName={#MyAppName}
+AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+; Instalacao por usuario, sem exigir privilegios administrativos
+DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=../../LICENSE
-OutputDir=../../dist/windows
+LicenseFile=..\..\LICENSE
+OutputDir=..\..\dist\windows
 OutputBaseFilename=NexoERP-Setup
 SetupIconFile=icon.ico
 Compression=lzma
@@ -31,12 +34,13 @@ Name: "portuguese"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "dist/windows-latest/ERP/*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "dist/windows-latest/ERP/{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; Build onedir do PyInstaller (gerado por release.yml com --distpath dist/windows-latest)
+Source: "..\..\dist\windows-latest\ERP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{desktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, "&", "&&")}}"; Flags: nowait postinstall skipifsilent
+
