@@ -57,3 +57,22 @@ class UserLoggedIn(DomainEvent):
 
     user_id: int | None = None
     username: str = ""
+
+
+@dataclass(slots=True)
+class SaleCompleted(DomainEvent):
+    """Uma venda foi finalizada.
+
+    Publicado por FinalizeSale. Os módulos catalog, cash, treasury e audit
+    reagem via EventBus, dentro da mesma transação.
+    """
+
+    sale_id: int = 0
+    company_id: int | None = None
+    session_id: int | None = None
+    user_id: int | None = None
+    username: str = ""
+    total_cents: int = 0
+    cash_cents: int = 0
+    pix_cents: int = 0
+    card_cents: int = 0

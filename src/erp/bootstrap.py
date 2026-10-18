@@ -20,6 +20,7 @@ from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
+from erp.modules.sales.application.services import SalesServices
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
 from erp.shared.infrastructure.database.migrations import run_migrations
@@ -38,6 +39,7 @@ class AppContext:
     catalog_services: SqlAlchemyCatalogServices | None = None
     pricing_services: PricingServices | None = None
     cash_services: CashServices | None = None
+    sales_services: SalesServices | None = None
     event_bus: EventBus | None = None
 
 
@@ -92,6 +94,11 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     # Cash services (permissions are checked per-use-case; no logged-in user yet)
     cash_services = CashServices(engine=engine)
 
+    # Sales services
+    sales_services = SalesServices(
+        engine=engine, catalog_engine=engine, event_bus=event_bus, user_permissions=set()
+    )
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -101,5 +108,6 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         catalog_services=catalog_services,
         pricing_services=pricing_services,
         cash_services=cash_services,
+        sales_services=sales_services,
         event_bus=event_bus,
     )
