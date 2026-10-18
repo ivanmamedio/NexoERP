@@ -11,9 +11,13 @@ from sqlalchemy.orm import Session
 
 from erp.config import paths as app_paths
 from erp.config.logging_config import setup_logging
+from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
+from erp.modules.audit.application.services import AuditService
+from erp.modules.audit.infrastructure.triggers import install_triggers
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
+from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
 from erp.shared.infrastructure.database.migrations import run_migrations
 
@@ -27,6 +31,8 @@ class AppContext:
     data_dir: Path
     db_path: Path
     companies_services: CompaniesServices | None = None
+    audit_services: AuditService | None = None
+    event_bus: EventBus | None = None
 
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
@@ -42,6 +48,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
     # Migrations run synchronously at startup
     run_migrations(engine.url.render_as_string(hide_password=False))
+
+    # Install audit triggers (block direct UPDATE/DELETE on business tables)
+    install_triggers(engine)
 
     # Seed idempotente de papéis/primeiro admin (não faz nada se já existir)
     _logger.info("Seeding identity roles/permissions (if empty)")
@@ -59,9 +68,16 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
             )
             _logger.info("Initial admin ensured for user %r", username)
 
+    # Audit services + EventBus subscriber
+    event_bus = EventBus()
+    audit_services = AuditService(engine)
+    AuditEventSubscriber(event_bus=event_bus, audit_service=audit_services)
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
         db_path=db_path,
         companies_services=CompaniesServices(engine),
+        audit_services=audit_services,
+        event_bus=event_bus,
     )
