@@ -79,8 +79,6 @@ jobs:
             nexoerp-*.AppImage
             dist/windows/NexoERP-Setup.exe
           if-no-files-found: error
-            nexoerp-*.AppImage
-          if-no-files-found: error
 
   publish:
     needs: build
