@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, Self, runtime_checkable
 
+from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.sales.domain.sale import Sale
 from erp.modules.sales.domain.sale_item import SaleItem
 from erp.modules.sales.domain.sale_payment import SalePayment
@@ -29,3 +30,21 @@ class SaleItemRepository(Protocol):
 class SalePaymentRepository(Protocol):
     def add(self, payment: SalePayment) -> None: ...
     def list_by_sale(self, sale_id: int) -> list[SalePayment]: ...
+
+
+@runtime_checkable
+class CatalogUnitOfWork(Protocol):
+    """Unit of Work port for catalog module (used by sales for stock updates)."""
+
+    products: ProductRepository | None
+
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None: ...
+
+    def commit(self) -> None: ...
+    def rollback(self) -> None: ...

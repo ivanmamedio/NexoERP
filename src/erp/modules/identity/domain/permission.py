@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from erp.shared.domain.entities import Entity
 
 
-@dataclass(frozen=True, slots=True)
-class Permission:
+@dataclass(slots=True)
+class Permission(Entity):
     """Código de permissão do sistema.
 
     Exemplos: "product.price.update", "treasury.view", "cash.sangria",
@@ -14,12 +16,21 @@ class Permission:
     """
 
     code: str
+    id: int | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         if not self.code or not isinstance(self.code, str):
             raise ValueError("Permission code must be a non-empty string")
         if " " in self.code:
             raise ValueError("Permission code must not contain spaces")
+
+    def __hash__(self) -> int:
+        return hash(self.code)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Permission):
+            return False
+        return self.code == other.code
 
 
 # Permissões do sistema (conforme QWEN.md e fases subsequentes)

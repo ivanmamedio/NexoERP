@@ -25,6 +25,7 @@ class FakeIdentityServices(IdentityServices):
         return AuthenticateOutput(
             user_id=self.return_user_id,
             username=self.return_username,
+            company_id=None,
             must_change_password=self.must_change_password,
         )
 

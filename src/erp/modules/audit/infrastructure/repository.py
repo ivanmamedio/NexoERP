@@ -40,7 +40,8 @@ class SqlAlchemyAuditRepository(AuditRepository):
         self._session.flush()
         entry.id = model.id
 
-    def list_all(self) -> list[AuditLog]:
+    def list_all(self, *, company_id: int | None = None) -> list[AuditLog]:
+        # Audit logs are not scoped by company in the current schema
         stmt = select(AuditLogModel).order_by(AuditLogModel.id)
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]

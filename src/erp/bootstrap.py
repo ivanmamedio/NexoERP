@@ -1,8 +1,10 @@
 """Composition root."""
+
 from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,10 +20,16 @@ from erp.modules.cash.application.sale_subscriber import CashSaleSubscriber
 from erp.modules.cash.application.services import CashServices
 from erp.modules.catalog.application.sale_subscriber import CatalogSaleSubscriber
 from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
+from erp.modules.catalog.infrastructure.price_updater import CatalogPriceUpdater
+from erp.modules.catalog.infrastructure.repository import SqlAlchemyProductRepository
+from erp.modules.catalog.infrastructure.unit_of_work import SqlAlchemyCatalogUnitOfWork
 from erp.modules.companies.application.services import CompaniesServices
+from erp.modules.companies.infrastructure.permission_checker import SqlAlchemyPermissionChecker
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
+from erp.modules.identity.infrastructure.repository import SqlAlchemyUserRepository
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
+from erp.modules.sales.application.ports import CatalogUnitOfWork
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
@@ -44,6 +52,22 @@ class AppContext:
     cash_services: CashServices | None = None
     sales_services: SalesServices | None = None
     event_bus: EventBus | None = None
+
+
+def _catalog_uow_factory(engine: Engine) -> Callable[[], CatalogUnitOfWork]:
+    """Factory for catalog unit of work (for sales module dependency inversion)."""
+    return lambda: SqlAlchemyCatalogUnitOfWork(engine)  # type: ignore[return-value]
+
+
+def _product_repo_factory(engine: Engine) -> Callable[[], SqlAlchemyProductRepository]:
+    """Factory for creating product repository within a catalog UoW."""
+    def factory() -> SqlAlchemyProductRepository:
+        uow = SqlAlchemyCatalogUnitOfWork(engine)
+        uow.__enter__()
+        products = uow.products
+        assert products is not None
+        return products
+    return factory
 
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
@@ -96,22 +120,40 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         user_permissions=set(),
     )
 
-    # Pricing services
-    pricing_services = PricingServices(engine=engine, catalog_services=catalog_services)
+    # Price updater for pricing module (dependency inversion)
+    price_updater = CatalogPriceUpdater(
+        product_repo_factory=_product_repo_factory(engine),
+        event_bus=event_bus,
+        user_permissions=set(),
+    )
+
+    # Companies services with permission gate
+    with Session(engine) as session:
+        user_repo = SqlAlchemyUserRepository(session)
+        permission_checker = SqlAlchemyPermissionChecker(user_repo)
+        from erp.modules.companies.application.permission_gate import CompanyPermissionGate
+        permission_gate = CompanyPermissionGate(permission_checker)
+    companies_services = CompaniesServices(engine=engine, permission_gate=permission_gate)
+
+    # Pricing services (uses price_updater port)
+    pricing_services = PricingServices(engine=engine, price_updater=price_updater)
 
     # Cash services (permissions are checked per-use-case; no logged-in user yet)
     cash_services = CashServices(engine=engine)
 
-    # Sales services
+    # Sales services (uses catalog UoW factory for dependency inversion)
     sales_services = SalesServices(
-        engine=engine, catalog_engine=engine, event_bus=event_bus, user_permissions=set()
+        engine=engine,
+        catalog_uow_factory=_catalog_uow_factory(engine),
+        event_bus=event_bus,
+        user_permissions=set(),
     )
 
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
         db_path=db_path,
-        companies_services=CompaniesServices(engine),
+        companies_services=companies_services,
         audit_services=audit_services,
         catalog_services=catalog_services,
         pricing_services=pricing_services,

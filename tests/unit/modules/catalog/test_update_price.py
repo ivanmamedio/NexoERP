@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
+from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.catalog.application.update_price import (
     UpdatePrice,
     UpdatePriceInput,
 )
-from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.catalog.domain.product import Product
 from erp.shared.application.events import EventBus
 from erp.shared.domain.errors import PermissionDenied
@@ -57,7 +57,7 @@ def test_update_price_requires_permission() -> None:
     # Caixa não tem product.price.update
     uc = UpdatePrice(repo, bus, user_permissions={"sale.cancel"})
 
-    with pytest.raises(PermissionDenied, match="product.price.update"):
+    with pytest.raises(PermissionDenied, match=r"product\.price\.update"):
         uc.execute(
             UpdatePriceInput(
                 product_id=1,

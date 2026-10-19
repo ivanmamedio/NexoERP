@@ -3,52 +3,29 @@
 from __future__ import annotations
 
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
 
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyPermissionRepository,
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
-from erp.shared.application.ports import UnitOfWork
-from erp.shared.infrastructure.database import get_session_factory
+from erp.shared.infrastructure.unit_of_work_base import SqlAlchemyUnitOfWorkBase
 
 
-class SqlAlchemyIdentityUnitOfWork(UnitOfWork):
-    """Unit of Work implementation using SQLAlchemy session."""
+class SqlAlchemyIdentityUnitOfWork(SqlAlchemyUnitOfWorkBase):
+    """Unit of Work for identity module."""
 
     def __init__(self, engine: Engine) -> None:
-        if not isinstance(engine, Engine):
-            raise TypeError("engine must be a SQLAlchemy Engine instance")
-        self._engine: Engine = engine
-        self._session_factory = get_session_factory(engine)
-        self._session: Session | None = None
-        self.users: SqlAlchemyUserRepository | None = None
-        self.roles: SqlAlchemyRoleRepository | None = None
-        self.permissions: SqlAlchemyPermissionRepository | None = None
+        super().__init__(
+            engine,
+            repo_factories={
+                "users": lambda s: SqlAlchemyUserRepository(s),
+                "roles": lambda s: SqlAlchemyRoleRepository(s),
+                "permissions": lambda s: SqlAlchemyPermissionRepository(s),
+            },
+        )
 
-    def __enter__(self) -> SqlAlchemyIdentityUnitOfWork:
-        self._session = self._session_factory()
-        self.users = SqlAlchemyUserRepository(self._session)
-        self.roles = SqlAlchemyRoleRepository(self._session)
-        self.permissions = SqlAlchemyPermissionRepository(self._session)
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: object | None,
-    ) -> None:
-        if exc_type is not None:
-            self.rollback()
-        if self._session is not None:
-            self._session.close()
-
-    def commit(self) -> None:
-        if self._session is not None:
-            self._session.commit()
-
-    def rollback(self) -> None:
-        if self._session is not None:
-            self._session.rollback()
+    # Type hints for IDE support
+    users: SqlAlchemyUserRepository | None = None
+    roles: SqlAlchemyRoleRepository | None = None
+    permissions: SqlAlchemyPermissionRepository | None = None

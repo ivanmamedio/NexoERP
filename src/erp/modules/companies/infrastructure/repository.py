@@ -86,9 +86,13 @@ class SqlAlchemyCompanyRepository(CompanyRepository):
             return None
         return self._model_to_domain(model)
 
-    def list_all(self) -> list[Company]:
+    def list_all(self, *, company_id: int | None = None) -> list[Company]:
         stmt = select(CompanyModel)
-        models = self._session.execute(self._filter_company(stmt)).scalars().all()
+        if company_id is not None:
+            stmt = stmt.where(CompanyModel.company_id == company_id)
+        else:
+            stmt = self._filter_company(stmt)
+        models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
     def delete(self, company_id: int) -> None:

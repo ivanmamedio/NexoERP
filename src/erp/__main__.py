@@ -62,6 +62,8 @@ class _App:
             self._open_main_window()
             while self._main_window is not None and self._main_window.isVisible():
                 self._app.processEvents()
+        # Unreachable, but needed for type checker
+        return 0
 
     def _show_login(self) -> bool:
         from erp.modules.identity.presentation.login_presenter import LoginPresenter
@@ -86,7 +88,7 @@ class _App:
             user = uow.users.get_by_id(self._session.user_id or 0)
             if user is None:
                 return False
-            return user.must_change_password
+            return bool(user.must_change_password)
 
     def _show_change_password(self, *, forced: bool) -> bool:
         from erp.modules.identity.presentation.change_password_presenter import (

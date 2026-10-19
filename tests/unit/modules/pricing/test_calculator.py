@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from erp.modules.pricing.domain.calculator import (
-    PricingInput,
     PriceCalculator,
+    PricingInput,
 )
 from erp.shared.domain.errors import ValidationError
 

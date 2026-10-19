@@ -23,7 +23,9 @@ class FakeRegisterRepository:
     def get_by_id(self, register_id: int) -> CashRegister | None:
         return self._registers.get(register_id)
 
-    def get_by_terminal(self, terminal_code: str, company_id: int | None = None) -> CashRegister | None:
+    def get_by_terminal(
+        self, terminal_code: str, company_id: int | None = None
+    ) -> CashRegister | None:
         return None
 
     def list_all(self, company_id: int | None = None) -> list[CashRegister]:
@@ -99,5 +101,7 @@ def test_open_session_register_not_found() -> None:
     uc = OpenCashSession(sess_repo, reg_repo)
     with pytest.raises(NotFound):
         uc.execute(
-            OpenCashSessionInput(register_id=999, opening_amount_cents=0, user_id=1, username="admin")
+            OpenCashSessionInput(
+                register_id=999, opening_amount_cents=0, user_id=1, username="admin"
+            )
         )

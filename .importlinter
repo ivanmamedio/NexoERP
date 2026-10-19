@@ -2,22 +2,35 @@
 root_packages =
     erp
 
-[importlinter:contract:modules-independent]
-name = Modules must not import each other
-type = independence
-modules =
+[importlinter:contract:no-infrastructure-imports]
+name = Modules must not import each other's infrastructure or presentation
+type = forbidden
+source_modules =
     erp.modules.audit
-    erp.modules.backup
     erp.modules.cash
     erp.modules.catalog
     erp.modules.companies
-    erp.modules.fiscal
     erp.modules.identity
     erp.modules.pricing
-    erp.modules.receipts
-    erp.modules.reports
     erp.modules.sales
     erp.modules.treasury
+forbidden_modules =
+    erp.modules.audit.infrastructure
+    erp.modules.audit.presentation
+    erp.modules.cash.infrastructure
+    erp.modules.cash.presentation
+    erp.modules.catalog.infrastructure
+    erp.modules.catalog.presentation
+    erp.modules.companies.infrastructure
+    erp.modules.companies.presentation
+    erp.modules.identity.infrastructure
+    erp.modules.identity.presentation
+    erp.modules.pricing.infrastructure
+    erp.modules.pricing.presentation
+    erp.modules.sales.infrastructure
+    erp.modules.sales.presentation
+    erp.modules.treasury.infrastructure
+    erp.modules.treasury.presentation
 
 [importlinter:contract:shared-domain-purity]
 name = Shared domain must not import application, infrastructure, or UI

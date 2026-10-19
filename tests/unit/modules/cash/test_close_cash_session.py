@@ -77,7 +77,7 @@ def _setup_session_with_movements() -> tuple[FakeSessionRepository, FakeMovement
 
 
 def test_close_session_exact_match() -> None:
-    """Abertura 100 + vendas 250 + suprimento 50 - sangria 30 = esperado 370. Contado 370 = diferença 0."""
+    """Fecha com valor exato: sem diferença."""
     sess_repo, mov_repo = _setup_session_with_movements()
 
     uc = CloseCashSession(sess_repo, mov_repo)
@@ -168,7 +168,9 @@ def test_close_session_already_closed() -> None:
     uc = CloseCashSession(sess_repo, mov_repo)
     with pytest.raises(ValidationError, match="fechada"):
         uc.execute(
-            CloseCashSessionInput(session_id=1, closing_amount_cents=37000, user_id=1, username="admin")
+            CloseCashSessionInput(
+                session_id=1, closing_amount_cents=37000, user_id=1, username="admin"
+            )
         )
 
 
@@ -178,5 +180,7 @@ def test_close_session_not_found() -> None:
     uc = CloseCashSession(sess_repo, mov_repo)
     with pytest.raises(NotFound):
         uc.execute(
-            CloseCashSessionInput(session_id=999, closing_amount_cents=0, user_id=1, username="admin")
+            CloseCashSessionInput(
+                session_id=999, closing_amount_cents=0, user_id=1, username="admin"
+            )
         )

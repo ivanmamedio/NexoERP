@@ -13,9 +13,6 @@ from erp.modules.cash.domain.cash_register import CashRegister
 from erp.modules.cash.domain.cash_session import CashSession
 from erp.modules.cash.infrastructure.models import (
     Base,
-    CashMovementModel,
-    CashRegisterModel,
-    CashSessionModel,
 )
 from erp.modules.cash.infrastructure.repository import (
     SqlAlchemyCashMovementRepository,

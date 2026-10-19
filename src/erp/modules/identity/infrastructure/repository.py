@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from sqlalchemy import insert, select
-from sqlalchemy.orm import Session
 
 from erp.modules.identity.application.ports import UserRepository
 from erp.modules.identity.domain.permission import Permission
@@ -16,44 +17,48 @@ from erp.modules.identity.infrastructure.models import (
     role_permission,
     user_company_role,
 )
+from erp.shared.infrastructure.repository import SqlAlchemyRepository
 
 
-class SqlAlchemyUserRepository(UserRepository):
+class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserRepository):
     """SQLAlchemy implementation of UserRepository."""
 
-    def __init__(self, session: Session) -> None:
-        self._session = session
+    _model_cls = UserModel
+    _company_id_column = "company_id"
 
-    def add(self, user: User) -> None:
+    def _to_domain(self, model: UserModel) -> User:
+        return User(
+            id=model.id,
+            username=model.username,
+            password_hash=model.password_hash,
+            must_change_password=model.must_change_password,
+            failed_login_attempts=model.failed_login_attempts,
+            locked_until=model.locked_until,
+            is_active=model.is_active,
+            company_id=model.company_id,
+        )
+
+    def _to_model(self, domain: User) -> UserModel:
         model = UserModel()
-        model.username = user.username
-        model.password_hash = user.password_hash
-        model.must_change_password = user.must_change_password
-        model.failed_login_attempts = user.failed_login_attempts
-        model.locked_until = user.locked_until
-        model.is_active = user.is_active
-        model.company_id = user.company_id
-        self._session.add(model)
-        self._session.flush()
-        user.id = model.id
+        model.username = domain.username
+        model.password_hash = domain.password_hash
+        model.must_change_password = domain.must_change_password
+        model.failed_login_attempts = domain.failed_login_attempts
+        model.locked_until = domain.locked_until
+        model.is_active = domain.is_active
+        model.company_id = domain.company_id
+        return model
 
-    def get_by_id(self, user_id: int) -> User | None:
-        model = self._session.get(UserModel, user_id)
-        if model is None:
-            return None
-        return self._model_to_domain(model)
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
+        return cast(list[User], super().list_all(company_id=company_id))
+
+    # ---- Custom queries beyond generic CRUD ----
 
     def get_by_username(self, username: str) -> User | None:
         stmt = select(UserModel).where(UserModel.username == username)
+        stmt = self._apply_company_filter(stmt)
         model = self._session.execute(stmt).scalar_one_or_none()
-        if model is None:
-            return None
-        return self._model_to_domain(model)
-
-    def list_all(self) -> list[User]:
-        stmt = select(UserModel).order_by(UserModel.username)
-        models = self._session.execute(stmt).scalars().all()
-        return [self._model_to_domain(m) for m in models]
+        return self._to_domain(model) if model else None
 
     def get_roles(self, user: User) -> list[Role]:
         if user.id is None:
@@ -115,44 +120,14 @@ class SqlAlchemyUserRepository(UserRepository):
         )
         self._session.flush()
 
-    def save(self, user: User) -> None:
-        stmt = select(UserModel).where(UserModel.id == user.id)
-        model = self._session.execute(stmt).scalar_one_or_none()
-        if model is None:
-            self.add(user)
-            return
-        model.username = user.username
-        model.password_hash = user.password_hash
-        model.must_change_password = user.must_change_password
-        model.failed_login_attempts = user.failed_login_attempts
-        model.locked_until = user.locked_until
-        model.is_active = user.is_active
-        model.company_id = user.company_id
 
-    def _model_to_domain(self, model: UserModel) -> User:
-        return User(
-            id=model.id,
-            username=model.username,
-            password_hash=model.password_hash,
-            must_change_password=model.must_change_password,
-            failed_login_attempts=model.failed_login_attempts,
-            locked_until=model.locked_until,
-            is_active=model.is_active,
-            company_id=model.company_id,
-        )
-
-
-class SqlAlchemyRoleRepository:
+class SqlAlchemyRoleRepository(SqlAlchemyRepository[RoleModel, Role, int]):
     """SQLAlchemy repository for Role."""
 
-    def __init__(self, session: Session) -> None:
-        self._session = session
+    _model_cls = RoleModel
+    _company_id_column = None  # Roles are global, not per-company
 
-    def get_by_name(self, name: str) -> Role | None:
-        stmt = select(RoleModel).where(RoleModel.name == name)
-        model = self._session.execute(stmt).scalar_one_or_none()
-        if model is None:
-            return None
+    def _to_domain(self, model: RoleModel) -> Role:
         return Role(
             id=model.id,
             name=model.name,
@@ -160,18 +135,19 @@ class SqlAlchemyRoleRepository:
             is_active=model.is_active,
         )
 
-    def list_all(self) -> list[Role]:
-        stmt = select(RoleModel).order_by(RoleModel.name)
-        models = self._session.execute(stmt).scalars().all()
-        return [
-            Role(
-                id=m.id,
-                name=m.name,
-                description=m.description or "",
-                is_active=m.is_active,
-            )
-            for m in models
-        ]
+    def _to_model(self, domain: Role) -> RoleModel:
+        model = RoleModel()
+        model.name = domain.name
+        model.description = domain.description
+        model.is_active = domain.is_active
+        return model
+
+    # ---- Custom queries ----
+
+    def get_by_name(self, name: str) -> Role | None:
+        stmt = select(RoleModel).where(RoleModel.name == name)
+        model = self._session.execute(stmt).scalar_one_or_none()
+        return self._to_domain(model) if model else None
 
     def get_permissions(self, role: Role) -> list[Permission]:
         if role.id is None:
@@ -180,15 +156,6 @@ class SqlAlchemyRoleRepository:
         if model is None:
             return []
         return [Permission(code=p.code) for p in model.permissions]
-
-    def add(self, role: Role) -> None:
-        model = RoleModel()
-        model.name = role.name
-        model.description = role.description
-        model.is_active = role.is_active
-        self._session.add(model)
-        self._session.flush()
-        role.id = model.id
 
     def add_permission_to_role(self, role_name: str, permission_code: str) -> None:
         """Associa uma permissão a um papel na tabela role_permissions."""
@@ -220,26 +187,28 @@ class SqlAlchemyRoleRepository:
         self._session.flush()
 
 
-class SqlAlchemyPermissionRepository:
+class SqlAlchemyPermissionRepository(SqlAlchemyRepository[PermissionModel, Permission, int]):
     """SQLAlchemy repository for Permission."""
 
-    def __init__(self, session: Session) -> None:
-        self._session = session
+    _model_cls = PermissionModel
+    _company_id_column = None  # Permissions are global
+
+    def _to_domain(self, model: PermissionModel) -> Permission:
+        return Permission(code=model.code)
+
+    def _to_model(self, domain: Permission) -> PermissionModel:
+        model = PermissionModel()
+        model.code = domain.code
+        return model
+
+    # ---- Custom queries ----
 
     def get_by_code(self, code: str) -> Permission | None:
         stmt = select(PermissionModel).where(PermissionModel.code == code)
         model = self._session.execute(stmt).scalar_one_or_none()
-        if model is None:
-            return None
-        return Permission(code=model.code)
+        return self._to_domain(model) if model else None
 
     def get_all(self) -> list[Permission]:
         stmt = select(PermissionModel)
         models = self._session.execute(stmt).scalars().all()
-        return [Permission(code=m.code) for m in models]
-
-    def add(self, permission: Permission) -> None:
-        model = PermissionModel()
-        model.code = permission.code
-        self._session.add(model)
-        self._session.flush()
+        return [self._to_domain(m) for m in models]

@@ -23,7 +23,9 @@ class FakeIdentityServices(IdentityServices):
             raise ValueError("Usuário ou senha inválidos")
         from erp.modules.identity.application.authenticate import AuthenticateOutput
 
-        return AuthenticateOutput(user_id=1, username="joao", must_change_password=False)
+        return AuthenticateOutput(
+            user_id=1, username="joao", company_id=None, must_change_password=False
+        )
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
         raise NotImplementedError

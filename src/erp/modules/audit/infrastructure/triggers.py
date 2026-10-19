@@ -14,21 +14,21 @@ from sqlalchemy.engine import Engine
 # Tables protected against direct UPDATE/DELETE outside the audit system.
 _PROTECTED_TABLES = ("users", "roles", "permissions", "companies")
 
-_BYPASS_TABLE_DDL = """
+_BYPASS_TABLE_CREATE = """
 CREATE TABLE IF NOT EXISTS audit_bypass (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     enabled INTEGER NOT NULL DEFAULT 0
-);
-INSERT OR IGNORE INTO audit_bypass (id, enabled) VALUES (1, 0);
+)
 """
+
+_BYPASS_TABLE_INIT = "INSERT OR IGNORE INTO audit_bypass (id, enabled) VALUES (1, 0)"
 
 _ENABLE_BYPASS = "UPDATE audit_bypass SET enabled = 1 WHERE id = 1"
 _DISABLE_BYPASS = "UPDATE audit_bypass SET enabled = 0 WHERE id = 1"
 
 
-def _block_trigger_ddl(table: str) -> str:
+def _block_update_trigger_ddl(table: str) -> str:
     name_update = f"block_update_{table}"
-    name_delete = f"block_delete_{table}"
     return f"""
 CREATE TRIGGER IF NOT EXISTS {name_update}
 BEFORE UPDATE ON {table}
@@ -37,6 +37,12 @@ BEGIN
         THEN RAISE(ABORT, 'UPDATE blocked by audit trigger on {table}')
     END;
 END;
+"""
+
+
+def _block_delete_trigger_ddl(table: str) -> str:
+    name_delete = f"block_delete_{table}"
+    return f"""
 CREATE TRIGGER IF NOT EXISTS {name_delete}
 BEFORE DELETE ON {table}
 BEGIN
@@ -47,26 +53,30 @@ END;
 """
 
 
-def _drop_trigger_ddl(table: str) -> str:
-    return f"""
-DROP TRIGGER IF EXISTS block_update_{table};
-DROP TRIGGER IF EXISTS block_delete_{table};
-"""
+def _drop_update_trigger_ddl(table: str) -> str:
+    return f"DROP TRIGGER IF EXISTS block_update_{table};"
+
+
+def _drop_delete_trigger_ddl(table: str) -> str:
+    return f"DROP TRIGGER IF EXISTS block_delete_{table};"
 
 
 def install_triggers(engine: Engine) -> None:
     """Create the bypass table and install UPDATE/DELETE blocking triggers."""
     with engine.begin() as connection:
-        connection.execute(text(_BYPASS_TABLE_DDL))
+        connection.execute(text(_BYPASS_TABLE_CREATE))
+        connection.execute(text(_BYPASS_TABLE_INIT))
         for table in _PROTECTED_TABLES:
-            connection.execute(text(_block_trigger_ddl(table)))
+            connection.execute(text(_block_update_trigger_ddl(table)))
+            connection.execute(text(_block_delete_trigger_ddl(table)))
 
 
 def uninstall_triggers(engine: Engine) -> None:
     """Remove all audit blocking triggers."""
     with engine.begin() as connection:
         for table in _PROTECTED_TABLES:
-            connection.execute(text(_drop_trigger_ddl(table)))
+            connection.execute(text(_drop_update_trigger_ddl(table)))
+            connection.execute(text(_drop_delete_trigger_ddl(table)))
 
 
 def enable_bypass(engine: Engine) -> None:

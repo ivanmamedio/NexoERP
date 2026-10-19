@@ -132,7 +132,7 @@ chmod +x AppDir/AppRun
 ## Limitações conhecidas
 
 1. **Windows 7 não é suportado** nesta versão. O roadmap previa investigação de PyQt5/Qt 5 e Python 3.8 para Windows 7, mas a decisão atual é priorizar Windows 10+ e Linux com Python 3.12 e PySide6.
-2. **Módulo fiscal não implementado.** Existe apenas uma interface vazia `FiscalPort`. Não há emissão de documentos fiscais.
+2. **Módulo fiscal não implementado.** Não há emissão de documentos fiscais.
 3. **Primeiro administrador:** não há senha padrão. Use `create_first_admin()` com credenciais explícitas via `NEXOERP_ADMIN_PASSWORD` ou chame diretamente no código.
 4. **Backup e restauração:** módulo em desenvolvimento (Fase 4 do roadmap).
 
@@ -140,11 +140,17 @@ chmod +x AppDir/AppRun
 
 | Módulo | Status |
 |--------|--------|
-| Identity (usuários, papéis, permissões) | Implementado (domínio, aplicação, infraestrutura) |
-| Bootstrap (inicialização, banco, migrations) | Implementado |
-| Banco de dados (SQLite WAL, PRAGMAs) | Implementado |
-| Migrações Alembic | Implementadas (0001_initial, 0002_identity_tables) |
+| Identity (usuários, papéis, permissões, login, troca de senha) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Companies (CRUD empresas, permissão company.manage) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Bootstrap (inicialização, banco, migrations, seed) | Implementado |
+| Banco de dados (SQLite WAL, PRAGMAs, FKs) | Implementado |
+| Migrações Alembic | 8 migrações (0001_initial até 0008_treasury) |
 | Empacotamento (PyInstaller, .deb, Inno Setup) | Configurado |
-| Catálogo, Estoque, Caixa, Vendas, Tesouraria | Não implementados |
-| Auditoria, Backup, Relatórios | Não implementados |
-| Interface gráfica (PySide6) | Janela principal básica |
+| Catálogo (produtos, categorias, fornecedores, estoque, histórico de preços) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Caixa (sessões, sangria, suprimento, fechamento, relatório) | Implementado (domínio, aplicação, infraestrutura) |
+| Vendas (PDV, itens, pagamentos mistos, desconto, cancelamento, finalização atômica) | Implementado (domínio, aplicação, infraestrutura) |
+| Tesouraria (lançamentos financeiros, subscriber SaleCompleted) | Implementado (domínio, aplicação, infraestrutura) |
+| Precificação (calculadora margem/taxa/imposto, aplicar ao produto) | Implementado (domínio, aplicação, apresentação) |
+| Auditoria (logs encadeados, triggers anti-tamper, subscriber, tela consulta) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Backup, Relatórios, Recibos, Fiscal | Não implementados (Fases 4+) |
+| Interface gráfica (PySide6) | Login, gestão usuários/papéis, empresas, catálogo, precificação, auditoria |

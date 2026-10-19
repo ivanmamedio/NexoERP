@@ -23,6 +23,7 @@ from erp.modules.companies.application.list_companies import (
     ListCompaniesInput,
     ListCompaniesOutput,
 )
+from erp.modules.companies.application.permission_gate import CompanyPermissionGate
 from erp.modules.companies.application.update_company import (
     UpdateCompany,
     UpdateCompanyInput,
@@ -36,10 +37,23 @@ from erp.modules.companies.infrastructure.unit_of_work import (
 class CompaniesServices:
     """Fachada de casos de uso de empresa sobre SQLAlchemy (1 transação por operação)."""
 
-    def __init__(self, engine: Engine) -> None:
+    def __init__(
+        self, engine: Engine, permission_gate: CompanyPermissionGate | None = None
+    ) -> None:
         self._engine = engine
+        self._permission_gate = permission_gate
 
-    def create_company(self, input: CreateCompanyInput) -> CreateCompanyOutput:
+    def _require_company_manage(self, actor_user_id: int | None) -> None:
+        if self._permission_gate is not None and actor_user_id is not None:
+            # We need a minimal user object for the gate; create a dummy one
+            from erp.modules.identity.domain.user import User
+            actor = User(id=actor_user_id)
+            self._permission_gate.assert_can_manage_companies(actor)
+
+    def create_company(
+        self, input: CreateCompanyInput, *, actor_user_id: int | None = None
+    ) -> CreateCompanyOutput:
+        self._require_company_manage(actor_user_id)
         with SqlAlchemyCompanyUnitOfWork(self._engine) as uow:
             assert uow.companies is not None
             result = CreateCompany(uow.companies).execute(input)
@@ -47,10 +61,10 @@ class CompaniesServices:
             return result
 
     def list_companies(self, *, active_only: bool = False) -> ListCompaniesOutput:
-        input = ListCompaniesInput(active_only=active_only)
+        input_ = ListCompaniesInput(active_only=active_only)
         with SqlAlchemyCompanyUnitOfWork(self._engine) as uow:
             assert uow.companies is not None
-            result = ListCompanies(uow.companies).execute(input)
+            result = ListCompanies(uow.companies).execute(input_)
             uow.commit()
             return result
 
@@ -68,14 +82,20 @@ class CompaniesServices:
             uow.commit()
             return output
 
-    def update_company(self, input: UpdateCompanyInput) -> UpdateCompanyOutput:
+    def update_company(
+        self, input: UpdateCompanyInput, *, actor_user_id: int | None = None
+    ) -> UpdateCompanyOutput:
+        self._require_company_manage(actor_user_id)
         with SqlAlchemyCompanyUnitOfWork(self._engine) as uow:
             assert uow.companies is not None
             result = UpdateCompany(uow.companies).execute(input)
             uow.commit()
             return result
 
-    def delete_company(self, company_id: int) -> DeleteCompanyOutput:
+    def delete_company(
+        self, company_id: int, *, actor_user_id: int | None = None
+    ) -> DeleteCompanyOutput:
+        self._require_company_manage(actor_user_id)
         with SqlAlchemyCompanyUnitOfWork(self._engine) as uow:
             assert uow.companies is not None
             result = DeleteCompany(uow.companies).execute(company_id)

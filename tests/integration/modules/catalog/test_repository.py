@@ -13,9 +13,6 @@ from erp.modules.catalog.domain.product import Product
 from erp.modules.catalog.domain.supplier import Supplier
 from erp.modules.catalog.infrastructure.models import (
     Base,
-    CategoryModel,
-    ProductModel,
-    SupplierModel,
 )
 from erp.modules.catalog.infrastructure.repository import (
     SqlAlchemyCategoryRepository,

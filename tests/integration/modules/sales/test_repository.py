@@ -13,9 +13,6 @@ from erp.modules.sales.domain.sale_item import SaleItem
 from erp.modules.sales.domain.sale_payment import SalePayment
 from erp.modules.sales.infrastructure.models import (
     Base,
-    SaleItemModel,
-    SaleModel,
-    SalePaymentModel,
 )
 from erp.modules.sales.infrastructure.repository import (
     SqlAlchemySaleItemRepository,

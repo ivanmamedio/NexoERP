@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from sqlalchemy.engine import Engine
 
-from erp.modules.catalog.infrastructure.unit_of_work import (
-    SqlAlchemyCatalogUnitOfWork,
-)
 from erp.modules.sales.application.add_item import AddItem, AddItemInput, AddItemOutput
 from erp.modules.sales.application.apply_discount import (
     ApplyDiscount,
@@ -24,6 +23,7 @@ from erp.modules.sales.application.finalize_sale import (
     FinalizeSaleInput,
     FinalizeSaleOutput,
 )
+from erp.modules.sales.application.ports import CatalogUnitOfWork
 from erp.modules.sales.application.start_sale import (
     StartSale,
     StartSaleInput,
@@ -40,12 +40,12 @@ class SalesServices:
     def __init__(
         self,
         engine: Engine,
-        catalog_engine: Engine | None,
+        catalog_uow_factory: Callable[[], CatalogUnitOfWork],
         event_bus: EventBus,
         user_permissions: set[str] | None = None,
     ) -> None:
         self._engine = engine
-        self._catalog_engine = catalog_engine if catalog_engine is not None else engine
+        self._catalog_uow_factory = catalog_uow_factory
         self._event_bus = event_bus
         self._user_permissions = user_permissions or set()
 
@@ -57,11 +57,10 @@ class SalesServices:
             return result
 
     def add_item(self, input: AddItemInput) -> AddItemOutput:
-        # Nota: duas UoWs no mesmo engine; ambas fazem commit em sequência.
-        # Falha durante execute() desfaz tudo (nenhum commit ocorre).
-        with SqlAlchemySalesUnitOfWork(self._engine) as uow, SqlAlchemyCatalogUnitOfWork(
-            self._catalog_engine
-        ) as catalog_uow:
+        with (
+            SqlAlchemySalesUnitOfWork(self._engine) as uow,
+            self._catalog_uow_factory() as catalog_uow,
+        ):
             assert uow.sales is not None and uow.items is not None
             assert catalog_uow.products is not None
             result = AddItem(uow.sales, uow.items, catalog_uow.products).execute(input)
@@ -78,16 +77,16 @@ class SalesServices:
 
     def finalize_sale(self, input: FinalizeSaleInput) -> FinalizeSaleOutput:
         sale_items_data: list[dict[str, object]] = []
-        with SqlAlchemySalesUnitOfWork(self._engine) as uow, SqlAlchemyCatalogUnitOfWork(
-            self._catalog_engine
-        ) as catalog_uow:
+        with (
+            SqlAlchemySalesUnitOfWork(self._engine) as uow,
+            self._catalog_uow_factory() as catalog_uow,
+        ):
             assert uow.sales is not None and uow.items is not None
             assert uow.payments is not None
             assert catalog_uow.products is not None
             result = FinalizeSale(
                 uow.sales, uow.items, uow.payments, catalog_uow.products
             ).execute(input)
-            # Captura os itens antes do commit (sessão ainda aberta)
             items = uow.items.list_by_sale(result.sale.id or 0)
             sale_items_data = [
                 {
@@ -100,8 +99,6 @@ class SalesServices:
             catalog_uow.commit()
             uow.commit()
 
-        # Publica SaleCompleted após o commit para que os assinantes
-        # (catalog, cash, treasury, audit) leiam dados já confirmados.
         sale = result.sale
         cash_paid = sum(
             p.amount_cents
@@ -135,9 +132,10 @@ class SalesServices:
         return result
 
     def cancel_sale(self, input: CancelSaleInput) -> None:
-        with SqlAlchemySalesUnitOfWork(self._engine) as uow, SqlAlchemyCatalogUnitOfWork(
-            self._catalog_engine
-        ) as catalog_uow:
+        with (
+            SqlAlchemySalesUnitOfWork(self._engine) as uow,
+            self._catalog_uow_factory() as catalog_uow,
+        ):
             assert uow.sales is not None and uow.items is not None
             assert catalog_uow.products is not None
             CancelSale(uow.sales, uow.items, catalog_uow.products, self._user_permissions).execute(

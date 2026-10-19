@@ -10,7 +10,7 @@ from erp.modules.cash.application.register_sangria import (
 )
 from erp.modules.cash.domain.cash_movement import CashMovement
 from erp.modules.cash.domain.cash_session import CashSession
-from erp.shared.domain.errors import NotFound, PermissionDenied, ValidationError
+from erp.shared.domain.errors import PermissionDenied, ValidationError
 
 
 class FakeSessionRepository:
@@ -57,7 +57,7 @@ def test_sangria_requires_permission() -> None:
     sess_repo.add(CashSession(id=1, register_id=1, company_id=1, status="open"))
 
     uc = RegisterSangria(sess_repo, mov_repo, user_permissions={"cash.open_close"})
-    with pytest.raises(PermissionDenied, match="cash.sangria"):
+    with pytest.raises(PermissionDenied, match=r"cash\.sangria"):
         uc.execute(
             RegisterSangriaInput(session_id=1, amount_cents=5000, user_id=1, username="caixa")
         )

@@ -60,7 +60,8 @@ class CompaniesCreatePresenter:
                     phone=phone,
                     email=email,
                     active=active,
-                )
+                ),
+                actor_user_id=self._session.user_id,
             )
         except NotFound as exc:
             self._view.show_error(str(exc))
