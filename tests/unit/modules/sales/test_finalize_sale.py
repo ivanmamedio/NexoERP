@@ -13,7 +13,6 @@ from erp.modules.sales.application.finalize_sale import (
 from erp.modules.sales.application.start_sale import StartSale, StartSaleInput
 from erp.modules.sales.domain.sale import Sale
 from erp.modules.sales.domain.sale_item import SaleItem
-from erp.shared.application.events import EventBus
 from erp.shared.domain.errors import ValidationError
 
 
@@ -130,7 +129,7 @@ def _make_setup(*, stock_qty: int = 100000) -> tuple:
 def test_finalize_cash_exact() -> None:
     sale_repo, item_repo, payment_repo, prod_repo, sale = _make_setup()
 
-    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo, EventBus())
+    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo)
     output = uc.execute(
         FinalizeSaleInput(
             sale_id=sale.id or 0,
@@ -149,7 +148,7 @@ def test_finalize_cash_exact() -> None:
 def test_finalize_with_change() -> None:
     sale_repo, item_repo, payment_repo, prod_repo, sale = _make_setup()
 
-    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo, EventBus())
+    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo)
     output = uc.execute(
         FinalizeSaleInput(
             sale_id=sale.id or 0,
@@ -165,7 +164,7 @@ def test_finalize_with_change() -> None:
 def test_finalize_mixed_payment() -> None:
     sale_repo, item_repo, payment_repo, prod_repo, sale = _make_setup()
 
-    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo, EventBus())
+    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo)
     output = uc.execute(
         FinalizeSaleInput(
             sale_id=sale.id or 0,
@@ -186,7 +185,7 @@ def test_finalize_mixed_payment() -> None:
 def test_finalize_insufficient_payment() -> None:
     sale_repo, item_repo, payment_repo, prod_repo, sale = _make_setup()
 
-    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo, EventBus())
+    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo)
     with pytest.raises(ValidationError, match="insuficiente"):
         uc.execute(
             FinalizeSaleInput(
@@ -203,7 +202,7 @@ def test_finalize_stock_failure_is_atomic() -> None:
     """Estoque insuficiente no fechamento -> a venda continua em rascunho."""
     sale_repo, item_repo, payment_repo, prod_repo, sale = _make_setup(stock_qty=1000)
 
-    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo, EventBus())
+    uc = FinalizeSale(sale_repo, item_repo, payment_repo, prod_repo)
     with pytest.raises(ValidationError, match="Estoque insuficiente"):
         uc.execute(
             FinalizeSaleInput(

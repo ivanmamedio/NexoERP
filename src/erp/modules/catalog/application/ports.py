@@ -6,6 +6,7 @@ from typing import Protocol, runtime_checkable
 
 from erp.modules.catalog.domain.category import Category
 from erp.modules.catalog.domain.product import Product
+from erp.modules.catalog.domain.stock_movement import StockMovement
 from erp.modules.catalog.domain.supplier import Supplier
 
 
@@ -31,3 +32,9 @@ class SupplierRepository(Protocol):
     def add(self, supplier: Supplier) -> None: ...
     def get_by_id(self, supplier_id: int) -> Supplier | None: ...
     def list_all(self, company_id: int | None = None) -> list[Supplier]: ...
+
+
+@runtime_checkable
+class StockMovementRepository(Protocol):
+    def add(self, movement: StockMovement) -> None: ...
+    def list_by_product(self, product_id: int) -> list[StockMovement]: ...

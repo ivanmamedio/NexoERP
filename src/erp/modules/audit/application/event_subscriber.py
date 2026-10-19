@@ -9,6 +9,7 @@ from erp.shared.domain.events import (
     EntityCreated,
     EntityDeleted,
     EntityUpdated,
+    SaleCompleted,
     UserLoggedIn,
 )
 
@@ -26,6 +27,7 @@ class AuditEventSubscriber:
         self._event_bus.subscribe(EntityUpdated, self._on_entity_updated)
         self._event_bus.subscribe(EntityDeleted, self._on_entity_deleted)
         self._event_bus.subscribe(UserLoggedIn, self._on_user_logged_in)
+        self._event_bus.subscribe(SaleCompleted, self._on_sale_completed)
 
     def _on_entity_created(self, event: EntityCreated) -> None:
         self._audit_service.log_event(
@@ -69,6 +71,23 @@ class AuditEventSubscriber:
             entity_id=event.user_id,
             before={},
             after={},
+        )
+
+    def _on_sale_completed(self, event: SaleCompleted) -> None:
+        self._audit_service.log_event(
+            user_id=event.user_id,
+            username=event.username,
+            action="sale.completed",
+            entity_type="Sale",
+            entity_id=event.sale_id,
+            before={},
+            after={
+                "total_cents": event.total_cents,
+                "cash_cents": event.cash_cents,
+                "pix_cents": event.pix_cents,
+                "card_cents": event.card_cents,
+                "session_id": event.session_id,
+            },
         )
 
     def handle(self, event: DomainEvent) -> None:

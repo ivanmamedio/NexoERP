@@ -5,13 +5,18 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from erp.modules.catalog.application.ports import ProductRepository
+from erp.modules.catalog.application.ports import (
+    ProductRepository,
+    StockMovementRepository,
+)
 from erp.modules.catalog.domain.category import Category
 from erp.modules.catalog.domain.product import Product
+from erp.modules.catalog.domain.stock_movement import StockMovement
 from erp.modules.catalog.domain.supplier import Supplier
 from erp.modules.catalog.infrastructure.models import (
     CategoryModel,
     ProductModel,
+    StockMovementModel,
     SupplierModel,
 )
 from erp.shared.application.session import CurrentSession
@@ -223,4 +228,46 @@ class SqlAlchemySupplierRepository:
             email=model.email,
             address=model.address,
             is_active=model.is_active,
+        )
+
+
+class SqlAlchemyStockMovementRepository(StockMovementRepository):
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def add(self, movement: StockMovement) -> None:
+        model = StockMovementModel()
+        model.product_id = movement.product_id
+        model.company_id = movement.company_id
+        model.quantity_thousandths = movement.quantity_thousandths
+        model.movement_type = movement.movement_type
+        model.reference_id = movement.reference_id
+        model.notes = movement.notes
+        model.created_at = movement.created_at  # type: ignore[assignment]
+        model.user_id = movement.user_id
+        model.username = movement.username
+        self._session.add(model)
+        self._session.flush()
+        movement.id = model.id
+
+    def list_by_product(self, product_id: int) -> list[StockMovement]:
+        stmt = select(StockMovementModel).where(
+            StockMovementModel.product_id == product_id
+        )
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
+    @staticmethod
+    def _model_to_domain(model: StockMovementModel) -> StockMovement:
+        return StockMovement(
+            id=model.id,
+            product_id=model.product_id,
+            company_id=model.company_id,
+            quantity_thousandths=model.quantity_thousandths,
+            movement_type=model.movement_type,
+            reference_id=model.reference_id,
+            notes=model.notes,
+            created_at=model.created_at,
+            user_id=model.user_id,
+            username=model.username,
         )

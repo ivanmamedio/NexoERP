@@ -76,3 +76,5 @@ class SaleCompleted(DomainEvent):
     cash_cents: int = 0
     pix_cents: int = 0
     card_cents: int = 0
+    items: list[dict[str, object]] = field(default_factory=list)
+    """Itens vendidos: [{"product_id": int, "quantity_thousandths": int}, ...]."""

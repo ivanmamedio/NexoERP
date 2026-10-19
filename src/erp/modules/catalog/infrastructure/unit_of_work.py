@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from erp.modules.catalog.infrastructure.repository import (
     SqlAlchemyCategoryRepository,
     SqlAlchemyProductRepository,
+    SqlAlchemyStockMovementRepository,
     SqlAlchemySupplierRepository,
 )
 from erp.shared.application.ports import UnitOfWork
@@ -26,12 +27,14 @@ class SqlAlchemyCatalogUnitOfWork(UnitOfWork):
         self.products: SqlAlchemyProductRepository | None = None
         self.categories: SqlAlchemyCategoryRepository | None = None
         self.suppliers: SqlAlchemySupplierRepository | None = None
+        self.stock_movements: SqlAlchemyStockMovementRepository | None = None
 
     def __enter__(self) -> SqlAlchemyCatalogUnitOfWork:
         self._session = self._session_factory()
         self.products = SqlAlchemyProductRepository(self._session)
         self.categories = SqlAlchemyCategoryRepository(self._session)
         self.suppliers = SqlAlchemySupplierRepository(self._session)
+        self.stock_movements = SqlAlchemyStockMovementRepository(self._session)
         return self
 
     def __exit__(

@@ -1,4 +1,4 @@
-"""Finalize sale use case — payment validation, change, stock, SaleCompleted."""
+"""Finalize sale use case — payment validation, change, stock."""
 
 from __future__ import annotations
 
@@ -10,9 +10,7 @@ from erp.modules.sales.application.ports import (
 )
 from erp.modules.sales.domain.sale import Sale
 from erp.modules.sales.domain.sale_payment import PaymentMethod, SalePayment
-from erp.shared.application.events import EventBus
 from erp.shared.domain.errors import NotFound, ValidationError
-from erp.shared.domain.events import SaleCompleted
 
 
 class FinalizePaymentInput:
@@ -47,7 +45,7 @@ class FinalizeSaleOutput:
 
 
 class FinalizeSale:
-    """Finaliza venda: pagamento, estoque, registros e SaleCompleted."""
+    """Finaliza venda: pagamento, estoque, registros."""
 
     def __init__(
         self,
@@ -55,13 +53,11 @@ class FinalizeSale:
         item_repo: SaleItemRepository,
         payment_repo: SalePaymentRepository,
         product_repo: ProductRepository,
-        event_bus: EventBus,
     ) -> None:
         self._sale_repo = sale_repo
         self._item_repo = item_repo
         self._payment_repo = payment_repo
         self._product_repo = product_repo
-        self._event_bus = event_bus
 
     def execute(self, input: FinalizeSaleInput) -> FinalizeSaleOutput:
         sale = self._sale_repo.get_by_id(input.sale_id)
@@ -133,27 +129,5 @@ class FinalizeSale:
         if input.session_id is not None:
             sale.session_id = input.session_id
         self._sale_repo.save(sale)
-
-        self._event_bus.publish(
-            SaleCompleted(
-                sale_id=sale.id or 0,
-                company_id=sale.company_id,
-                session_id=sale.session_id,
-                user_id=input.user_id,
-                username=input.username,
-                total_cents=sale.total_cents,
-                cash_cents=cash_paid,
-                pix_cents=sum(
-                    p.amount_cents
-                    for p in input.payments
-                    if p.method == PaymentMethod.PIX
-                ),
-                card_cents=sum(
-                    p.amount_cents
-                    for p in input.payments
-                    if p.method == PaymentMethod.CARD
-                ),
-            )
-        )
 
         return FinalizeSaleOutput(sale=sale, change_cents=change)

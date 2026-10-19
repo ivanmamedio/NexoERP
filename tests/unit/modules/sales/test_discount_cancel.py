@@ -129,7 +129,7 @@ def test_apply_discount_with_permission() -> None:
 def test_discount_requires_permission_or_supervisor() -> None:
     sale_repo, _, _, sale = _make_setup()
 
-    with pytest.raises(PermissionDenied, match="sale.discount"):
+    with pytest.raises(PermissionDenied, match=r"sale\.discount"):
         ApplyDiscount(sale_repo, set()).execute(
             ApplyDiscountInput(
                 sale_id=sale.id or 0, discount_cents=500, user_id=1, username="caixa"
@@ -174,7 +174,7 @@ def test_cancel_sale_restores_stock() -> None:
 
 def test_cancel_sale_requires_permission() -> None:
     sale_repo, item_repo, prod_repo, sale = _make_setup()
-    with pytest.raises(PermissionDenied, match="sale.cancel"):
+    with pytest.raises(PermissionDenied, match=r"sale\.cancel"):
         CancelSale(sale_repo, item_repo, prod_repo, set()).execute(
             CancelSaleInput(sale_id=sale.id or 0, reason="x", user_id=1, username="caixa")
         )

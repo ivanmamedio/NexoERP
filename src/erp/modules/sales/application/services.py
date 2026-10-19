@@ -31,6 +31,7 @@ from erp.modules.sales.application.start_sale import (
 )
 from erp.modules.sales.infrastructure.unit_of_work import SqlAlchemySalesUnitOfWork
 from erp.shared.application.events import EventBus
+from erp.shared.domain.events import SaleCompleted
 
 
 class SalesServices:
@@ -76,6 +77,7 @@ class SalesServices:
             return result
 
     def finalize_sale(self, input: FinalizeSaleInput) -> FinalizeSaleOutput:
+        sale_items_data: list[dict[str, object]] = []
         with SqlAlchemySalesUnitOfWork(self._engine) as uow, SqlAlchemyCatalogUnitOfWork(
             self._catalog_engine
         ) as catalog_uow:
@@ -83,11 +85,54 @@ class SalesServices:
             assert uow.payments is not None
             assert catalog_uow.products is not None
             result = FinalizeSale(
-                uow.sales, uow.items, uow.payments, catalog_uow.products, self._event_bus
+                uow.sales, uow.items, uow.payments, catalog_uow.products
             ).execute(input)
+            # Captura os itens antes do commit (sessão ainda aberta)
+            items = uow.items.list_by_sale(result.sale.id or 0)
+            sale_items_data = [
+                {
+                    "product_id": i.product_id,
+                    "quantity_thousandths": i.quantity_thousandths,
+                }
+                for i in items
+                if not i.cancelled and i.product_id is not None
+            ]
             catalog_uow.commit()
             uow.commit()
-            return result
+
+        # Publica SaleCompleted após o commit para que os assinantes
+        # (catalog, cash, treasury, audit) leiam dados já confirmados.
+        sale = result.sale
+        cash_paid = sum(
+            p.amount_cents
+            for p in input.payments
+            if p.method == "cash"
+        )
+        pix_cents = sum(
+            p.amount_cents
+            for p in input.payments
+            if p.method == "pix"
+        )
+        card_cents = sum(
+            p.amount_cents
+            for p in input.payments
+            if p.method == "card"
+        )
+        self._event_bus.publish(
+            SaleCompleted(
+                sale_id=sale.id or 0,
+                company_id=sale.company_id,
+                session_id=sale.session_id,
+                user_id=input.user_id,
+                username=input.username,
+                total_cents=sale.total_cents,
+                cash_cents=cash_paid,
+                pix_cents=pix_cents,
+                card_cents=card_cents,
+                items=sale_items_data,
+            )
+        )
+        return result
 
     def cancel_sale(self, input: CancelSaleInput) -> None:
         with SqlAlchemySalesUnitOfWork(self._engine) as uow, SqlAlchemyCatalogUnitOfWork(

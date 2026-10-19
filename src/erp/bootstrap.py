@@ -14,13 +14,16 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.cash.application.sale_subscriber import CashSaleSubscriber
 from erp.modules.cash.application.services import CashServices
+from erp.modules.catalog.application.sale_subscriber import CatalogSaleSubscriber
 from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
 from erp.modules.sales.application.services import SalesServices
+from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
 from erp.shared.infrastructure.database.migrations import run_migrations
@@ -80,6 +83,11 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     event_bus = EventBus()
     audit_services = AuditService(engine)
     AuditEventSubscriber(event_bus=event_bus, audit_service=audit_services)
+
+    # Subscribers que reagem a SaleCompleted (catalog, cash, treasury)
+    CatalogSaleSubscriber(event_bus=event_bus, engine=engine)
+    CashSaleSubscriber(event_bus=event_bus, engine=engine)
+    TreasurySaleSubscriber(event_bus=event_bus, engine=engine)
 
     # Catalog services (permissions are checked per-use-case; no logged-in user yet)
     catalog_services = SqlAlchemyCatalogServices(
