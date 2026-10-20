@@ -2,10 +2,11 @@
 
 Fluxo de identidade:
   1. Bootstrap (banco, migrations, seed).
-  2. Tela de login (modal).
-  3. Se must_change_password=True → tela de troca de senha (forçada).
-  4. MainWindow com menus filtrados por permissão e guarda de sessão ociosa.
-  5. Ao expirar a sessão ociosa, volta para o login.
+  2. Splash screen com logo.
+  3. Tela de login (modal).
+  4. Se must_change_password=True -> tela de troca de senha (forçada).
+  5. MainWindow com menus filtrados por permissão e guarda de sessão ociosa.
+  6. Ao expirar a sessão ociosa, volta para o login.
 """
 
 from __future__ import annotations
@@ -13,8 +14,10 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Qt
 from sqlalchemy.engine import Engine
 
 from erp.app.identity_services import SqlIdentityServices
@@ -22,11 +25,13 @@ from erp.bootstrap import bootstrap
 from erp.config.settings import get_session_timeout_minutes
 from erp.modules.identity.application.services import IdentityServices
 from erp.shared.application.session import CurrentSession
+from erp.ui.splash import show_splash_screen
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
     from erp.app.main_window import MainWindow
+
 
 _logger = logging.getLogger(__name__)
 
@@ -168,11 +173,30 @@ def main() -> int:
         return 0
 
     from PySide6 import QtWidgets
+    from PySide6.QtCore import QTimer
 
     app = QtWidgets.QApplication(sys.argv)
 
+    # Splash screen
+    logo_path = Path(__file__).parent / "ui" / "resources" / "logo.png"
+    splash = show_splash_screen(logo_path, duration_ms=0)  # 0 = não auto-fechar
+    splash.showMessage(
+        "Carregando módulos...",
+        Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
+        Qt.GlobalColor.white,
+    )
+
     services: IdentityServices = SqlIdentityServices(ctx.engine)
     runner = _App(app, services)
+
+    # Fecha splash quando janela principal abrir
+    def on_main_window_ready() -> None:
+        if hasattr(runner, '_main_window') and runner._main_window:
+            splash.finish(runner._main_window)
+
+    # Timer para fechar splash após UI carregar
+    QTimer.singleShot(2000, on_main_window_ready)
+
     return runner.run()
 
 
