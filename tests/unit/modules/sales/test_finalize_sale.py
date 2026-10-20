@@ -94,6 +94,14 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
+    def search(
+        self, query: str, company_id: int | None = None, limit: int = 20
+    ) -> list[Product]:
+        term = query.lower()
+        return [
+            p for p in self._products.values() if term in p.name.lower()
+        ][:limit]
+
     def add(self, product: Product) -> None:
         assert product.id is not None
         self._products[product.id] = product

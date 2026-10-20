@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Generator
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from erp.modules.catalog.domain.category import Category
@@ -77,6 +77,44 @@ def test_product_company_isolation(session: Session) -> None:
     assert all_p2[0].name == "Produto B"
 
 
+def test_product_search_by_name_is_company_scoped_and_ignores_inactive(
+    session: Session,
+) -> None:
+    repo = SqlAlchemyProductRepository(session)
+    repo.add(Product(sku="A1", name="Arroz 5kg", company_id=1))
+    repo.add(Product(sku="A2", name="Arroz 1kg", company_id=1))
+    repo.add(Product(sku="A3", name="Arroz inativo", company_id=1, active=False))
+    repo.add(Product(sku="A4", name="Arroz 2kg", company_id=2))
+    repo.add(Product(sku="F1", name="Feijão carioca", company_id=1))
+
+    company_1 = repo.search("arr", company_id=1)
+    assert [p.sku for p in company_1] == ["A2", "A1"]  # ordenado por nome
+    assert all(p.company_id == 1 for p in company_1)
+
+    assert [p.sku for p in repo.search("arr", company_id=2)] == ["A4"]
+    # Busca é case-insensitive (índice NOCASE).
+    assert [p.sku for p in repo.search("ARROZ", company_id=1)] == ["A2", "A1"]
+
+    # Sem prefixo correspondente, cai para substring.
+    assert [p.sku for p in repo.search("carioca", company_id=1)] == ["F1"]
+    # Wildcards são escapados (não viram busca ampla).
+    assert repo.search("%", company_id=1) == []
+
+
+def test_product_search_uses_composite_nocase_index(session: Session) -> None:
+    plan = " ".join(
+        str(row)
+        for row in session.execute(
+            text(
+                "EXPLAIN QUERY PLAN "
+                "SELECT id FROM products "
+                "WHERE company_id = 1 AND name LIKE 'arr%'"
+            )
+        ).all()
+    )
+    assert "ix_products_company_name_nocase" in plan
+
+
 def test_supplier_and_category_crud(session: Session) -> None:
     cat_repo = SqlAlchemyCategoryRepository(session)
     sup_repo = SqlAlchemySupplierRepository(session)
@@ -85,9 +123,7 @@ def test_supplier_and_category_crud(session: Session) -> None:
     cat_repo.add(category)
     assert category.id is not None
 
-    supplier = Supplier(
-        name="Fornecedor X", tax_id="12345678000190", company_id=1
-    )
+    supplier = Supplier(name="Fornecedor X", tax_id="12345678000190", company_id=1)
     sup_repo.add(supplier)
     assert supplier.id is not None
 

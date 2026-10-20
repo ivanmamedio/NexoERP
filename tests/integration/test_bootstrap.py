@@ -1,4 +1,5 @@
 """Integration test: bootstrap creates the DB from scratch and honours PRAGMAs."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -34,3 +35,15 @@ def test_bootstrap_is_idempotent(data_dir: Path) -> None:
     second = bootstrap(data_dir=data_dir)
     assert first.db_path == second.db_path
     assert first.db_path.exists()
+
+
+def test_bootstrap_creates_pdv_indexes(data_dir: Path) -> None:
+    """A migração 0009 deve criar os índices usados pelo PDV."""
+    ctx = bootstrap(data_dir=data_dir)
+    with ctx.engine.connect() as conn:
+        names = {
+            row[0]
+            for row in conn.execute(text("SELECT name FROM sqlite_master WHERE type = 'index'"))
+        }
+    assert "ix_products_company_name_nocase" in names
+    assert "ix_products_company_sku" in names

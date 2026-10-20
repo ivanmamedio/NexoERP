@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from erp.modules.catalog.application.ports import (
@@ -106,6 +106,41 @@ class SqlAlchemyProductRepository(ProductRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
+    def _active_products(self, company_id: int | None) -> Select[ProductModel]:
+        stmt: Select[ProductModel] = select(ProductModel).where(ProductModel.active.is_(True))
+        cid = company_id if company_id is not None else self._company_id()
+        if cid is not None:
+            stmt = stmt.where(ProductModel.company_id == cid)
+        return stmt
+
+    def search(self, query: str, company_id: int | None = None, limit: int = 20) -> list[Product]:
+        """Busca produtos ativos por nome.
+
+        Tenta primeiro o prefixo (aproveita o índice NOCASE); se não houver
+        resultado, cai para substring. Wildcards de LIKE são escapados.
+        """
+        term = query.strip()
+        if not term or limit <= 0:
+            return []
+        escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        prefix_stmt = (
+            self._active_products(company_id)
+            .where(ProductModel.name.like(f"{escaped}%", escape="\\"))
+            .order_by(ProductModel.name)
+            .limit(limit)
+        )
+        models = list(self._session.execute(prefix_stmt).scalars().all())
+        if not models:
+            contains_stmt = (
+                self._active_products(company_id)
+                .where(ProductModel.name.like(f"%{escaped}%", escape="\\"))
+                .order_by(ProductModel.name)
+                .limit(limit)
+            )
+            models = list(self._session.execute(contains_stmt).scalars().all())
+        return [self._model_to_domain(m) for m in models]
+
     def delete(self, product_id: int) -> None:
         stmt = select(ProductModel).where(ProductModel.id == product_id)
         model = self._session.execute(self._filter_company(stmt)).scalar_one_or_none()  # type: ignore[misc]
@@ -132,7 +167,6 @@ class SqlAlchemyProductRepository(ProductRepository):
             sold_by_weight=model.sold_by_weight,
             active=model.active,
         )
-
 
 
 class SqlAlchemyCategoryRepository:
@@ -251,9 +285,7 @@ class SqlAlchemyStockMovementRepository(StockMovementRepository):
         movement.id = model.id
 
     def list_by_product(self, product_id: int) -> list[StockMovement]:
-        stmt = select(StockMovementModel).where(
-            StockMovementModel.product_id == product_id
-        )
+        stmt = select(StockMovementModel).where(StockMovementModel.product_id == product_id)
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 

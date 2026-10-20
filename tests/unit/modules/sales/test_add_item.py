@@ -76,6 +76,15 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
+    def search(
+        self, query: str, company_id: int | None = None, limit: int = 20
+    ) -> list[Product]:
+        term = query.lower()
+        matches = [
+            p for p in self._products.values() if p.active and term in p.name.lower()
+        ]
+        return matches[:limit]
+
     def delete(self, product_id: int) -> None:
         self._products.pop(product_id, None)
 

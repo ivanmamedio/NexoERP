@@ -144,13 +144,14 @@ chmod +x AppDir/AppRun
 | Companies (CRUD empresas, permissão company.manage) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
 | Bootstrap (inicialização, banco, migrations, seed) | Implementado |
 | Banco de dados (SQLite WAL, PRAGMAs, FKs) | Implementado |
-| Migrações Alembic | 8 migrações (0001_initial até 0008_treasury) |
+| Migrações Alembic | Implementado (migrações versionadas em `src/erp/shared/infrastructure/database/alembic/versions/`) |
 | Empacotamento (PyInstaller, .deb, Inno Setup) | Configurado |
 | Catálogo (produtos, categorias, fornecedores, estoque, histórico de preços) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
 | Caixa (sessões, sangria, suprimento, fechamento, relatório) | Implementado (domínio, aplicação, infraestrutura) |
-| Vendas (PDV, itens, pagamentos mistos, desconto, cancelamento, finalização atômica) | Implementado (domínio, aplicação, infraestrutura) |
+| Vendas (itens, pagamentos mistos, desconto, cancelamento, finalização atômica) | Implementado (domínio, aplicação, infraestrutura) |
+| PDV (tela operável por teclado, multiplicador `3*código`, pagamento misto, desconto com PIN do supervisor) | Implementado (presenter testado sem UI + tela pytest-qt + índices de busca por nome/SKU) |
 | Tesouraria (lançamentos financeiros, subscriber SaleCompleted) | Implementado (domínio, aplicação, infraestrutura) |
 | Precificação (calculadora margem/taxa/imposto, aplicar ao produto) | Implementado (domínio, aplicação, apresentação) |
 | Auditoria (logs encadeados, triggers anti-tamper, subscriber, tela consulta) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
 | Backup, Relatórios, Recibos, Fiscal | Não implementados (Fases 4+) |
-| Interface gráfica (PySide6) | Login, gestão usuários/papéis, empresas, catálogo, precificação, auditoria |
+| Interface gráfica (PySide6) | Login, gestão usuários/papéis, empresas, catálogo, precificação, auditoria, PDV |

@@ -23,7 +23,15 @@ from erp.modules.sales.application.finalize_sale import (
     FinalizeSaleInput,
     FinalizeSaleOutput,
 )
+from erp.modules.sales.application.get_sale_state import (
+    GetSaleState,
+    SaleStateOutput,
+)
 from erp.modules.sales.application.ports import CatalogUnitOfWork
+from erp.modules.sales.application.search_products import (
+    ProductSearchItem,
+    SearchProducts,
+)
 from erp.modules.sales.application.start_sale import (
     StartSale,
     StartSaleInput,
@@ -48,6 +56,10 @@ class SalesServices:
         self._catalog_uow_factory = catalog_uow_factory
         self._event_bus = event_bus
         self._user_permissions = user_permissions or set()
+
+    def set_user_permissions(self, permissions: set[str]) -> None:
+        """Atualiza as permissões do operador logado (chamado após o login)."""
+        self._user_permissions = permissions
 
     def start_sale(self, input: StartSaleInput) -> StartSaleOutput:
         with SqlAlchemySalesUnitOfWork(self._engine) as uow:
@@ -84,9 +96,9 @@ class SalesServices:
             assert uow.sales is not None and uow.items is not None
             assert uow.payments is not None
             assert catalog_uow.products is not None
-            result = FinalizeSale(
-                uow.sales, uow.items, uow.payments, catalog_uow.products
-            ).execute(input)
+            result = FinalizeSale(uow.sales, uow.items, uow.payments, catalog_uow.products).execute(
+                input
+            )
             items = uow.items.list_by_sale(result.sale.id or 0)
             sale_items_data = [
                 {
@@ -100,21 +112,9 @@ class SalesServices:
             uow.commit()
 
         sale = result.sale
-        cash_paid = sum(
-            p.amount_cents
-            for p in input.payments
-            if p.method == "cash"
-        )
-        pix_cents = sum(
-            p.amount_cents
-            for p in input.payments
-            if p.method == "pix"
-        )
-        card_cents = sum(
-            p.amount_cents
-            for p in input.payments
-            if p.method == "card"
-        )
+        cash_paid = sum(p.amount_cents for p in input.payments if p.method == "cash")
+        pix_cents = sum(p.amount_cents for p in input.payments if p.method == "pix")
+        card_cents = sum(p.amount_cents for p in input.payments if p.method == "card")
         self._event_bus.publish(
             SaleCompleted(
                 sale_id=sale.id or 0,
@@ -149,3 +149,17 @@ class SalesServices:
             assert uow.sales is not None and uow.items is not None
             CancelItem(uow.sales, uow.items, self._user_permissions).execute(input)
             uow.commit()
+
+    def get_sale_state(self, *, sale_id: int) -> SaleStateOutput:
+        with SqlAlchemySalesUnitOfWork(self._engine) as uow:
+            assert uow.sales is not None and uow.items is not None
+            return GetSaleState(uow.sales, uow.items).execute(sale_id)
+
+    def search_products(
+        self, *, query: str, company_id: int | None = None, limit: int = 10
+    ) -> list[ProductSearchItem]:
+        with self._catalog_uow_factory() as catalog_uow:
+            assert catalog_uow.products is not None
+            return SearchProducts(catalog_uow.products).execute(
+                query=query, company_id=company_id, limit=limit
+            )

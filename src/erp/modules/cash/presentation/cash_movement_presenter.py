@@ -89,7 +89,9 @@ class CashMovementPresenter:
                     username=self._session.username or "",
                     company_id=self._session.company_id,
                 )
-                output: RegisterSangriaOutput | RegisterSuprimentoOutput = self._services.register_sangria(sangria_input)
+                output: RegisterSangriaOutput | RegisterSuprimentoOutput = (
+                    self._services.register_sangria(sangria_input)
+                )
             else:
                 suprimento_input = RegisterSuprimentoInput(
                     session_id=self._session_id,

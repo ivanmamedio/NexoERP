@@ -61,15 +61,12 @@ class AddItem:
                 multiplier = int(parts[0].strip())
                 query = parts[1].strip()
 
+        company_id = input.company_id or sale.company_id
         # Busca por SKU exato
-        product = self._product_repo.get_by_sku(query, input.company_id or sale.company_id)
+        product = self._product_repo.get_by_sku(query, company_id)
         if product is None:
-            # Busca por nome (match parcial, case-insensitive)
-            candidates = [
-                p
-                for p in self._product_repo.list_all(input.company_id or sale.company_id)
-                if query.lower() in p.name.lower() and p.active
-            ]
+            # Busca por nome no banco (índice), prefixo primeiro; substring como fallback
+            candidates = self._product_repo.search(query, company_id, limit=1)
             if not candidates:
                 raise NotFound(f"Produto '{query}' não encontrado.")
             product = candidates[0]
@@ -81,7 +78,7 @@ class AddItem:
         if product.stock_qty < qty:
             raise ValidationError(
                 f"Estoque insuficiente de '{product.name}' "
-                f"({product.stock_qty/1000:.3f} {product.unit} disponível)."
+                f"({product.stock_qty / 1000:.3f} {product.unit} disponível)."
             )
 
         item = SaleItem(
