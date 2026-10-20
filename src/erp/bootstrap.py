@@ -16,6 +16,9 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.backup.application.service import BackupService
+from erp.modules.backup.infrastructure.repository import SqlAlchemyBackupRepository
+from erp.modules.backup.infrastructure.scheduler import BackupScheduler
 from erp.modules.cash.application.sale_subscriber import CashSaleSubscriber
 from erp.modules.cash.application.services import CashServices
 from erp.modules.catalog.application.sale_subscriber import CatalogSaleSubscriber
@@ -52,6 +55,8 @@ class AppContext:
     pricing_services: PricingServices | None = None
     cash_services: CashServices | None = None
     sales_services: SalesServices | None = None
+    backup_service: BackupService | None = None
+    backup_scheduler: BackupScheduler | None = None
     event_bus: EventBus | None = None
 
 
@@ -153,6 +158,29 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         user_permissions=set(),
     )
 
+    # Backup services
+    backup_repo = SqlAlchemyBackupRepository(Session(engine))
+    backup_dir = resolved_data_dir / "backups"
+    secondary_dir = Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None
+    backup_service = BackupService(
+        repo=backup_repo,
+        backup_dir=backup_dir,
+        secondary_dir=Path(secondary_dir) if secondary_dir else None,
+    )
+
+    # Backup scheduler
+    scheduler = BackupScheduler()
+
+    def _daily_backup_callback() -> None:
+        backup_service.create_backup("daily", str(db_path), "daily")
+
+    def _monthly_backup_callback() -> None:
+        backup_service.create_backup("monthly", str(db_path), "monthly")
+
+    scheduler.schedule_daily_backup("02:00", _daily_backup_callback)
+    scheduler.schedule_monthly_backup(1, "03:00", _monthly_backup_callback)
+    scheduler.start()
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -163,5 +191,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         pricing_services=pricing_services,
         cash_services=cash_services,
         sales_services=sales_services,
+        backup_service=backup_service,
+        backup_scheduler=scheduler,
         event_bus=event_bus,
     )

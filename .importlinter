@@ -7,6 +7,7 @@ name = Modules must not import each other's infrastructure or presentation
 type = forbidden
 source_modules =
     erp.modules.audit
+    erp.modules.backup
     erp.modules.cash
     erp.modules.catalog
     erp.modules.companies
@@ -18,6 +19,8 @@ source_modules =
 forbidden_modules =
     erp.modules.audit.infrastructure
     erp.modules.audit.presentation
+    erp.modules.backup.infrastructure
+    erp.modules.backup.presentation
     erp.modules.cash.infrastructure
     erp.modules.cash.presentation
     erp.modules.catalog.infrastructure
