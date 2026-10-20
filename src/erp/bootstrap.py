@@ -32,6 +32,12 @@ from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.repository import SqlAlchemyUserRepository
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
+from erp.modules.reports.application.service import (
+    ReportService,
+    create_report_service,
+)
+from erp.modules.reports.infrastructure.generator import SqlReportGenerator
+from erp.modules.reports.infrastructure.repository import SqlAlchemyReportRepository
 from erp.modules.sales.application.ports import CatalogUnitOfWork
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
@@ -57,6 +63,7 @@ class AppContext:
     sales_services: SalesServices | None = None
     backup_service: BackupService | None = None
     backup_scheduler: BackupScheduler | None = None
+    report_service: ReportService | None = None
     event_bus: EventBus | None = None
 
 
@@ -181,6 +188,12 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     scheduler.schedule_monthly_backup(1, "03:00", _monthly_backup_callback)
     scheduler.start()
 
+    # Reports service
+    reports_dir = resolved_data_dir / "reports"
+    report_repo = SqlAlchemyReportRepository(Session(engine))
+    report_generator = SqlReportGenerator(Session(engine))
+    report_service = create_report_service(report_generator, report_repo, reports_dir)
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -193,5 +206,6 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         sales_services=sales_services,
         backup_service=backup_service,
         backup_scheduler=scheduler,
+        report_service=report_service,
         event_bus=event_bus,
     )

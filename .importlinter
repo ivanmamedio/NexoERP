@@ -14,6 +14,7 @@ source_modules =
     erp.modules.identity
     erp.modules.pricing
     erp.modules.receipts
+    erp.modules.reports
     erp.modules.sales
     erp.modules.treasury
 forbidden_modules =
@@ -33,6 +34,8 @@ forbidden_modules =
     erp.modules.pricing.presentation
     erp.modules.receipts.infrastructure
     erp.modules.receipts.presentation
+    erp.modules.reports.infrastructure
+    erp.modules.reports.presentation
     erp.modules.sales.infrastructure
     erp.modules.sales.presentation
     erp.modules.treasury.infrastructure
