@@ -31,6 +31,7 @@ from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
 from erp.modules.sales.application.ports import CatalogUnitOfWork
 from erp.modules.sales.application.services import SalesServices
+from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
@@ -112,6 +113,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     CatalogSaleSubscriber(event_bus=event_bus, engine=engine)
     CashSaleSubscriber(event_bus=event_bus, engine=engine)
     TreasurySaleSubscriber(event_bus=event_bus, engine=engine)
+
+    # Subscriber que reage a eventos de caixa (sangria, suprimento, abertura, fechamento)
+    TreasuryCashSubscriber(event_bus=event_bus, engine=engine)
 
     # Catalog services (permissions are checked per-use-case; no logged-in user yet)
     catalog_services = SqlAlchemyCatalogServices(
