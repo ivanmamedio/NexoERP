@@ -132,9 +132,8 @@ chmod +x AppDir/AppRun
 ## Limitações conhecidas
 
 1. **Windows 7 não é suportado** nesta versão. O roadmap previa investigação de PyQt5/Qt 5 e Python 3.8 para Windows 7, mas a decisão atual é priorizar Windows 10+ e Linux com Python 3.12 e PySide6.
-2. **Módulo fiscal não implementado.** Não há emissão de documentos fiscais.
+2. **Módulo fiscal implementado como interface (Protocol).** O módulo fiscal contém apenas a interface `FiscalPort` para adaptação de provedores fiscais (NFe, NFCe, SAT, etc.). Não há emissão real de documentos - use adaptadores concretos para produção.
 3. **Primeiro administrador:** não há senha padrão. Use `create_first_admin()` com credenciais explícitas via `NEXOERP_ADMIN_PASSWORD` ou chame diretamente no código.
-4. **Backup e restauração:** módulo em desenvolvimento (Fase 4 do roadmap).
 
 ## Estado real das funcionalidades
 
@@ -153,5 +152,5 @@ chmod +x AppDir/AppRun
 | Tesouraria (lançamentos financeiros, subscriber SaleCompleted) | Implementado (domínio, aplicação, infraestrutura) |
 | Precificação (calculadora margem/taxa/imposto, aplicar ao produto) | Implementado (domínio, aplicação, apresentação) |
 | Auditoria (logs encadeados, triggers anti-tamper, subscriber, tela consulta) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
-| Backup, Relatórios, Recibos, Fiscal | Não implementados (Fases 4+) |
+| Backup, Relatórios, Recibos, Fiscal | **Backup e Relatórios implementados**, Fiscal como interface (Protocol) |
 | Interface gráfica (PySide6) | Login, gestão usuários/papéis, empresas, catálogo, precificação, auditoria, PDV |
