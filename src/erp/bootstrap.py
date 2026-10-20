@@ -29,7 +29,10 @@ from erp.modules.catalog.infrastructure.unit_of_work import SqlAlchemyCatalogUni
 from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.companies.infrastructure.permission_checker import SqlAlchemyPermissionChecker
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
-from erp.modules.identity.infrastructure.repository import SqlAlchemyUserRepository
+from erp.modules.identity.infrastructure.repository import (
+    SqlAlchemyRoleRepository,
+    SqlAlchemyUserRepository,
+)
 from erp.modules.identity.infrastructure.seed import create_first_admin, seed
 from erp.modules.pricing.application.services import PricingServices
 from erp.modules.reports.application.service import (
@@ -115,6 +118,15 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
                 password=admin_password,
             )
             _logger.info("Initial admin ensured for user %r", username)
+            # Atribuir role Administrador ao admin recém-criado
+            user_repo = SqlAlchemyUserRepository(session)
+            role_repo = SqlAlchemyRoleRepository(session)
+            admin = user_repo.get_by_username(username)
+            admin_role = role_repo.get_by_name("Administrador")
+            if admin and admin_role:
+                user_repo.assign_role(admin, admin_role)
+                session.commit()
+                _logger.info("Role 'Administrador' atribuída ao admin %r", username)
 
     # Audit services + EventBus subscriber
     event_bus = EventBus()
