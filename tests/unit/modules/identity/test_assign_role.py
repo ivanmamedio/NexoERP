@@ -75,9 +75,7 @@ def test_assign_role_success() -> None:
     gate = FakePermissionGate(allow=True)
     uc = AssignRole(repo, role_repo, gate)
 
-    output = uc.execute(
-        AssignRoleInput(actor_id=1, user_id=1, role_name="Caixa")
-    )
+    output = uc.execute(AssignRoleInput(actor_id=1, user_id=1, role_name="Caixa"))
 
     assert output.user_id == 1
     assert output.role_name == "Caixa"

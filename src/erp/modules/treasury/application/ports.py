@@ -13,9 +13,7 @@ from erp.modules.treasury.domain.receivable import Receivable
 @runtime_checkable
 class FinancialEntryRepository(Protocol):
     def add(self, entry: FinancialEntry) -> None: ...
-    def list_by_company(
-        self, company_id: int | None = None
-    ) -> list[FinancialEntry]: ...
+    def list_by_company(self, company_id: int | None = None) -> list[FinancialEntry]: ...
 
 
 @runtime_checkable

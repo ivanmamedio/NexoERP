@@ -81,9 +81,7 @@ class SqlIdentityServices:
     ) -> ChangePasswordOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
-            result = ChangePassword(
-                uow.users, self._hasher, PermissionGate(uow.users)
-            ).execute(
+            result = ChangePassword(uow.users, self._hasher, PermissionGate(uow.users)).execute(
                 ChangePasswordInput(
                     actor_id=actor_id,
                     user_id=user_id,
@@ -124,9 +122,7 @@ class SqlIdentityServices:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None and uow.roles is not None
             role = self._require_role(uow.roles, role_name)
-            result = CreateUser(
-                uow.users, self._hasher, PermissionGate(uow.users)
-            ).execute(
+            result = CreateUser(uow.users, self._hasher, PermissionGate(uow.users)).execute(
                 CreateUserInput(
                     actor_id=actor_id,
                     username=username,
@@ -139,14 +135,10 @@ class SqlIdentityServices:
             uow.commit()
             return result
 
-    def assign_role(
-        self, *, user_id: int, role_name: str, actor_id: int
-    ) -> AssignRoleOutput:
+    def assign_role(self, *, user_id: int, role_name: str, actor_id: int) -> AssignRoleOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None and uow.roles is not None
-            result = AssignRole(
-                uow.users, uow.roles, PermissionGate(uow.users)
-            ).execute(
+            result = AssignRole(uow.users, uow.roles, PermissionGate(uow.users)).execute(
                 AssignRoleInput(actor_id=actor_id, user_id=user_id, role_name=role_name)
             )
             uow.commit()

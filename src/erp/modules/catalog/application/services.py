@@ -77,9 +77,9 @@ class SqlAlchemyCatalogServices:
     def update_price(self, input: UpdatePriceInput) -> UpdatePriceOutput:
         with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
             assert uow.products is not None
-            result = UpdatePrice(
-                uow.products, self._event_bus, self._user_permissions
-            ).execute(input)
+            result = UpdatePrice(uow.products, self._event_bus, self._user_permissions).execute(
+                input
+            )
             uow.commit()
             return result
 

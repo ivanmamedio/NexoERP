@@ -84,15 +84,14 @@ class FinalizeSale:
 
         if total_paid < sale.total_cents:
             raise ValidationError(
-                f"Pagamento insuficiente: R$ {total_paid/100:.2f} < R$ {sale.total_cents/100:.2f}."
+                f"Pagamento insuficiente: R$ {total_paid / 100:.2f} "
+                f"< R$ {sale.total_cents / 100:.2f}."
             )
 
         change = total_paid - sale.total_cents
         # Troco só vem de pagamento em dinheiro
         if change > 0 and cash_paid < change:
-            raise ValidationError(
-                "Troco disponível apenas de pagamento em dinheiro."
-            )
+            raise ValidationError("Troco disponível apenas de pagamento em dinheiro.")
 
         # Baixa estoque (atômico: falha aqui desfaz tudo via UoW)
         for item in items:
@@ -103,9 +102,7 @@ class FinalizeSale:
                 raise NotFound(f"Produto {item.product_id} não encontrado.")
             new_qty = product.stock_qty - item.quantity_thousandths
             if new_qty < 0:
-                raise ValidationError(
-                    f"Estoque insuficiente de '{product.name}' no fechamento."
-                )
+                raise ValidationError(f"Estoque insuficiente de '{product.name}' no fechamento.")
             product.stock_qty = new_qty
             self._product_repo.save(product)
 

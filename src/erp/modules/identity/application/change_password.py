@@ -48,9 +48,7 @@ class ChangePassword:
             raise ValueError("Usuário não encontrado")
 
         if data.current_password is not None:
-            if not self._password_hasher.verify(
-                data.current_password, user.password_hash
-            ):
+            if not self._password_hasher.verify(data.current_password, user.password_hash):
                 raise ValueError("Senha atual inválida")
         elif data.actor_id != data.user_id:
             # Reset sem saber a senha atual só é permitido para administradores

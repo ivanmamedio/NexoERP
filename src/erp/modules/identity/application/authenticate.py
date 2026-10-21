@@ -57,4 +57,3 @@ class Authenticate:
             company_id=user.company_id,
             must_change_password=user.must_change_password,
         )
-

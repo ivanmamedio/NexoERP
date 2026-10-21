@@ -87,9 +87,7 @@ class ReportService(ReportServicePort):
         self._repository.add(report)  # Update with completed info
         return report
 
-    def _generate_rows(
-        self, report_type: str, filter_: ReportFilter
-    ) -> list[object]:
+    def _generate_rows(self, report_type: str, filter_: ReportFilter) -> list[object]:
         if report_type == ReportType.SALES_BY_PERIOD:
             return list(self._generator.generate_sales_by_period(filter_))
         elif report_type == ReportType.SALES_BY_PRODUCT:

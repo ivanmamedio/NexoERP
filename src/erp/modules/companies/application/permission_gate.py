@@ -18,5 +18,3 @@ class CompanyPermissionGate:
     def assert_can_manage_companies(self, actor_user_id: int) -> None:
         if not self._permission_checker.has_permission(actor_user_id, "company.manage"):
             raise PermissionDenied("Você não tem permissão para gerenciar empresas.")
-
-

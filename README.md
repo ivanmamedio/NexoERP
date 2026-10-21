@@ -36,7 +36,10 @@ source .venv/bin/activate
 ## Execução
 
 ```bash
-# Executar a aplicação
+# Executar a aplicação (Linux/macOS)
+uv run python -m erp
+
+# Executar a aplicação (Windows PowerShell)
 uv run python -m erp
 
 # Em ambiente headless (sem DISPLAY), o bootstrap roda e a UI não inicia
@@ -61,6 +64,9 @@ uv run pytest tests/integration/test_bootstrap.py
 ```bash
 # Lint
 uv run ruff check .
+
+# Formatação
+uv run ruff format --check .
 
 # Type checking
 uv run mypy

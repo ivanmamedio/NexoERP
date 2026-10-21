@@ -95,9 +95,7 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
                 permissions.append(Permission(code=perm.code))
         return permissions
 
-    def assign_role(
-        self, user: User, role: Role, company_id: int | None = None
-    ) -> None:
+    def assign_role(self, user: User, role: Role, company_id: int | None = None) -> None:
         if user.id is None:
             raise ValueError("User must be persisted before assigning a role")
         if role.id is None:

@@ -31,9 +31,7 @@ class UsersWidget(QWidget):
         self._users: list[UserListItem] = []
 
         self._table = QTableWidget(0, 5, self)
-        self._table.setHorizontalHeaderLabels(
-            ["ID", "Usuário", "Papéis", "Ativo", "Status"]
-        )
+        self._table.setHorizontalHeaderLabels(["ID", "Usuário", "Papéis", "Ativo", "Status"])
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

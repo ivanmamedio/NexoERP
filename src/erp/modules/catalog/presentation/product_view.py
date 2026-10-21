@@ -92,9 +92,7 @@ class ProductListWidget(QWidget):
 
     def set_products(self, products: list[Product]) -> None:
         self._table.setModel(ProductTableModel(products))
-        self._table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
-        )
+        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def _on_refresh(self) -> None:
         if self._presenter is not None:

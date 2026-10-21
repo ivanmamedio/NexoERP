@@ -167,12 +167,12 @@ class BackupService(BackupServicePort):
         monthly_backups.sort(key=lambda b: b.started_at)
 
         # Remove excess daily
-        for backup in daily_backups[:-self._max_daily]:
+        for backup in daily_backups[: -self._max_daily]:
             self._delete_backup(backup)
             removed += 1
 
         # Remove excess monthly
-        for backup in monthly_backups[:-self._max_monthly]:
+        for backup in monthly_backups[: -self._max_monthly]:
             self._delete_backup(backup)
             removed += 1
 

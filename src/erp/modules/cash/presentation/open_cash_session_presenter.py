@@ -84,8 +84,7 @@ class OpenCashSessionPresenter:
             return False
 
         self._view.show_success(
-            f"Sessão aberta no caixa {output.session.register_id} "
-            f"(ID: {output.session.id})."
+            f"Sessão aberta no caixa {output.session.register_id} (ID: {output.session.id})."
         )
         self._view.accept()
         return True

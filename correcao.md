@@ -159,9 +159,7 @@ class LoginDialog(QDialog):
 
         # Os dois widgets ocupam a MESMA célula: a sombra fica atrás do card.
         layout = QGridLayout(self)
-        layout.setContentsMargins(
-            _SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN
-        )
+        layout.setContentsMargins(_SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN)
         layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         layout.addWidget(self._shadow_host, 0, 0)
         layout.addWidget(self._card, 0, 0)

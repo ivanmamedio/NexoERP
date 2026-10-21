@@ -135,9 +135,7 @@ class MainWindow(QMainWindow):
     def _has_permission(self, code: str) -> bool:
         if self._session.user_id is None:
             return False
-        return self._services.check_permission(
-            user_id=self._session.user_id, permission_code=code
-        )
+        return self._services.check_permission(user_id=self._session.user_id, permission_code=code)
 
     # --- idle ---------------------------------------------------------------
 

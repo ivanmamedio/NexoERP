@@ -98,4 +98,3 @@ class CompaniesServices:
             result = DeleteCompany(uow.companies).execute(company_id)
             uow.commit()
             return result
-

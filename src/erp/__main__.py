@@ -24,7 +24,7 @@ from erp.bootstrap import bootstrap
 from erp.config.settings import get_session_timeout_minutes
 from erp.modules.identity.application.services import IdentityServices
 from erp.shared.application.session import CurrentSession
-from erp.ui.resource_paths import resource_path
+from erp.shared.ui.resources import resource_path
 from erp.ui.splash import show_splash_screen
 
 if TYPE_CHECKING:
@@ -103,9 +103,7 @@ class _App:
         )
 
         dialog = ChangePasswordDialog()
-        presenter = ChangePasswordPresenter(
-            dialog, self._services, self._session, forced=forced
-        )
+        presenter = ChangePasswordPresenter(dialog, self._services, self._session, forced=forced)
         dialog.set_presenter(presenter)
         dialog.exec()
         return not self._session.username or not self._must_change_password()
@@ -122,9 +120,7 @@ class _App:
             session=self._session,
             idle_timeout_seconds=timeout_minutes * 60,
         )
-        self._main_window.change_password_requested.connect(
-            self._on_change_password_requested
-        )
+        self._main_window.change_password_requested.connect(self._on_change_password_requested)
         self._main_window.users_requested.connect(self._on_users_requested)
         self._main_window.session_expired.connect(self._on_session_expired)
         self._main_window.start_session_guard()
@@ -176,7 +172,7 @@ def main() -> int:
     app = QtWidgets.QApplication(sys.argv)
 
     # Splash screen - usa helper de recursos
-    logo_path = resource_path("erp", "ui", "resources", "logo.png")
+    logo_path = resource_path("ui", "resources", "logo.png")
     splash = show_splash_screen(logo_path, duration_ms=0)  # 0 = não auto-fechar
     splash.showMessage(
         "Carregando módulos...",
@@ -189,7 +185,7 @@ def main() -> int:
 
     # Fecha splash quando janela principal abrir
     def on_main_window_ready() -> None:
-        if hasattr(runner, '_main_window') and runner._main_window:
+        if hasattr(runner, "_main_window") and runner._main_window:
             splash.finish(runner._main_window)
 
     # Timer para fechar splash após UI carregar

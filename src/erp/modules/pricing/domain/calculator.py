@@ -62,7 +62,7 @@ class PriceCalculator:
         if denominator <= 0:
             raise ValidationError(
                 "Denominador invalido: imposto + taxa cartao + margem deve ser menor que 100% "
-                f"(atual: {total_rate*100:.2f}%)."
+                f"(atual: {total_rate * 100:.2f}%)."
             )
 
         # Modo pior caso: considera a maior taxa entre imposto e cartao

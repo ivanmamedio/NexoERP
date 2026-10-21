@@ -137,6 +137,7 @@ class PrinterSettingsDialog(QDialog):
             printer_type = self._type_combo.currentText()
             settings = self._get_current_settings()
             from erp.modules.receipts.infrastructure.printer_factory import PrinterFactory
+
             factory = PrinterFactory()
             printer = factory.create_printer(printer_type, settings)
             printer.print_receipt(test_receipt)

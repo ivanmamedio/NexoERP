@@ -46,9 +46,7 @@ class RegisterSangria:
 
     def execute(self, input: RegisterSangriaInput) -> RegisterSangriaOutput:
         if "cash.sangria" not in self._user_permissions:
-            raise PermissionDenied(
-                "Usuário não tem permissão para sangria (cash.sangria)."
-            )
+            raise PermissionDenied("Usuário não tem permissão para sangria (cash.sangria).")
 
         session = self._session_repo.get_by_id(input.session_id)
         if session is None:

@@ -24,9 +24,7 @@ class NexoERPSplashScreen(QSplashScreen):
 
         # Escala mantendo proporção (max 500px largura)
         if pixmap.width() > 500:
-            pixmap = pixmap.scaledToWidth(
-                500, Qt.TransformationMode.SmoothTransformation
-            )
+            pixmap = pixmap.scaledToWidth(500, Qt.TransformationMode.SmoothTransformation)
 
         super().__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
@@ -57,8 +55,8 @@ class NexoERPSplashScreen(QSplashScreen):
 
 
 def show_splash_screen(
-        logo_path: Path | None = None, duration_ms: int = 1500
-    ) -> NexoERPSplashScreen:
+    logo_path: Path | None = None, duration_ms: int = 1500
+) -> NexoERPSplashScreen:
     """Cria e mostra splash screen por tempo determinado.
 
     Args:

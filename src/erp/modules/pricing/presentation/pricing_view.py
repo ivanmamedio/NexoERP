@@ -106,25 +106,27 @@ class PricingAssistantWidget(QWidget):
         self._error.hide()
         self._btn_apply.setEnabled(True)
         self._result_price.setText(
-            f"Preco de venda: R$ {output.sale_price_cents/100:,.2f}".replace(
-                ",", "X"
-            ).replace(".", ",").replace("X", ".")
+            f"Preco de venda: R$ {output.sale_price_cents / 100:,.2f}".replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
         )
         self._result_margin.setText(
-            f"Margem liquida: {output.net_margin_pct_hundredths/100:.2f}%"
+            f"Margem liquida: {output.net_margin_pct_hundredths / 100:.2f}%"
         )
-        self._result_tax.setText(f"Imposto: R$ {output.tax_amount_cents/100:,.2f}".replace(
-            ",", "X"
-        ).replace(".", ",").replace("X", "."))
+        self._result_tax.setText(
+            f"Imposto: R$ {output.tax_amount_cents / 100:,.2f}".replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
         self._result_card.setText(
-            f"Taxa cartao: R$ {output.card_fee_amount_cents/100:,.2f}".replace(
-                ",", "X"
-            ).replace(".", ",").replace("X", ".")
+            f"Taxa cartao: R$ {output.card_fee_amount_cents / 100:,.2f}".replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
         )
         self._result_margin_amt.setText(
-            f"Margem: R$ {output.margin_amount_cents/100:,.2f}".replace(
-                ",", "X"
-            ).replace(".", ",").replace("X", ".")
+            f"Margem: R$ {output.margin_amount_cents / 100:,.2f}".replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
         )
         self._btn_apply.setEnabled(True)
 

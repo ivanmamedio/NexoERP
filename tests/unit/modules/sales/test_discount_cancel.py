@@ -85,13 +85,9 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
-    def search(
-        self, query: str, company_id: int | None = None, limit: int = 20
-    ) -> list[Product]:
+    def search(self, query: str, company_id: int | None = None, limit: int = 20) -> list[Product]:
         term = query.lower()
-        return [
-            p for p in self._products.values() if term in p.name.lower()
-        ][:limit]
+        return [p for p in self._products.values() if term in p.name.lower()][:limit]
 
     def add(self, product: Product) -> None:
         assert product.id is not None
@@ -105,9 +101,9 @@ def _make_setup() -> tuple:
     sale_repo = FakeSaleRepository()
     item_repo = FakeItemRepository()
     prod_repo = FakeProductRepository()
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
     item = SaleItem(
         sale_id=sale.id or 0,
         company_id=1,
@@ -127,9 +123,7 @@ def _make_setup() -> tuple:
 def test_apply_discount_with_permission() -> None:
     sale_repo, _, _, sale = _make_setup()
     output = ApplyDiscount(sale_repo, {"sale.discount"}).execute(
-        ApplyDiscountInput(
-            sale_id=sale.id or 0, discount_cents=500, user_id=1, username="gerente"
-        )
+        ApplyDiscountInput(sale_id=sale.id or 0, discount_cents=500, user_id=1, username="gerente")
     )
     assert output.new_total_cents == 4500
 
@@ -197,4 +191,3 @@ def test_cancel_item_draft() -> None:
     updated = sale_repo.get_by_id(sale.id or 0)
     assert updated is not None
     assert updated.total_cents == 0
-

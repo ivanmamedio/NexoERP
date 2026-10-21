@@ -244,7 +244,7 @@ Determine whether timestamps are evaluated when the model module is imported or 
 For example, a declaration equivalent to:
 
 ```python
-default=datetime.now(timezone.utc)
+default = datetime.now(timezone.utc)
 ```
 
 may evaluate the timestamp too early.

@@ -51,15 +51,17 @@ class ReportDialog(QDialog):
 
         # Report type
         self._type_combo = QComboBox()
-        self._type_combo.addItems([
-            "Vendas por Período",
-            "Vendas por Produto",
-            "Vendas por Operador",
-            "Estoque Baixo",
-            "Margem de Lucro",
-            "DRE Simplificado",
-            "Fechamento de Caixa",
-        ])
+        self._type_combo.addItems(
+            [
+                "Vendas por Período",
+                "Vendas por Produto",
+                "Vendas por Operador",
+                "Estoque Baixo",
+                "Margem de Lucro",
+                "DRE Simplificado",
+                "Fechamento de Caixa",
+            ]
+        )
         self._type_combo.currentTextChanged.connect(self._on_type_changed)
         form.addRow("Tipo de Relatório:", self._type_combo)
 
@@ -164,9 +166,7 @@ class ReportDialog(QDialog):
         end_qdate = self._end_date.date()
 
         # Convert QDate to datetime
-        start_dt = datetime(
-            start_qdate.year(), start_qdate.month(), start_qdate.day(), tzinfo=UTC
-        )
+        start_dt = datetime(start_qdate.year(), start_qdate.month(), start_qdate.day(), tzinfo=UTC)
         end_dt = datetime(
             end_qdate.year(), end_qdate.month(), end_qdate.day(), 23, 59, 59, tzinfo=UTC
         )

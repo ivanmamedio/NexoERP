@@ -91,7 +91,7 @@ class ReceiptFormatter:
     def _format_line(self, *parts: str) -> str:
         """Formats a line with fixed widths."""
         return (
-            parts[0][:self._item_w].ljust(self._item_w)
+            parts[0][: self._item_w].ljust(self._item_w)
             + parts[1].rjust(self._qtd_w)
             + parts[2].center(self._un_w)
             + parts[3].rjust(self._price_w)
@@ -105,7 +105,7 @@ class ReceiptFormatter:
             qty_str = qty_str[:-1]
 
         return self._format_line(
-            line.description[:self._item_w],
+            line.description[: self._item_w],
             qty_str.rjust(self._qtd_w),
             line.unit.center(self._un_w),
             line.unit_price.format_brl().rjust(self._price_w),

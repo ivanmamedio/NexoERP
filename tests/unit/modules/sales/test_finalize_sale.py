@@ -94,13 +94,9 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
-    def search(
-        self, query: str, company_id: int | None = None, limit: int = 20
-    ) -> list[Product]:
+    def search(self, query: str, company_id: int | None = None, limit: int = 20) -> list[Product]:
         term = query.lower()
-        return [
-            p for p in self._products.values() if term in p.name.lower()
-        ][:limit]
+        return [p for p in self._products.values() if term in p.name.lower()][:limit]
 
     def add(self, product: Product) -> None:
         assert product.id is not None
@@ -115,9 +111,9 @@ def _make_setup(*, stock_qty: int = 100000) -> tuple:
     item_repo = FakeItemRepository()
     payment_repo = FakePaymentRepository()
     prod_repo = FakeProductRepository(stock_qty=stock_qty)
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
     item = SaleItem(
         sale_id=sale.id or 0,
         company_id=1,

@@ -51,9 +51,7 @@ def test_sale_crud(session: Session) -> None:
     item_repo.add(item)
     assert item.id is not None
 
-    payment = SalePayment(
-        sale_id=sale.id or 0, company_id=1, method="cash", amount_cents=5000
-    )
+    payment = SalePayment(sale_id=sale.id or 0, company_id=1, method="cash", amount_cents=5000)
     pay_repo.add(payment)
     assert payment.id is not None
 

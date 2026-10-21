@@ -53,9 +53,7 @@ class ApplyDiscount:
             raise ValidationError("Venda não está mais aberta.")
 
         has_permission = "sale.discount" in self._user_permissions
-        has_supervisor = (
-            input.supervisor_user_id is not None and input.supervisor_username != ""
-        )
+        has_supervisor = input.supervisor_user_id is not None and input.supervisor_username != ""
 
         if not has_permission and not has_supervisor:
             raise PermissionDenied(

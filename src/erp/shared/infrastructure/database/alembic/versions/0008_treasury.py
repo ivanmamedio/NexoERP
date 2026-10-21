@@ -31,9 +31,7 @@ def upgrade() -> None:
         ["company_id"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_financial_entries_type"), "financial_entries", ["type"], unique=False
-    )
+    op.create_index(op.f("ix_financial_entries_type"), "financial_entries", ["type"], unique=False)
     op.create_index(
         op.f("ix_financial_entries_source_type"),
         "financial_entries",
@@ -49,14 +47,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        op.f("ix_financial_entries_source_id"), table_name="financial_entries"
-    )
-    op.drop_index(
-        op.f("ix_financial_entries_source_type"), table_name="financial_entries"
-    )
+    op.drop_index(op.f("ix_financial_entries_source_id"), table_name="financial_entries")
+    op.drop_index(op.f("ix_financial_entries_source_type"), table_name="financial_entries")
     op.drop_index(op.f("ix_financial_entries_type"), table_name="financial_entries")
-    op.drop_index(
-        op.f("ix_financial_entries_company_id"), table_name="financial_entries"
-    )
+    op.drop_index(op.f("ix_financial_entries_company_id"), table_name="financial_entries")
     op.drop_table("financial_entries")

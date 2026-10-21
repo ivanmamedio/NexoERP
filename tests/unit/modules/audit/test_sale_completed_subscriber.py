@@ -26,9 +26,7 @@ def engine():
 def test_audit_subscriber_records_sale_completed(engine) -> None:
     event_bus = EventBus()
     audit_service = AuditService(engine)
-    AuditEventSubscriber(
-        event_bus=event_bus, audit_service=audit_service
-    )
+    AuditEventSubscriber(event_bus=event_bus, audit_service=audit_service)
 
     event = SaleCompleted(
         sale_id=42,
@@ -59,9 +57,7 @@ def test_audit_subscriber_records_sale_completed(engine) -> None:
 def test_audit_subscriber_verify_chain_after_sale(engine) -> None:
     event_bus = EventBus()
     audit_service = AuditService(engine)
-    AuditEventSubscriber(
-        event_bus=event_bus, audit_service=audit_service
-    )
+    AuditEventSubscriber(event_bus=event_bus, audit_service=audit_service)
 
     # Publish multiple SaleCompleted events
     for i in range(3):

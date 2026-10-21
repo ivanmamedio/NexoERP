@@ -49,9 +49,7 @@ class FakeIdentityServices(IdentityServices):
             raise ValueError(self.fail_message)
         from erp.modules.identity.application.create_user import CreateUserOutput
 
-        return CreateUserOutput(
-            user_id=1, username=username, role_name=role_name
-        )
+        return CreateUserOutput(user_id=1, username=username, role_name=role_name)
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
         self.assign_calls += 1
@@ -138,6 +136,7 @@ def test_users_presenter_load() -> None:
     assert view.rendered_users[0].username == "ana"
     assert len(view.rendered_roles) == 1
     assert view.rendered_roles[0].name == "Caixa"
+
 
 def test_users_presenter_create_user_success() -> None:
     services = FakeIdentityServices()

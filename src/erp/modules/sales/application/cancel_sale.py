@@ -59,9 +59,7 @@ class CancelSale:
 
     def execute(self, input: CancelSaleInput) -> None:
         if "sale.cancel" not in self._user_permissions:
-            raise PermissionDenied(
-                "Usuário não tem permissão para cancelar vendas (sale.cancel)."
-            )
+            raise PermissionDenied("Usuário não tem permissão para cancelar vendas (sale.cancel).")
         sale = self._sale_repo.get_by_id(input.sale_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
@@ -99,9 +97,7 @@ class CancelItem:
 
     def execute(self, input: CancelItemInput) -> None:
         if "sale.cancel" not in self._user_permissions:
-            raise PermissionDenied(
-                "Usuário não tem permissão para cancelar itens (sale.cancel)."
-            )
+            raise PermissionDenied("Usuário não tem permissão para cancelar itens (sale.cancel).")
         item = self._item_repo.get_by_id(input.item_id)
         if item is None:
             raise NotFound(f"Item {input.item_id} não encontrado.")

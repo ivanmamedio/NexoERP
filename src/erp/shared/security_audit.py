@@ -35,9 +35,7 @@ class SecurityAuditor:
                 content = svc_file.read_text(encoding="utf-8")
                 # Look for permission checks
                 if re.search(r"permission|Permission|can_|requires_", content):
-                    use_cases_with_perms.append(
-                        svc_file.relative_to(self._project_root).as_posix()
-                    )
+                    use_cases_with_perms.append(svc_file.relative_to(self._project_root).as_posix())
 
             if use_cases_with_perms:
                 results[module_name] = use_cases_with_perms
@@ -80,8 +78,7 @@ class SecurityAuditor:
                     for pattern in password_patterns:
                         if re.search(pattern, line, re.IGNORECASE):
                             violations.append(
-                                f"{py_file.relative_to(self._project_root)}:{i}: "
-                                f"{line.strip()}"
+                                f"{py_file.relative_to(self._project_root)}:{i}: {line.strip()}"
                             )
 
         return {"violations": violations}
@@ -103,13 +100,12 @@ class SecurityAuditor:
                 # Look for text() with f-strings or string concatenation
                 if "text(" in line:
                     # Check if it contains f-string or concatenation
-                    has_fstring = "f\"" in line or "f'" in line
+                    has_fstring = 'f"' in line or "f'" in line
                     has_concat = "+" in line
                     is_param = ":param" in line or ":cid" in line or ":id" in line
                     if (has_fstring or has_concat) and not is_param:
                         risks.append(
-                            f"{py_file.relative_to(self._project_root)}:{i}: "
-                            f"{line.strip()}"
+                            f"{py_file.relative_to(self._project_root)}:{i}: {line.strip()}"
                         )
 
         return {"risks": risks}

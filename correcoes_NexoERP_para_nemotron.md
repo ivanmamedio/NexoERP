@@ -195,16 +195,12 @@ class LoginDialog(QDialog):
 
         title = QLabel("NexoERP", self._card)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet(
-            "font-size: 22px; font-weight: 600; color: #2c3e50; border: none;"
-        )
+        title.setStyleSheet("font-size: 22px; font-weight: 600; color: #2c3e50; border: none;")
         card_layout.addWidget(title)
 
         subtitle = QLabel("Sistema de Gestão Comercial", self._card)
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(
-            "font-size: 12px; color: #7f8c8d; border: none;"
-        )
+        subtitle.setStyleSheet("font-size: 12px; color: #7f8c8d; border: none;")
         card_layout.addWidget(subtitle)
 
         self._username = QLineEdit(self._card)
@@ -244,15 +240,11 @@ class LoginDialog(QDialog):
         self._error_label = QLabel(self._card)
         self._error_label.setWordWrap(True)
         self._error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._error_label.setStyleSheet(
-            "color: #c0392b; font-size: 12px; border: none;"
-        )
+        self._error_label.setStyleSheet("color: #c0392b; font-size: 12px; border: none;")
         self._error_label.hide()
         card_layout.addWidget(self._error_label)
 
-        self._buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok, self._card
-        )
+        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, self._card)
         submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
         if submit_button is not None:
             submit_button.setText("Entrar")
@@ -273,9 +265,7 @@ class LoginDialog(QDialog):
             """)
 
         self._buttons.accepted.connect(self._on_submit)
-        card_layout.addWidget(
-            self._buttons, alignment=Qt.AlignmentFlag.AlignCenter
-        )
+        card_layout.addWidget(self._buttons, alignment=Qt.AlignmentFlag.AlignCenter)
 
         outer_layout.addWidget(self._card)
 

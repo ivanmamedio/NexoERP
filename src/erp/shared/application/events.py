@@ -10,14 +10,10 @@ EventType = str | type[T]
 
 class EventBus:
     def __init__(self) -> None:
-        self._subscribers: dict[EventType[Any], list[Callable[[Any], None]]] = (
-            defaultdict(list)
-        )
+        self._subscribers: dict[EventType[Any], list[Callable[[Any], None]]] = defaultdict(list)
         self._lock = threading.Lock()
 
-    def subscribe(
-        self, event_type: EventType[T], handler: Callable[[T], None]
-    ) -> None:
+    def subscribe(self, event_type: EventType[T], handler: Callable[[T], None]) -> None:
         with self._lock:
             self._subscribers[event_type].append(handler)
 

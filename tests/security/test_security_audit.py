@@ -230,15 +230,11 @@ class TestSecurityAudit:
                 table_names_n = {t[0] for t in tables_n}
                 print(f"\n=== Tables at N ({head_rev}): {sorted(table_names_n)} ===")
 
-                company = conn.execute(
-                    text("SELECT name FROM companies WHERE id = 1")
-                ).fetchone()
+                company = conn.execute(text("SELECT name FROM companies WHERE id = 1")).fetchone()
                 assert company is not None
                 assert company[0] == "Teste"
 
-                user = conn.execute(
-                    text("SELECT username FROM users WHERE id = 1")
-                ).fetchone()
+                user = conn.execute(text("SELECT username FROM users WHERE id = 1")).fetchone()
                 assert user is not None
                 assert user[0] == "teste"
 

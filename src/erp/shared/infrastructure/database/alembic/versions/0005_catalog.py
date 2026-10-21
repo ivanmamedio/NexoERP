@@ -25,9 +25,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_categories_company_id"), "categories", ["company_id"], unique=False
-    )
+    op.create_index(op.f("ix_categories_company_id"), "categories", ["company_id"], unique=False)
     op.create_index(op.f("ix_categories_name"), "categories", ["name"], unique=False)
 
     op.create_table(
@@ -46,9 +44,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_suppliers_company_id"), "suppliers", ["company_id"], unique=False
-    )
+    op.create_index(op.f("ix_suppliers_company_id"), "suppliers", ["company_id"], unique=False)
     op.create_index(op.f("ix_suppliers_name"), "suppliers", ["name"], unique=False)
     op.create_table(
         "products",
@@ -71,9 +67,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_products_company_id"), "products", ["company_id"], unique=False
-    )
+    op.create_index(op.f("ix_products_company_id"), "products", ["company_id"], unique=False)
     op.create_index(op.f("ix_products_sku"), "products", ["sku"], unique=False)
     op.create_index(op.f("ix_products_name"), "products", ["name"], unique=False)
 

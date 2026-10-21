@@ -62,7 +62,9 @@ class BackupSettingsDialog(QDialog):
 
         # Secondary backup directory
         self._secondary_dir_edit = QLabel()
-        self._secondary_dir_edit.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._secondary_dir_edit.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         form.addRow("Diretório secundário:", self._secondary_dir_edit)
 
         secondary_browse = QPushButton("Alterar...")

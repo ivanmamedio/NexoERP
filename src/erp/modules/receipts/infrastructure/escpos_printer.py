@@ -34,9 +34,7 @@ class EscposPrinter(ReceiptPrinterPort):
             if self._device_path.startswith("tcp://"):
                 # Network printer: tcp://host:port
                 host_port = self._device_path[6:]
-                host, port = (
-                    host_port.split(":") if ":" in host_port else (host_port, 9100)
-                )
+                host, port = host_port.split(":") if ":" in host_port else (host_port, 9100)
                 self._printer = Network(host, int(port))
             elif self._device_path.startswith("serial://"):
                 # Serial printer: serial:///dev/ttyUSB0:9600
@@ -56,15 +54,9 @@ class EscposPrinter(ReceiptPrinterPort):
 
                 if ":" in self._device_path:
                     vendor_str, product_str = self._device_path.split(":")
-                    v_id = (
-                        int(vendor_str, 16)
-                        if vendor_str.startswith("0x")
-                        else int(vendor_str)
-                    )
+                    v_id = int(vendor_str, 16) if vendor_str.startswith("0x") else int(vendor_str)
                     p_id = (
-                        int(product_str, 16)
-                        if product_str.startswith("0x")
-                        else int(product_str)
+                        int(product_str, 16) if product_str.startswith("0x") else int(product_str)
                     )
                     vendor_id = v_id
                     product_id = p_id

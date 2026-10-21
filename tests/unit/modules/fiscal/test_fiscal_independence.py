@@ -30,9 +30,7 @@ class MockFiscalAdapter(FiscalPort):
             protocol="MOCK-PROTOCOL",
         )
 
-    def cancel_document(
-        self, document_id: str, justification: str
-    ) -> FiscalOperationResult:
+    def cancel_document(self, document_id: str, justification: str) -> FiscalOperationResult:
         self.cancel_called = True
         return FiscalOperationResult.success_result(document_id=document_id)
 

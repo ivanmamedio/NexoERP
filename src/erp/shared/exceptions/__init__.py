@@ -86,9 +86,7 @@ class ExceptionReporter(QObject):
         msg_box = QMessageBox(self._parent_widget)
         msg_box.setIcon(QMessageBox.Icon.Critical)
         msg_box.setWindowTitle("Erro do Sistema")
-        msg_box.setText(
-            "Ocorreu um erro inesperado. A operação não pôde ser concluída."
-        )
+        msg_box.setText("Ocorreu um erro inesperado. A operação não pôde ser concluída.")
 
         # Create a detailed message
         detail = f"Tipo: {type(exc).__name__}\nMensagem: {exc}"
@@ -96,15 +94,11 @@ class ExceptionReporter(QObject):
             detail += f"\nContexto: {context}"
 
         msg_box.setDetailedText(detail)
-        msg_box.setStandardButtons(
-            QMessageBox.StandardButton.Ok
-        )
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.setDefaultButton(QMessageBox.StandardButton.Ok)
 
         # Add copy button functionality
-        copy_btn = msg_box.addButton(
-            "Copiar Relatório", QMessageBox.ButtonRole.ActionRole
-        )
+        copy_btn = msg_box.addButton("Copiar Relatório", QMessageBox.ButtonRole.ActionRole)
         if copy_btn:
             copy_btn.setText("Copiar Relatório")
             copy_btn.clicked.connect(lambda: self._copy_to_clipboard(detail))

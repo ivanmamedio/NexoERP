@@ -49,9 +49,9 @@ class CashServices:
     def register_sangria(self, input: RegisterSangriaInput) -> RegisterSangriaOutput:
         with SqlAlchemyCashUnitOfWork(self._engine) as uow:
             assert uow.sessions is not None and uow.movements is not None
-            result = RegisterSangria(
-                uow.sessions, uow.movements, self._user_permissions
-            ).execute(input)
+            result = RegisterSangria(uow.sessions, uow.movements, self._user_permissions).execute(
+                input
+            )
             uow.commit()
             return result
 

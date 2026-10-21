@@ -69,9 +69,7 @@ def _setup_session_with_movements() -> tuple[FakeSessionRepository, FakeMovement
         CashMovement(session_id=1, movement_type=MovementType.SUPRIMENTO, amount_cents=5000)
     )
     # Sangria R$ 30,00
-    mov_repo.add(
-        CashMovement(session_id=1, movement_type=MovementType.SANGRIA, amount_cents=3000)
-    )
+    mov_repo.add(CashMovement(session_id=1, movement_type=MovementType.SANGRIA, amount_cents=3000))
 
     return sess_repo, mov_repo
 

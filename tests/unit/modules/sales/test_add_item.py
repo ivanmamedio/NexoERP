@@ -76,13 +76,9 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
-    def search(
-        self, query: str, company_id: int | None = None, limit: int = 20
-    ) -> list[Product]:
+    def search(self, query: str, company_id: int | None = None, limit: int = 20) -> list[Product]:
         term = query.lower()
-        matches = [
-            p for p in self._products.values() if p.active and term in p.name.lower()
-        ]
+        matches = [p for p in self._products.values() if p.active and term in p.name.lower()]
         return matches[:limit]
 
     def delete(self, product_id: int) -> None:
@@ -115,9 +111,9 @@ def test_add_item_by_sku() -> None:
     prod_repo = FakeProductRepository()
     prod_repo.add(_make_product())
 
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
 
     output = AddItem(sale_repo, item_repo, prod_repo).execute(
         AddItemInput(sale_id=sale.id or 0, query="ARROZ-5KG", quantity_thousandths=2000)
@@ -134,9 +130,9 @@ def test_add_item_multiplier() -> None:
     prod_repo = FakeProductRepository()
     prod_repo.add(_make_product())
 
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
 
     output = AddItem(sale_repo, item_repo, prod_repo).execute(
         AddItemInput(sale_id=sale.id or 0, query="3*ARROZ-5KG", quantity_thousandths=1000)
@@ -151,15 +147,13 @@ def test_add_item_insufficient_stock() -> None:
     prod_repo = FakeProductRepository()
     prod_repo.add(_make_product())
 
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
 
     with pytest.raises(ValidationError, match="Estoque insuficiente"):
         AddItem(sale_repo, item_repo, prod_repo).execute(
-            AddItemInput(
-                sale_id=sale.id or 0, query="ARROZ-5KG", quantity_thousandths=200000
-            )
+            AddItemInput(sale_id=sale.id or 0, query="ARROZ-5KG", quantity_thousandths=200000)
         )
 
 
@@ -168,9 +162,9 @@ def test_add_item_product_not_found() -> None:
     item_repo = FakeItemRepository()
     prod_repo = FakeProductRepository()
 
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
 
     with pytest.raises(NotFound, match="não encontrado"):
         AddItem(sale_repo, item_repo, prod_repo).execute(

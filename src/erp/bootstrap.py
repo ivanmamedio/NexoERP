@@ -63,6 +63,7 @@ _logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class AppContext:
     """Container for the services constructed at startup."""
+
     engine: Engine
     data_dir: Path
     db_path: Path
@@ -86,12 +87,14 @@ def _catalog_uow_factory(engine: Engine) -> Callable[[], CatalogUnitOfWork]:
 
 def _product_repo_factory(engine: Engine) -> Callable[[], SqlAlchemyProductRepository]:
     """Factory for creating product repository within a catalog UoW."""
+
     def factory() -> SqlAlchemyProductRepository:
         uow = SqlAlchemyCatalogUnitOfWork(engine)
         uow.__enter__()
         products = uow.products
         assert products is not None
         return products
+
     return factory
 
 
@@ -123,9 +126,7 @@ class _SqlSupervisorAuth(SupervisorAuthPort):
     def __init__(self, identity_services: Any) -> None:
         self._identity = identity_services
 
-    def authenticate(
-        self, username: str, password: str
-    ) -> SupervisorAuthInfo | None:
+    def authenticate(self, username: str, password: str) -> SupervisorAuthInfo | None:
         try:
             output = self._identity.authenticate(username, password)
         except Exception:
@@ -214,6 +215,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         permission_reader = _IdentityPermissionReader(user_repo)
         permission_checker = SqlAlchemyPermissionChecker(permission_reader)
         from erp.modules.companies.application.permission_gate import CompanyPermissionGate
+
         permission_gate = CompanyPermissionGate(permission_checker)
     companies_services = CompaniesServices(engine=engine, permission_gate=permission_gate)
 

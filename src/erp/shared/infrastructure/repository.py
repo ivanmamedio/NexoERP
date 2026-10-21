@@ -27,6 +27,7 @@ ID = TypeVar("ID", int, str)
 # Tables protected by audit triggers (must use bypass for legitimate updates)
 _PROTECTED_TABLES = {"users", "roles", "permissions", "companies"}
 
+
 def _is_protected_table(model_cls: type) -> bool:
     """Check if the model's table is protected by audit triggers."""
     table_name = getattr(model_cls, "__tablename__", "")
@@ -83,6 +84,7 @@ class SqlAlchemyRepository[Model, Domain: Entity, ID: (int, str)]:
         if company_id is not None and self._company_id_column is not None:
             column = getattr(self._model_cls, self._company_id_column)
             from sqlalchemy import ColumnElement
+
             stmt = stmt.where(cast("ColumnElement[bool]", column == company_id))
         return stmt
 
@@ -129,7 +131,7 @@ class SqlAlchemyRepository[Model, Domain: Entity, ID: (int, str)]:
         """Update existing entity. Requires domain.id to be set."""
         if domain.id is None:
             raise ValueError(f"{self._model_cls.__name__} must have an id to update")
-        
+
         def _do_save() -> None:
             model = self._session.get(self._model_cls, domain.id)
             if model is None:
@@ -138,7 +140,7 @@ class SqlAlchemyRepository[Model, Domain: Entity, ID: (int, str)]:
             self._copy_domain_to_model(domain, model)
             self._session.add(model)
             self._session.flush()
-        
+
         if _is_protected_table(self._model_cls):
             self._with_bypass(_do_save)
         else:
@@ -162,6 +164,7 @@ class SqlAlchemyRepository[Model, Domain: Entity, ID: (int, str)]:
 
     def delete(self, id: ID) -> None:
         """Delete by primary key, applying company filter."""
+
         def _do_delete() -> None:
             domain = self.get_by_id(id)
             if domain is None:
@@ -172,7 +175,7 @@ class SqlAlchemyRepository[Model, Domain: Entity, ID: (int, str)]:
             if model:
                 self._session.delete(model)
                 self._session.flush()
-        
+
         if _is_protected_table(self._model_cls):
             self._with_bypass(_do_delete)
         else:

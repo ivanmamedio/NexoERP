@@ -242,9 +242,7 @@ def test_caixa_role_permissions_end_to_end(session: Session) -> None:
     )
     assert result.has_permission is False
 
-    result = check.execute(
-        CheckPermissionInput(user_id=user.id, permission_code="treasury.view")
-    )
+    result = check.execute(CheckPermissionInput(user_id=user.id, permission_code="treasury.view"))
     assert result.has_permission is False
 
 
@@ -266,7 +264,5 @@ def test_admin_role_has_all_permissions_end_to_end(session: Session) -> None:
     check = CheckPermission(user_repo)
 
     for code in ("product.price.update", "treasury.view", "backup.manage"):
-        result = check.execute(
-            CheckPermissionInput(user_id=admin.id, permission_code=code)
-        )
+        result = check.execute(CheckPermissionInput(user_id=admin.id, permission_code=code))
         assert result.has_permission is True, f"admin deveria ter {code}"

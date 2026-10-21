@@ -38,9 +38,7 @@ class SqlAlchemyBackupRepository(BackupRepositoryPort):
             return None
         return self._model_to_domain(model)
 
-    def list_by_type(
-        self, backup_type: str, company_id: int | None = None
-    ) -> list[Backup]:
+    def list_by_type(self, backup_type: str, company_id: int | None = None) -> list[Backup]:
         stmt = select(BackupModel).where(BackupModel.backup_type == backup_type)
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]

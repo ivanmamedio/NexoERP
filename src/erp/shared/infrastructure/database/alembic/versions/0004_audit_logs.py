@@ -29,21 +29,15 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("hash"),
     )
-    op.create_index(
-        op.f("ix_audit_logs_action"), "audit_logs", ["action"], unique=False
-    )
-    op.create_index(
-        op.f("ix_audit_logs_created_at"), "audit_logs", ["created_at"], unique=False
-    )
+    op.create_index(op.f("ix_audit_logs_action"), "audit_logs", ["action"], unique=False)
+    op.create_index(op.f("ix_audit_logs_created_at"), "audit_logs", ["created_at"], unique=False)
     op.create_index(
         op.f("ix_audit_logs_entity_type"),
         "audit_logs",
         ["entity_type"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_audit_logs_username"), "audit_logs", ["username"], unique=False
-    )
+    op.create_index(op.f("ix_audit_logs_username"), "audit_logs", ["username"], unique=False)
 
     op.execute(
         """
@@ -53,9 +47,7 @@ def upgrade() -> None:
         )
         """
     )
-    op.execute(
-        "INSERT OR IGNORE INTO audit_bypass (id, enabled) VALUES (1, 0)"
-    )
+    op.execute("INSERT OR IGNORE INTO audit_bypass (id, enabled) VALUES (1, 0)")
 
 
 def downgrade() -> None:

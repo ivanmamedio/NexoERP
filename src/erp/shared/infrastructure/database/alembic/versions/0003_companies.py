@@ -28,15 +28,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_companies_company_id"), "companies", ["company_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_companies_name"), "companies", ["name"], unique=False
-    )
-    op.create_index(
-        op.f("ix_companies_tax_id"), "companies", ["tax_id"], unique=True
-    )
+    op.create_index(op.f("ix_companies_company_id"), "companies", ["company_id"], unique=False)
+    op.create_index(op.f("ix_companies_name"), "companies", ["name"], unique=False)
+    op.create_index(op.f("ix_companies_tax_id"), "companies", ["tax_id"], unique=True)
 
 
 def downgrade() -> None:

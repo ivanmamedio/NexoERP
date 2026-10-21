@@ -97,6 +97,4 @@ class ChangePasswordDialog(QDialog):
         if self._presenter is None:
             return
         self._error_label.hide()
-        self._presenter.change(
-            self._current.text(), self._new.text(), self._confirm.text()
-        )
+        self._presenter.change(self._current.text(), self._new.text(), self._confirm.text())

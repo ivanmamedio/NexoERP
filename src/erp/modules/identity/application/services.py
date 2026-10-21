@@ -49,10 +49,8 @@ class IdentityServices(Protocol):
 
     def assign_role(self, *, user_id: int, role_name: str, actor_id: int) -> AssignRoleOutput: ...
 
-    def set_user_active(self, *, user_id: int, is_active: bool, actor_id: int) -> (
-        SetUserActiveOutput
-    ): ...
+    def set_user_active(
+        self, *, user_id: int, is_active: bool, actor_id: int
+    ) -> SetUserActiveOutput: ...
 
     def check_permission(self, *, user_id: int, permission_code: str) -> bool: ...
-
-

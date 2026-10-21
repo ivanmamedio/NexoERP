@@ -67,9 +67,7 @@ class CloseCashSessionPresenter:
                 total_suprimentos = uow.movements.sum_by_session_and_type(
                     self._session_id, "suprimento"
                 )
-                total_sangrias = uow.movements.sum_by_session_and_type(
-                    self._session_id, "sangria"
-                )
+                total_sangrias = uow.movements.sum_by_session_and_type(self._session_id, "sangria")
 
                 expected = (
                     cash_session.opening_amount_cents

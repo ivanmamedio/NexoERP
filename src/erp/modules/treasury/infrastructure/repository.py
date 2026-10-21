@@ -47,9 +47,7 @@ class SqlAlchemyFinancialEntryRepository(FinancialEntryRepository):
         self._session.flush()
         entry.id = model.id
 
-    def list_by_company(
-        self, company_id: int | None = None
-    ) -> list[FinancialEntry]:
+    def list_by_company(self, company_id: int | None = None) -> list[FinancialEntry]:
         stmt = select(FinancialEntryModel)
         if company_id is not None:
             stmt = stmt.where(FinancialEntryModel.company_id == company_id)
@@ -220,9 +218,7 @@ class SqlAlchemyPayableRepository(PayableRepository):
             source_id=model.source_id,
         )
         # Installments will be loaded via relationship
-        payable.installments = [
-            self._installment_to_domain(i) for i in model.installments
-        ]
+        payable.installments = [self._installment_to_domain(i) for i in model.installments]
         return payable
 
     def _installment_to_domain(self, model: PayableInstallmentModel) -> PayableInstallment:

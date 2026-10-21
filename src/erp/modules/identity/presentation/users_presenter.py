@@ -124,9 +124,7 @@ class UsersPresenter:
             return
 
         try:
-            self._services.set_user_active(
-                user_id=user_id, is_active=is_active, actor_id=actor_id
-            )
+            self._services.set_user_active(user_id=user_id, is_active=is_active, actor_id=actor_id)
         except (ValueError, DomainError) as exc:
             self._view.show_error(str(exc))
             return

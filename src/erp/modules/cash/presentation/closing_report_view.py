@@ -107,12 +107,8 @@ class ClosingReportDialog(QDialog, ClosingReportView):
         self._add_row("Status", report.status)
 
         self._add_section("Horários")
-        opened_at_str = (
-            report.opened_at.strftime("%d/%m/%Y %H:%M") if report.opened_at else "N/A"
-        )
-        closed_at_str = (
-            report.closed_at.strftime("%d/%m/%Y %H:%M") if report.closed_at else "N/A"
-        )
+        opened_at_str = report.opened_at.strftime("%d/%m/%Y %H:%M") if report.opened_at else "N/A"
+        closed_at_str = report.closed_at.strftime("%d/%m/%Y %H:%M") if report.closed_at else "N/A"
         self._add_row("Abertura", opened_at_str)
         self._add_row("Fechamento", closed_at_str)
         self._add_row("Aberto por", report.opened_by_username)

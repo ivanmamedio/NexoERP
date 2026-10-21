@@ -24,4 +24,3 @@ class DeleteCompany:
 
         self._repository.delete(company_id)
         return DeleteCompanyOutput(company_id=company_id)
-
