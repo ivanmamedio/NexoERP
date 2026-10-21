@@ -51,6 +51,7 @@ from erp.modules.sales.application.ports import (
     SupervisorAuthPort,
 )
 from erp.modules.sales.application.services import SalesServices
+from erp.modules.settings.application.services import SettingsServices
 from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
@@ -73,6 +74,7 @@ class AppContext:
     pricing_services: PricingServices | None = None
     cash_services: CashServices | None = None
     sales_services: SalesServices | None = None
+    settings_services: SettingsServices | None = None
     supervisor_auth: SupervisorAuthPort | None = None
     backup_service: BackupService | None = None
     backup_scheduler: BackupScheduler | None = None
@@ -268,6 +270,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     report_generator = SqlReportGenerator(Session(engine))
     report_service = create_report_service(report_generator, report_repo, reports_dir)
 
+    # Settings services (company-scoped configuration)
+    settings_services = SettingsServices(engine=engine)
+
     return AppContext(
         engine=engine,
         data_dir=resolved_data_dir,
@@ -278,6 +283,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         pricing_services=pricing_services,
         cash_services=cash_services,
         sales_services=sales_services,
+        settings_services=settings_services,
         supervisor_auth=supervisor_auth,
         backup_service=backup_service,
         backup_scheduler=scheduler,

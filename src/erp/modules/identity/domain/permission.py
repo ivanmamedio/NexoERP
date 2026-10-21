@@ -46,6 +46,7 @@ PERMISSION_CASH_OPEN_CLOSE = Permission("cash.open_close")
 PERMISSION_RECEIPT_PRINT = Permission("receipt.print")
 PERMISSION_REPORTS_VIEW = Permission("reports.view")
 PERMISSION_BACKUP_MANAGE = Permission("backup.manage")
+PERMISSION_SETTINGS_UPDATE = Permission("settings.update")
 
 ALL_PERMISSIONS: frozenset[Permission] = frozenset(
     {
@@ -61,6 +62,7 @@ ALL_PERMISSIONS: frozenset[Permission] = frozenset(
         PERMISSION_RECEIPT_PRINT,
         PERMISSION_REPORTS_VIEW,
         PERMISSION_BACKUP_MANAGE,
+        PERMISSION_SETTINGS_UPDATE,
     }
 )
 
@@ -80,6 +82,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             "cash.open_close",
             "receipt.print",
             "reports.view",
+            "settings.update",
         }
     ),
     "Caixa": frozenset(
