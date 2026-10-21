@@ -352,6 +352,7 @@ class PosPresenter:
                     reason=reason,
                     user_id=self._session.user_id,
                     username=self._session.username or "",
+                    company_id=self._session.company_id,
                 )
             )
         except DomainError as exc:
@@ -451,7 +452,9 @@ class PosPresenter:
             self._view.show_error("Nenhuma venda aberta.")
             return None
         try:
-            return self._sales_services.get_sale_state(sale_id=sale_id)
+            return self._sales_services.get_sale_state(
+                sale_id=sale_id, company_id=self._session.company_id
+            )
         except Exception as exc:  # pragma: no cover - erro inesperado de infraestrutura
             self._view.show_error(f"Erro ao carregar venda: {exc}")
             return None
@@ -460,7 +463,9 @@ class PosPresenter:
         if self._sale_id is None:
             return
         try:
-            state = self._sales_services.get_sale_state(sale_id=self._sale_id)
+            state = self._sales_services.get_sale_state(
+                sale_id=self._sale_id, company_id=self._session.company_id
+            )
         except Exception as exc:  # pragma: no cover - erro inesperado de infraestrutura
             self._view.show_error(f"Erro ao carregar venda: {exc}")
             return

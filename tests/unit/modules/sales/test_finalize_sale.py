@@ -29,8 +29,13 @@ class FakeSaleRepository:
     def save(self, sale: Sale) -> None:
         self._sales[sale.id] = sale  # type: ignore[index]
 
-    def get_by_id(self, sale_id: int) -> Sale | None:
-        return self._sales.get(sale_id)
+    def get_by_id(self, sale_id: int, company_id: int | None = None) -> Sale | None:
+        sale = self._sales.get(sale_id)
+        if sale is None:
+            return None
+        if company_id is not None and sale.company_id != company_id:
+            return None
+        return sale
 
     def list_open(self, company_id: int | None = None) -> list[Sale]:
         return [s for s in self._sales.values() if s.is_draft()]

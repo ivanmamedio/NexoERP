@@ -67,3 +67,39 @@ def test_sale_crud(session: Session) -> None:
 
     payments = pay_repo.list_by_sale(sale.id or 0)
     assert len(payments) == 1
+
+
+def test_sale_list_open_filters_by_company(session: Session) -> None:
+    """list_open deve retornar apenas vendas da empresa informada."""
+    repo = SqlAlchemySaleRepository(session)
+
+    sale_a = Sale(user_id=1, username="caixa", company_id=1)
+    sale_b = Sale(user_id=2, username="caixa", company_id=2)
+    repo.add(sale_a)
+    repo.add(sale_b)
+
+    empresas_1 = repo.list_open(company_id=1)
+    empresas_2 = repo.list_open(company_id=2)
+
+    assert len(empresas_1) == 1
+    assert empresas_1[0].company_id == 1
+    assert len(empresas_2) == 1
+    assert empresas_2[0].company_id == 2
+
+
+def test_sale_get_by_id_isolates_companies(session: Session) -> None:
+    """Uma empresa não deve acessar vendas de outra empresa via get_by_id."""
+    repo = SqlAlchemySaleRepository(session)
+
+    sale_a = Sale(user_id=1, username="caixa", company_id=1)
+    sale_b = Sale(user_id=2, username="caixa", company_id=2)
+    repo.add(sale_a)
+    repo.add(sale_b)
+
+    # Empresa 1 não deve ver a venda da empresa 2
+    found = repo.get_by_id(sale_b.id or 0, company_id=1)
+    assert found is None, "Empresa 1 não deveria acessar venda da empresa 2"
+
+    # Empresa 2 não deve ver a venda da empresa 1
+    found = repo.get_by_id(sale_a.id or 0, company_id=2)
+    assert found is None, "Empresa 2 não deveria acessar venda da empresa 1"

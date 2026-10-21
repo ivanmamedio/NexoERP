@@ -60,7 +60,7 @@ class FinalizeSale:
         self._product_repo = product_repo
 
     def execute(self, input: FinalizeSaleInput) -> FinalizeSaleOutput:
-        sale = self._sale_repo.get_by_id(input.sale_id)
+        sale = self._sale_repo.get_by_id(input.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
         if not sale.is_draft():

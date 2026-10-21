@@ -46,7 +46,7 @@ class ApplyDiscount:
         self._user_permissions = user_permissions
 
     def execute(self, input: ApplyDiscountInput) -> ApplyDiscountOutput:
-        sale = self._repository.get_by_id(input.sale_id)
+        sale = self._repository.get_by_id(input.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
         if not sale.is_draft():

@@ -28,7 +28,9 @@ class FakeSaleRepository:
     def __init__(self, sale: object | None) -> None:
         self._sale = sale
 
-    def get_by_id(self, sale_id: int) -> object | None:
+    def get_by_id(self, sale_id: int, company_id: int | None = None) -> object | None:
+        if company_id is not None and self._sale.company_id != company_id:
+            return None
         return self._sale
 
 
@@ -79,7 +81,9 @@ class FakeSalesServices:
         self.items = []
         self.total_cents = 0
         self.discount_cents = 0
-        return SimpleNamespace(sale=SimpleNamespace(id=self.sale_id))
+        return SimpleNamespace(
+            sale=SimpleNamespace(id=self.sale_id, company_id=getattr(input_data, "company_id", 1))
+        )
 
     def add_item(self, input_data: object) -> object:
         query = input_data.query
@@ -139,7 +143,7 @@ class FakeSalesServices:
             change_cents=change,
         )
 
-    def get_sale_state(self, *, sale_id: int) -> SaleStateOutput:
+    def get_sale_state(self, *, sale_id: int, company_id: int | None = None) -> SaleStateOutput:
         return SaleStateOutput(
             sale_id=sale_id,
             status="draft",

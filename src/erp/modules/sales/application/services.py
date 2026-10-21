@@ -108,27 +108,32 @@ class SalesServices:
                 for i in items
                 if not i.cancelled and i.product_id is not None
             ]
+
+            sale = result.sale
+            cash_paid = sum(p.amount_cents for p in input.payments if p.method == "cash")
+            pix_cents = sum(p.amount_cents for p in input.payments if p.method == "pix")
+            card_cents = sum(p.amount_cents for p in input.payments if p.method == "card")
+
+            # Publica SaleCompleted dentro da mesma transação. Se qualquer
+            # subscriber falhar, a transação inteira é revertida pelo UoW.
+            self._event_bus.publish(
+                SaleCompleted(
+                    sale_id=sale.id or 0,
+                    company_id=sale.company_id,
+                    session_id=sale.session_id,
+                    user_id=input.user_id,
+                    username=input.username,
+                    total_cents=sale.total_cents,
+                    cash_cents=cash_paid,
+                    pix_cents=pix_cents,
+                    card_cents=card_cents,
+                    items=sale_items_data,
+                )
+            )
+
             catalog_uow.commit()
             uow.commit()
 
-        sale = result.sale
-        cash_paid = sum(p.amount_cents for p in input.payments if p.method == "cash")
-        pix_cents = sum(p.amount_cents for p in input.payments if p.method == "pix")
-        card_cents = sum(p.amount_cents for p in input.payments if p.method == "card")
-        self._event_bus.publish(
-            SaleCompleted(
-                sale_id=sale.id or 0,
-                company_id=sale.company_id,
-                session_id=sale.session_id,
-                user_id=input.user_id,
-                username=input.username,
-                total_cents=sale.total_cents,
-                cash_cents=cash_paid,
-                pix_cents=pix_cents,
-                card_cents=card_cents,
-                items=sale_items_data,
-            )
-        )
         return result
 
     def cancel_sale(self, input: CancelSaleInput) -> None:
@@ -150,10 +155,10 @@ class SalesServices:
             CancelItem(uow.sales, uow.items, self._user_permissions).execute(input)
             uow.commit()
 
-    def get_sale_state(self, *, sale_id: int) -> SaleStateOutput:
+    def get_sale_state(self, *, sale_id: int, company_id: int | None = None) -> SaleStateOutput:
         with SqlAlchemySalesUnitOfWork(self._engine) as uow:
             assert uow.sales is not None and uow.items is not None
-            return GetSaleState(uow.sales, uow.items).execute(sale_id)
+            return GetSaleState(uow.sales, uow.items).execute(sale_id, company_id=company_id)
 
     def search_products(
         self, *, query: str, company_id: int | None = None, limit: int = 10

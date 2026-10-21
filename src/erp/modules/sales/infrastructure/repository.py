@@ -72,8 +72,11 @@ class SqlAlchemySaleRepository(SaleRepository):
         self._session.add(model)
         self._session.flush()
 
-    def get_by_id(self, sale_id: int) -> Sale | None:
-        model = self._session.get(SaleModel, sale_id)
+    def get_by_id(self, sale_id: int, company_id: int | None = None) -> Sale | None:
+        stmt = select(SaleModel).where(SaleModel.id == sale_id)
+        if company_id is not None:
+            stmt = stmt.where(SaleModel.company_id == company_id)
+        model = self._session.execute(stmt).scalar_one_or_none()
         if model is None:
             return None
         return self._model_to_domain(model)
