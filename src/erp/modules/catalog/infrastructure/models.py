@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from erp.shared.infrastructure.database import Base
-from erp.shared.infrastructure.database.types import UTCDateTime
+from erp.shared.infrastructure.database import Base, TimestampMixin
+from erp.shared.infrastructure.database.types import UTCDateTime, _utcnow
 
 
-def _utcnow() -> datetime:
-    """Evaluated on every INSERT/UPDATE (never once at import time)."""
-    return datetime.now(UTC)
-
-
-class CategoryModel(Base):
+class CategoryModel(Base, TimestampMixin):
     """Category table."""
 
     __tablename__ = "categories"
@@ -27,16 +22,12 @@ class CategoryModel(Base):
     description: Mapped[str] = mapped_column(String, nullable=False, default="")
     parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<CategoryModel(id={self.id!r}, name={self.name!r})>"
 
 
-class SupplierModel(Base):
+class SupplierModel(Base, TimestampMixin):
     """Supplier table."""
 
     __tablename__ = "suppliers"
@@ -51,16 +42,12 @@ class SupplierModel(Base):
     email: Mapped[str] = mapped_column(String(200), nullable=True)
     address: Mapped[str] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<SupplierModel(id={self.id!r}, name={self.name!r})>"
 
 
-class ProductModel(Base):
+class ProductModel(Base, TimestampMixin):
     """Product table."""
 
     __tablename__ = "products"
@@ -90,10 +77,6 @@ class ProductModel(Base):
     stock_qty: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sold_by_weight: Mapped[bool] = mapped_column(default=False, nullable=False)
     active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<ProductModel(id={self.id!r}, sku={self.sku!r})>"

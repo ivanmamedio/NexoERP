@@ -1,27 +1,21 @@
 """Permission checker adapter for companies module.
 
-Implements the PermissionCheckerPort using the identity module's UserRepository.
+Implements the PermissionCheckerPort using a user permission reader port.
 """
 
 from __future__ import annotations
 
-from erp.modules.companies.application.ports import PermissionCheckerPort
-from erp.modules.identity.application.ports import UserRepository
-from erp.modules.identity.domain.user import User
+from erp.modules.companies.application.ports import (
+    PermissionCheckerPort,
+    UserPermissionReader,
+)
 
 
 class SqlAlchemyPermissionChecker(PermissionCheckerPort):
-    """Checks user permissions via the identity UserRepository."""
+    """Checks user permissions via a UserPermissionReader port."""
 
-    def __init__(self, user_repository: UserRepository) -> None:
-        self._user_repository = user_repository
+    def __init__(self, permission_reader: UserPermissionReader) -> None:
+        self._reader = permission_reader
 
-    def has_permission(self, user: User, permission_code: str) -> bool:
-        if user.id is None:
-            return False
-        # Fetch fresh user from repository to get current permissions
-        repo_user = self._user_repository.get_by_id(user.id)
-        if repo_user is None:
-            return False
-        permissions = self._user_repository.get_permissions(repo_user)
-        return any(p.code == permission_code for p in permissions)
+    def has_permission(self, user_id: int, permission_code: str) -> bool:
+        return permission_code in self._reader.get_permission_codes(user_id)

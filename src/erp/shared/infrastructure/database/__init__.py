@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from erp.config.paths import get_data_dir
 from erp.shared.infrastructure.database.engine import build_engine
-
-
-class Base(DeclarativeBase):
-    pass
+from erp.shared.infrastructure.database.models import Base, TimestampMixin
 
 
 def get_engine() -> Engine:
@@ -24,4 +21,4 @@ def get_session_factory(engine: Engine) -> sessionmaker[Session]:
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-__all__ = ["Base", "build_engine", "get_engine", "get_session_factory"]
+__all__ = ["Base", "TimestampMixin", "build_engine", "get_engine", "get_session_factory"]

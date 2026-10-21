@@ -1,6 +1,6 @@
 """SQLAlchemy models for identity module."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -12,14 +12,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from erp.shared.infrastructure.database import Base
+from erp.shared.infrastructure.database import Base, TimestampMixin
 from erp.shared.infrastructure.database.types import UTCDateTime
-
-
-def _utcnow() -> datetime:
-    """Evaluated on every INSERT/UPDATE (never once at import time)."""
-    return datetime.now(UTC)
-
 
 # Tabela de associação many-to-many: role <-> permission
 role_permission = Table(
@@ -39,7 +33,7 @@ user_company_role = Table(
 )
 
 
-class UserModel(Base):
+class UserModel(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -50,37 +44,19 @@ class UserModel(Base):
     locked_until: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     company_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime,
-        default=_utcnow,
-        onupdate=_utcnow,
-        nullable=False,
-    )
 
     roles: Mapped[list["RoleModel"]] = relationship(
         secondary=user_company_role, back_populates="users"
     )
 
 
-class RoleModel(Base):
+class RoleModel(Base, TimestampMixin):
     __tablename__ = "roles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime,
-        default=_utcnow,
-        onupdate=_utcnow,
-        nullable=False,
-    )
 
     users: Mapped[list["UserModel"]] = relationship(
         secondary=user_company_role, back_populates="roles"
@@ -90,20 +66,11 @@ class RoleModel(Base):
     )
 
 
-class PermissionModel(Base):
+class PermissionModel(Base, TimestampMixin):
     __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime,
-        default=_utcnow,
-        onupdate=_utcnow,
-        nullable=False,
-    )
 
     roles: Mapped[list["RoleModel"]] = relationship(
         secondary=role_permission, back_populates="permissions"

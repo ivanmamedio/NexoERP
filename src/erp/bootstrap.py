@@ -7,6 +7,7 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
@@ -26,8 +27,11 @@ from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.catalog.infrastructure.price_updater import CatalogPriceUpdater
 from erp.modules.catalog.infrastructure.repository import SqlAlchemyProductRepository
 from erp.modules.catalog.infrastructure.unit_of_work import SqlAlchemyCatalogUnitOfWork
+from erp.modules.companies.application.ports import UserPermissionReader
 from erp.modules.companies.application.services import CompaniesServices
-from erp.modules.companies.infrastructure.permission_checker import SqlAlchemyPermissionChecker
+from erp.modules.companies.infrastructure.permission_checker import (
+    SqlAlchemyPermissionChecker,
+)
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyRoleRepository,
@@ -41,7 +45,11 @@ from erp.modules.reports.application.service import (
 )
 from erp.modules.reports.infrastructure.generator import SqlReportGenerator
 from erp.modules.reports.infrastructure.repository import SqlAlchemyReportRepository
-from erp.modules.sales.application.ports import CatalogUnitOfWork
+from erp.modules.sales.application.ports import (
+    CatalogUnitOfWork,
+    SupervisorAuthInfo,
+    SupervisorAuthPort,
+)
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
@@ -64,6 +72,7 @@ class AppContext:
     pricing_services: PricingServices | None = None
     cash_services: CashServices | None = None
     sales_services: SalesServices | None = None
+    supervisor_auth: SupervisorAuthPort | None = None
     backup_service: BackupService | None = None
     backup_scheduler: BackupScheduler | None = None
     report_service: ReportService | None = None
@@ -84,6 +93,50 @@ def _product_repo_factory(engine: Engine) -> Callable[[], SqlAlchemyProductRepos
         assert products is not None
         return products
     return factory
+
+
+@dataclass(frozen=True, slots=True)
+class _SupervisorAuthInfo(SupervisorAuthInfo):
+    """Resultado mínimo de autenticação de supervisor (implementa SupervisorAuthInfo)."""
+
+    user_id: int
+    username: str
+
+
+class _IdentityPermissionReader(UserPermissionReader):
+    """Adapta o UserRepository do identity para o port UserPermissionReader de companies."""
+
+    def __init__(self, user_repo: Any) -> None:
+        self._user_repo = user_repo
+
+    def get_permission_codes(self, user_id: int) -> list[str]:
+        repo_user = self._user_repo.get_by_id(user_id)
+        if repo_user is None:
+            return []
+        permissions = self._user_repo.get_permissions(repo_user)
+        return [p.code for p in permissions]
+
+
+class _SqlSupervisorAuth(SupervisorAuthPort):
+    """Adapta o IdentityServices para o port SupervisorAuthPort de sales."""
+
+    def __init__(self, identity_services: Any) -> None:
+        self._identity = identity_services
+
+    def authenticate(
+        self, username: str, password: str
+    ) -> SupervisorAuthInfo | None:
+        try:
+            output = self._identity.authenticate(username, password)
+        except Exception:
+            return None
+        return _SupervisorAuthInfo(user_id=output.user_id, username=output.username)
+
+    def check_permission(self, *, user_id: int, permission_code: str) -> bool:
+        result: Any = self._identity.check_permission(
+            user_id=user_id, permission_code=permission_code
+        )
+        return bool(result)
 
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
@@ -158,7 +211,8 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     # Companies services with permission gate
     with Session(engine) as session:
         user_repo = SqlAlchemyUserRepository(session)
-        permission_checker = SqlAlchemyPermissionChecker(user_repo)
+        permission_reader = _IdentityPermissionReader(user_repo)
+        permission_checker = SqlAlchemyPermissionChecker(permission_reader)
         from erp.modules.companies.application.permission_gate import CompanyPermissionGate
         permission_gate = CompanyPermissionGate(permission_checker)
     companies_services = CompaniesServices(engine=engine, permission_gate=permission_gate)
@@ -176,6 +230,12 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         event_bus=event_bus,
         user_permissions=set(),
     )
+
+    # Identity services + supervisor auth port (for sales presentation)
+    from erp.app.identity_services import SqlIdentityServices
+
+    identity_services = SqlIdentityServices(engine)
+    supervisor_auth = _SqlSupervisorAuth(identity_services)
 
     # Backup services
     backup_repo = SqlAlchemyBackupRepository(Session(engine))
@@ -216,6 +276,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         pricing_services=pricing_services,
         cash_services=cash_services,
         sales_services=sales_services,
+        supervisor_auth=supervisor_auth,
         backup_service=backup_service,
         backup_scheduler=scheduler,
         report_service=report_service,

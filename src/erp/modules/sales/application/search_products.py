@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from erp.modules.catalog.application.ports import ProductRepository
+from erp.modules.sales.application.ports import ProductCatalogPort
 
 
 @dataclass(slots=True, frozen=True)
@@ -22,7 +22,7 @@ class ProductSearchItem:
 class SearchProducts:
     """Busca produtos ativos por nome, limitada por empresa."""
 
-    def __init__(self, product_repo: ProductRepository) -> None:
+    def __init__(self, product_repo: ProductCatalogPort) -> None:
         self._product_repo = product_repo
 
     def execute(

@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from erp.modules.identity.application.services import IdentityServices
 from erp.modules.sales.application.add_item import AddItemInput
 from erp.modules.sales.application.apply_discount import ApplyDiscountInput
 from erp.modules.sales.application.cancel_sale import (
@@ -22,6 +21,7 @@ from erp.modules.sales.application.finalize_sale import (
     FinalizeSaleInput,
 )
 from erp.modules.sales.application.get_sale_state import SaleStateOutput
+from erp.modules.sales.application.ports import SupervisorAuthPort
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.sales.application.start_sale import StartSaleInput
 from erp.shared.application.session import CurrentSession
@@ -92,13 +92,13 @@ class PosPresenter:
         *,
         view: PosView,
         sales_services: SalesServices,
-        identity_services: IdentityServices,
+        supervisor_auth: SupervisorAuthPort,
         session: CurrentSession,
         session_id: int | None = None,
     ) -> None:
         self._view = view
         self._sales_services = sales_services
-        self._identity_services = identity_services
+        self._supervisor_auth = supervisor_auth
         self._session = session
         self._session_id = session_id
         self._sale_id: int | None = None
@@ -313,11 +313,14 @@ class PosPresenter:
             return None
         username, password = credentials
         try:
-            auth = self._identity_services.authenticate(username, password)
+            auth = self._supervisor_auth.authenticate(username, password)
         except Exception:
             self._view.show_error("Supervisor ou senha inválidos.")
             return None
-        if not self._identity_services.check_permission(
+        if auth is None:
+            self._view.show_error("Supervisor ou senha inválidos.")
+            return None
+        if not self._supervisor_auth.check_permission(
             user_id=auth.user_id, permission_code=_DISCOUNT_PERMISSION
         ):
             self._view.show_error("Supervisor não possui permissão de desconto (sale.discount).")

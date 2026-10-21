@@ -10,18 +10,18 @@ SPEC_DIR = os.path.dirname(os.path.abspath(SPEC))
 ROOT_DIR = os.path.dirname(SPEC_DIR)
 SRC_DIR = os.path.join(ROOT_DIR, "src")
 DB_DIR = os.path.join(SRC_DIR, "erp", "shared", "infrastructure", "database")
+LOGO_PATH = os.path.join(SRC_DIR, "erp", "ui", "resources", "logo.png")
 
 a = Analysis(
     [os.path.join(SRC_DIR, "erp", "__main__.py")],
     pathex=[SRC_DIR],
     binaries=[],
-    # env.py e versions/*.py precisam existir como arquivos reais em runtime:
-    # o Alembic escaneia o diretório no filesystem (não importa do PYZ).
     datas=[
         (
             os.path.join(DB_DIR, "alembic"),
             "erp/shared/infrastructure/database/alembic",
         ),
+        (LOGO_PATH, "erp/ui/resources"),
     ],
     hiddenimports=collect_submodules("erp") + collect_submodules("sqlalchemy"),
     hookspath=[],
@@ -63,4 +63,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="ERP",
 )
-

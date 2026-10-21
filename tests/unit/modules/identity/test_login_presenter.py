@@ -15,6 +15,7 @@ class FakeIdentityServices(IdentityServices):
         self.must_change_password = False
         self.return_user_id = 1
         self.return_username = "joao"
+        self.return_company_id = 1
 
     def authenticate(self, username: str, password: str):  # type: ignore[override]
         self.authenticate_calls += 1
@@ -25,7 +26,7 @@ class FakeIdentityServices(IdentityServices):
         return AuthenticateOutput(
             user_id=self.return_user_id,
             username=self.return_username,
-            company_id=None,
+            company_id=self.return_company_id,
             must_change_password=self.must_change_password,
         )
 
@@ -79,8 +80,22 @@ def test_login_presenter_success() -> None:
     assert services.authenticate_calls == 1
     assert session.user_id == 1
     assert session.username == "joao"
+    assert session.company_id == 1
     assert view.accepted is True
     assert view.errors == []
+
+
+def test_login_presenter_propagates_company_id() -> None:
+    """O login propaga o company_id para a CurrentSession."""
+    services = FakeIdentityServices()
+    services.return_company_id = 7
+    session = CurrentSession()
+    view = FakeLoginView()
+    presenter = LoginPresenter(view, services, session)
+
+    presenter.login("joao", "senha123")
+
+    assert session.company_id == 7
 
 
 def test_login_presenter_empty_fields() -> None:

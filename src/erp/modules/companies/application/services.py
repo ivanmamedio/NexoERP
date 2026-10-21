@@ -45,10 +45,7 @@ class CompaniesServices:
 
     def _require_company_manage(self, actor_user_id: int | None) -> None:
         if self._permission_gate is not None and actor_user_id is not None:
-            # We need a minimal user object for the gate; create a dummy one
-            from erp.modules.identity.domain.user import User
-            actor = User(id=actor_user_id)
-            self._permission_gate.assert_can_manage_companies(actor)
+            self._permission_gate.assert_can_manage_companies(actor_user_id)
 
     def create_company(
         self, input: CreateCompanyInput, *, actor_user_id: int | None = None

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.sales.application.ports import (
+    ProductCatalogPort,
     SaleItemRepository,
     SalePaymentRepository,
     SaleRepository,
@@ -52,7 +52,7 @@ class FinalizeSale:
         sale_repo: SaleRepository,
         item_repo: SaleItemRepository,
         payment_repo: SalePaymentRepository,
-        product_repo: ProductRepository,
+        product_repo: ProductCatalogPort,
     ) -> None:
         self._sale_repo = sale_repo
         self._item_repo = item_repo

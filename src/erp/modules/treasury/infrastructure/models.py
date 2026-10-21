@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from erp.shared.infrastructure.database import Base
-from erp.shared.infrastructure.database.types import UTCDateTime
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+from erp.shared.infrastructure.database import Base, TimestampMixin
+from erp.shared.infrastructure.database.types import UTCDateTime, _utcnow
 
 
 class FinancialEntryModel(Base):
@@ -22,9 +18,7 @@ class FinancialEntryModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     company_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    date: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
+    date: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
     type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     category_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -36,7 +30,7 @@ class FinancialEntryModel(Base):
         return f"<FinancialEntryModel(id={self.id!r}, type={self.type!r})>"
 
 
-class FinancialCategoryModel(Base):
+class FinancialCategoryModel(Base, TimestampMixin):
     """Categoria financeira."""
 
     __tablename__ = "financial_categories"
@@ -47,16 +41,12 @@ class FinancialCategoryModel(Base):
     kind: Mapped[str] = mapped_column(String(20), nullable=False)  # expense, income, transfer
     description: Mapped[str] = mapped_column(String, nullable=False, default="")
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<FinancialCategoryModel(id={self.id!r}, name={self.name!r})>"
 
 
-class PayableModel(Base):
+class PayableModel(Base, TimestampMixin):
     """Conta a pagar."""
 
     __tablename__ = "payables"
@@ -73,10 +63,6 @@ class PayableModel(Base):
     recurrence_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="")
     source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     installments: Mapped[list[PayableInstallmentModel]] = relationship(
         back_populates="payable", cascade="all, delete-orphan", lazy="selectin"
@@ -111,7 +97,7 @@ class PayableInstallmentModel(Base):
         )
 
 
-class ReceivableModel(Base):
+class ReceivableModel(Base, TimestampMixin):
     """Conta a receber."""
 
     __tablename__ = "receivables"
@@ -129,10 +115,6 @@ class ReceivableModel(Base):
     received_amount_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="")
     source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, onupdate=_utcnow, nullable=False
-    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<ReceivableModel(id={self.id!r}, total={self.total_amount_cents})>"

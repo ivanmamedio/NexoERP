@@ -9,6 +9,11 @@ from sqlalchemy.engine import Dialect
 from sqlalchemy.types import TypeDecorator
 
 
+def _utcnow() -> datetime:
+    """Retorna o momento atual em UTC (aware). Usado como default de colunas."""
+    return datetime.now(UTC)
+
+
 class UTCDateTime(TypeDecorator[datetime]):
     """DateTime that is always timezone-aware (UTC) in Python.
 

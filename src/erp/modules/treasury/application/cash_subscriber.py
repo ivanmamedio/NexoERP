@@ -5,15 +5,28 @@ Cria lançamentos financeiros para sangrias e suprimentos.
 
 from __future__ import annotations
 
+from typing import Any, Protocol, runtime_checkable
+
 from sqlalchemy.engine import Engine
 
-from erp.modules.cash.domain.cash_session import CashSession
 from erp.modules.treasury.application.ports import FinancialEntryRepository
 from erp.modules.treasury.domain.financial_entry import FinancialEntry
 from erp.modules.treasury.infrastructure.unit_of_work import (
     SqlAlchemyTreasuryUnitOfWork,
 )
 from erp.shared.application.events import EventBus
+
+
+@runtime_checkable
+class CashSessionData(Protocol):
+    """Dados mínimos de sessão de caixa consumidos pela tesouraria."""
+
+    company_id: int
+    id: int
+    register_id: str | None
+    opening_amount_cents: int
+    closing_amount_cents: int | None
+    difference_cents: int | None
 
 
 class TreasuryCashSubscriber:
@@ -30,7 +43,7 @@ class TreasuryCashSubscriber:
         self._event_bus.subscribe("cash_suprimento", self._on_cash_suprimento)
         self._event_bus.subscribe("cash_session_closed", self._on_cash_session_closed)
 
-    def _on_cash_session_opened(self, session: CashSession) -> None:
+    def _on_cash_session_opened(self, session: CashSessionData) -> None:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.financial_entries is not None
             repo: FinancialEntryRepository = uow.financial_entries
@@ -45,7 +58,7 @@ class TreasuryCashSubscriber:
             repo.add(entry)
             uow.commit()
 
-    def _on_cash_sangria(self, event) -> None:
+    def _on_cash_sangria(self, event: Any) -> None:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.financial_entries is not None
             repo: FinancialEntryRepository = uow.financial_entries
@@ -60,7 +73,7 @@ class TreasuryCashSubscriber:
             repo.add(entry)
             uow.commit()
 
-    def _on_cash_suprimento(self, event) -> None:
+    def _on_cash_suprimento(self, event: Any) -> None:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.financial_entries is not None
             repo: FinancialEntryRepository = uow.financial_entries
@@ -75,17 +88,17 @@ class TreasuryCashSubscriber:
             repo.add(entry)
             uow.commit()
 
-    def _on_cash_session_closed(self, session: CashSession) -> None:
+    def _on_cash_session_closed(self, session: CashSessionData) -> None:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.financial_entries is not None
             repo: FinancialEntryRepository = uow.financial_entries
             entry = FinancialEntry(
                 company_id=session.company_id,
                 type="cash_closing",
-                amount_cents=session.closing_amount_cents,
+                amount_cents=session.closing_amount_cents or 0,
                 source_type="cash_session",
                 source_id=session.id,
-                description=f"Fechamento de caixa (diferença: {session.difference_cents})",
+                description=f"Fechamento de caixa (diferença: {session.difference_cents or 0})",
             )
             repo.add(entry)
             uow.commit()

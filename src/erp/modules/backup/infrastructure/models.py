@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from erp.shared.infrastructure.database import Base
-from erp.shared.infrastructure.database.types import UTCDateTime
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+from erp.shared.infrastructure.database.types import UTCDateTime, _utcnow
 
 
 class BackupModel(Base):
@@ -26,9 +22,7 @@ class BackupModel(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="")
-    started_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=datetime.now, nullable=False
-    )
+    started_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
     completed_at: Mapped[datetime] = mapped_column(UTCDateTime, nullable=True)
     error_message: Mapped[str] = mapped_column(String, nullable=False, default="")
     source_db_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")

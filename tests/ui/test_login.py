@@ -24,7 +24,7 @@ class FakeIdentityServices(IdentityServices):
         from erp.modules.identity.application.authenticate import AuthenticateOutput
 
         return AuthenticateOutput(
-            user_id=1, username="joao", company_id=None, must_change_password=False
+            user_id=1, username="joao", company_id=1, must_change_password=False
         )
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
@@ -67,6 +67,7 @@ def test_login_dialog_authenticates(qtbot):
     assert services.calls == 1
     assert session.user_id == 1
     assert session.username == "joao"
+    assert session.company_id == 1
     assert dialog.isVisible() is False  # accept() fecha o diálogo
 
 
