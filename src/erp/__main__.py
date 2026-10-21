@@ -17,12 +17,18 @@ import sys
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QDialog
 from sqlalchemy.engine import Engine
 
 from erp.app.identity_services import SqlIdentityServices
 from erp.bootstrap import bootstrap
 from erp.config.settings import get_session_timeout_minutes
 from erp.modules.identity.application.services import IdentityServices
+from erp.modules.identity.infrastructure.hasher import BcryptHasher
+from erp.modules.identity.infrastructure.repository import (
+    SqlAlchemyRoleRepository,
+    SqlAlchemyUserRepository,
+)
 from erp.shared.application.session import CurrentSession
 from erp.shared.ui.resources import resource_path
 from erp.ui.splash import show_splash_screen
@@ -51,6 +57,13 @@ class _App:
     def run(self) -> int:
         while True:
             self._session = CurrentSession()
+            if not self._has_any_user():
+                first_use_done = self._show_first_use()
+                if not first_use_done:
+                    # Usuário cancelou o primeiro uso; não pode prosseguir sem admin.
+                    return 0
+                continue
+
             logged_in = self._show_login()
             if not logged_in:
                 return 0
@@ -68,6 +81,46 @@ class _App:
                 self._app.processEvents()
         # Unreachable, but needed for type checker
         return 0
+
+    def _has_any_user(self) -> bool:
+        """Verifica se já existe pelo menos um usuário cadastrado."""
+        engine = _AppContextHolder.engine
+        if engine is None:
+            return False
+        from sqlalchemy.orm import Session
+
+        with Session(engine) as session:
+            user_repo = SqlAlchemyUserRepository(session)
+            return len(user_repo.list_all()) > 0
+
+    def _show_first_use(self) -> bool:
+        """Mostra a tela de primeiro uso para criar o primeiro administrador."""
+        from erp.modules.identity.presentation.first_use_presenter import (
+            FirstUsePresenter,
+        )
+        from erp.modules.identity.presentation.first_use_view import FirstUseDialog
+
+        engine = _AppContextHolder.engine
+        if engine is None:
+            return False
+        from sqlalchemy.orm import Session
+
+        with Session(engine) as session:
+            hasher = BcryptHasher()
+            user_repo = SqlAlchemyUserRepository(session)
+            role_repo = SqlAlchemyRoleRepository(session)
+            dialog = FirstUseDialog()
+            presenter = FirstUsePresenter(
+                view=dialog,
+                user_repo=user_repo,
+                password_hasher=hasher,
+                session=self._session,
+                role_repository=role_repo,
+            )
+            dialog.set_presenter(presenter)
+            result = dialog.exec()
+            session.commit()
+            return result == QDialog.DialogCode.Accepted
 
     def _show_login(self) -> bool:
         from erp.modules.identity.presentation.login_presenter import LoginPresenter
