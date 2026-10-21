@@ -113,6 +113,7 @@ class SalesServices:
             cash_paid = sum(p.amount_cents for p in input.payments if p.method == "cash")
             pix_cents = sum(p.amount_cents for p in input.payments if p.method == "pix")
             card_cents = sum(p.amount_cents for p in input.payments if p.method == "card")
+            credit_cents = sum(p.amount_cents for p in input.payments if p.method == "credit")
 
             # Publica SaleCompleted dentro da mesma transação. Se qualquer
             # subscriber falhar, a transação inteira é revertida pelo UoW.
@@ -127,6 +128,7 @@ class SalesServices:
                     cash_cents=cash_paid,
                     pix_cents=pix_cents,
                     card_cents=card_cents,
+                    credit_cents=credit_cents,
                     items=sale_items_data,
                 )
             )

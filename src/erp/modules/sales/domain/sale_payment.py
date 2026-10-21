@@ -13,6 +13,7 @@ class PaymentMethod:
     CASH = "cash"
     PIX = "pix"
     CARD = "card"
+    CREDIT = "credit"  # venda a prazo / fiado
 
 
 @dataclass(slots=True)

@@ -76,7 +76,12 @@ class FinalizeSale:
         for p in input.payments:
             if p.amount_cents <= 0:
                 raise ValidationError("Valor de pagamento deve ser positivo.")
-            if p.method not in (PaymentMethod.CASH, PaymentMethod.PIX, PaymentMethod.CARD):
+            if p.method not in (
+                PaymentMethod.CASH,
+                PaymentMethod.PIX,
+                PaymentMethod.CARD,
+                PaymentMethod.CREDIT,
+            ):
                 raise ValidationError(f"Meio de pagamento '{p.method}' inválido.")
             total_paid += p.amount_cents
             if p.method == PaymentMethod.CASH:

@@ -19,6 +19,7 @@ source_modules =
     erp.modules.sales
     erp.modules.settings
     erp.modules.treasury
+    erp.modules.customers
 forbidden_modules =
     erp.modules.audit.domain
     erp.modules.audit.infrastructure
@@ -59,6 +60,9 @@ forbidden_modules =
     erp.modules.treasury.domain
     erp.modules.treasury.infrastructure
     erp.modules.treasury.presentation
+    erp.modules.customers.domain
+    erp.modules.customers.infrastructure
+    erp.modules.customers.presentation
 
 [importlinter:contract:shared-domain-purity]
 name = Shared domain must not import application, infrastructure, or UI

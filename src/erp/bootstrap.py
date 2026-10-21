@@ -53,6 +53,7 @@ from erp.modules.sales.application.ports import (
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.settings.application.services import SettingsServices
 from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
+from erp.modules.treasury.application.credit_subscriber import TreasuryCreditSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
@@ -196,6 +197,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
     # Subscriber que reage a eventos de caixa (sangria, suprimento, abertura, fechamento)
     TreasuryCashSubscriber(event_bus=event_bus, engine=engine)
+
+    # Subscriber que reage a vendas fiadas (crédito)
+    TreasuryCreditSubscriber(event_bus=event_bus, engine=engine)
 
     # Catalog services (permissions are checked per-use-case; no logged-in user yet)
     catalog_services = SqlAlchemyCatalogServices(
