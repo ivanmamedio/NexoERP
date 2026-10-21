@@ -54,6 +54,22 @@ class SqlAlchemyFinancialEntryRepository(FinancialEntryRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
+    def list_by_period(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+    ) -> list[FinancialEntry]:
+        stmt = select(FinancialEntryModel).where(
+            FinancialEntryModel.date >= start_date,
+            FinancialEntryModel.date <= end_date,
+        )
+        if company_id is not None:
+            stmt = stmt.where(FinancialEntryModel.company_id == company_id)
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
     @staticmethod
     def _model_to_domain(model: FinancialEntryModel) -> FinancialEntry:
         return FinancialEntry(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from erp.modules.treasury.domain.financial_category import FinancialCategory
@@ -14,6 +15,13 @@ from erp.modules.treasury.domain.receivable import Receivable
 class FinancialEntryRepository(Protocol):
     def add(self, entry: FinancialEntry) -> None: ...
     def list_by_company(self, company_id: int | None = None) -> list[FinancialEntry]: ...
+    def list_by_period(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+    ) -> list[FinancialEntry]: ...
 
 
 @runtime_checkable
