@@ -17,8 +17,10 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.backup.application.cash_close_subscriber import (
+    CashCloseBackupSubscriber,
+)
 from erp.modules.backup.application.service import BackupService
-from erp.modules.backup.infrastructure.repository import SqlAlchemyBackupRepository
 from erp.modules.backup.infrastructure.scheduler import BackupScheduler
 from erp.modules.cash.application.sale_subscriber import CashSaleSubscriber
 from erp.modules.cash.application.services import CashServices
@@ -143,6 +145,19 @@ class _SqlSupervisorAuth(SupervisorAuthPort):
         return bool(result)
 
 
+def _ensure_first_backup_today(backup_service: BackupService, db_path: Path) -> None:
+    """Cria backup diário se ainda não existir um hoje."""
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).date()
+    all_backups = backup_service.list_recent(100)
+    for b in all_backups:
+        if b.rotation_tag == "daily" and b.started_at and b.started_at.date() == today:
+            return
+    _logger.info("Criando backup de primeiro uso do dia")
+    backup_service.create_backup("daily", str(db_path), "daily")
+
+
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     """Initialise logging, paths, database engine and run migrations."""
     resolved_data_dir = data_dir or app_paths.get_data_dir()
@@ -153,6 +168,29 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
     db_path = resolved_data_dir / "erp.db"
     engine = build_engine(db_path)
+
+    # Backup automático antes de qualquer migração (tabela backups pode não
+    # existir ainda em primeira execução)
+    try:
+        from sqlalchemy import inspect as sa_inspect
+
+        inspector = sa_inspect(engine)
+        if "backups" in inspector.get_table_names():
+            _logger.info("Running pre-migration backup")
+
+            def _temp_session_factory() -> Session:
+                return Session(engine)
+
+            temp_service = BackupService(
+                session_factory=_temp_session_factory,
+                backup_dir=resolved_data_dir / "backups",
+                secondary_dir=Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None,
+            )
+            temp_service.create_backup("pre_migration", str(db_path), "pre_migration")
+        else:
+            _logger.warning("Pre-migration backup skipped (backup table not ready yet)")
+    except Exception:
+        _logger.warning("Pre-migration backup skipped")
 
     # Migrations run synchronously at startup
     run_migrations(engine.url.render_as_string(hide_password=False))
@@ -229,7 +267,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     pricing_services = PricingServices(engine=engine, price_updater=price_updater)
 
     # Cash services (permissions are checked per-use-case; no logged-in user yet)
-    cash_services = CashServices(engine=engine)
+    cash_services = CashServices(engine=engine, event_bus=event_bus)
 
     # Sales services (uses catalog UoW factory for dependency inversion)
     sales_services = SalesServices(
@@ -245,12 +283,11 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     identity_services = SqlIdentityServices(engine)
     supervisor_auth = _SqlSupervisorAuth(identity_services)
 
-    # Backup services
-    backup_repo = SqlAlchemyBackupRepository(Session(engine))
+    # Backup services (criado após as migrações para que a tabela backups exista)
     backup_dir = resolved_data_dir / "backups"
     secondary_dir = Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None
     backup_service = BackupService(
-        repo=backup_repo,
+        session_factory=lambda: Session(engine),
         backup_dir=backup_dir,
         secondary_dir=Path(secondary_dir) if secondary_dir else None,
     )
@@ -267,6 +304,16 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     scheduler.schedule_daily_backup("02:00", _daily_backup_callback)
     scheduler.schedule_monthly_backup(1, "03:00", _monthly_backup_callback)
     scheduler.start()
+
+    # Subscriber de backup automático no fechamento de caixa
+    CashCloseBackupSubscriber(
+        event_bus=event_bus,
+        backup_service=backup_service,
+        db_path=str(db_path),
+    )
+
+    # Gatilho: backup no primeiro uso do dia
+    _ensure_first_backup_today(backup_service, db_path)
 
     # Reports service
     reports_dir = resolved_data_dir / "reports"

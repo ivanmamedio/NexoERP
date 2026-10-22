@@ -244,7 +244,16 @@ def main() -> int:
     # Timer para fechar splash após UI carregar
     QTimer.singleShot(2000, on_main_window_ready)
 
-    return runner.run()
+    exit_code = runner.run()
+
+    # Backup no fechamento do app
+    try:
+        if ctx.backup_service is not None:
+            ctx.backup_service.create_backup("app_shutdown", str(ctx.db_path), "app_shutdown")
+    except Exception:
+        _logger.exception("Falha no backup de fechamento do app")
+
+    return exit_code
 
 
 if __name__ == "__main__":

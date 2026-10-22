@@ -79,3 +79,18 @@ class SaleCompleted(DomainEvent):
     credit_cents: int = 0
     items: list[dict[str, object]] = field(default_factory=list)
     """Itens vendidos: [{"product_id": int, "quantity_thousandths": int}, ...]."""
+
+
+@dataclass(slots=True)
+class CashSessionClosed(DomainEvent):
+    """Uma sessão de caixa foi fechada.
+
+    Publicado quando uma sessão de caixa é finalizada. O módulo de backup
+    reage a este evento para criar um backup automático.
+    """
+
+    session_id: int = 0
+    company_id: int | None = None
+    user_id: int | None = None
+    username: str = ""
+    difference_cents: int = 0

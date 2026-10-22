@@ -10,7 +10,16 @@ from erp.modules.cash.application.close_cash_session import (
 )
 from erp.modules.cash.domain.cash_movement import CashMovement, MovementType
 from erp.modules.cash.domain.cash_session import CashSession
+from erp.shared.application.events import EventBus
 from erp.shared.domain.errors import NotFound, ValidationError
+
+
+class FakeEventBus(EventBus):
+    def __init__(self) -> None:
+        self.published: list = []
+
+    def publish(self, event) -> None:
+        self.published.append(event)
 
 
 class FakeSessionRepository:
@@ -78,7 +87,7 @@ def test_close_session_exact_match() -> None:
     """Fecha com valor exato: sem diferença."""
     sess_repo, mov_repo = _setup_session_with_movements()
 
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     output = uc.execute(
         CloseCashSessionInput(
             session_id=1,
@@ -104,7 +113,7 @@ def test_close_session_shortage() -> None:
     """Falta de R$ 5,00 (contado 365 em vez de 370)."""
     sess_repo, mov_repo = _setup_session_with_movements()
 
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     output = uc.execute(
         CloseCashSessionInput(
             session_id=1,
@@ -122,7 +131,7 @@ def test_close_session_surplus() -> None:
     """Sobra de R$ 2,00 (contado 372 em vez de 370)."""
     sess_repo, mov_repo = _setup_session_with_movements()
 
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     output = uc.execute(
         CloseCashSessionInput(
             session_id=1,
@@ -140,7 +149,7 @@ def test_close_session_blind_close() -> None:
     """Fechamento cego: não confere valores, apenas registra."""
     sess_repo, mov_repo = _setup_session_with_movements()
 
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     output = uc.execute(
         CloseCashSessionInput(
             session_id=1,
@@ -158,12 +167,12 @@ def test_close_session_blind_close() -> None:
 def test_close_session_already_closed() -> None:
     sess_repo, mov_repo = _setup_session_with_movements()
     # Fecha uma vez
-    CloseCashSession(sess_repo, mov_repo).execute(
+    CloseCashSession(sess_repo, mov_repo, FakeEventBus()).execute(
         CloseCashSessionInput(session_id=1, closing_amount_cents=37000, user_id=1, username="admin")
     )
 
     # Tenta fechar de novo
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     with pytest.raises(ValidationError, match="fechada"):
         uc.execute(
             CloseCashSessionInput(
@@ -175,7 +184,7 @@ def test_close_session_already_closed() -> None:
 def test_close_session_not_found() -> None:
     sess_repo = FakeSessionRepository()
     mov_repo = FakeMovementRepository()
-    uc = CloseCashSession(sess_repo, mov_repo)
+    uc = CloseCashSession(sess_repo, mov_repo, FakeEventBus())
     with pytest.raises(NotFound):
         uc.execute(
             CloseCashSessionInput(
