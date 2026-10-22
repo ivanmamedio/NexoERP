@@ -62,7 +62,6 @@ class ReportService(ReportServicePort):
             generated_by_user_id=user_id,
             status="pending",
         )
-        self._repository.add(report)
 
         try:
             rows = self._generate_rows(report_type, filter_)
@@ -84,7 +83,7 @@ class ReportService(ReportServicePort):
             report.mark_failed(str(exc))
             raise
 
-        self._repository.add(report)  # Update with completed info
+        self._repository.add(report)
         return report
 
     def _generate_rows(self, report_type: str, filter_: ReportFilter) -> list[object]:
