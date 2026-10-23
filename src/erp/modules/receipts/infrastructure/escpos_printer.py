@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from erp.modules.receipts.application.formatter import ReceiptFormatter
 from erp.modules.receipts.application.ports import ReceiptPrinterPort
+from erp.modules.receipts.domain import Receipt
 
 
 class EscposPrinter(ReceiptPrinterPort):
@@ -18,13 +21,13 @@ class EscposPrinter(ReceiptPrinterPort):
         self._device_path = device_path
         self._formatter = ReceiptFormatter(width=width)
         self._profile = profile
-        self._printer = None
+        self._printer: Any = None
 
-    def _get_printer(self):
+    def _get_printer(self) -> Any:
         """Lazy initialization of the printer."""
         if self._printer is None:
             try:
-                from escpos.printer import File, Network, Serial, Usb
+                from escpos.printer import File, Network, Serial, Usb  # type: ignore[import-untyped]
             except ImportError as exc:
                 raise RuntimeError(
                     "python-escpos not installed. Run: uv add python-escpos"
@@ -66,7 +69,7 @@ class EscposPrinter(ReceiptPrinterPort):
                 self._printer = Usb(vendor_id, product_id, profile=self._profile)
         return self._printer
 
-    def print_receipt(self, receipt) -> None:
+    def print_receipt(self, receipt: Receipt) -> None:
         printer = self._get_printer()
         formatter = ReceiptFormatter(width=48)  # 80mm default
         text = formatter.format_receipt(receipt)

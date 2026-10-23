@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from erp.modules.receipts.application.formatter import ReceiptFormatter
 from erp.modules.receipts.application.ports import ReceiptPrinterPort
+from erp.modules.receipts.domain import Receipt
 
 
 class WindowsSpoolerPrinter(ReceiptPrinterPort):
@@ -14,17 +16,17 @@ class WindowsSpoolerPrinter(ReceiptPrinterPort):
     def __init__(self, printer_name: str, width: int = 48) -> None:
         if sys.platform != "win32":
             raise RuntimeError("WindowsSpoolerPrinter only works on Windows")
-        self._printer_name = printer_name
+        self._printer_name: str = printer_name
         self._formatter = ReceiptFormatter(width=48)
 
-    def print_receipt(self, receipt) -> None:
-        import win32print
+    def print_receipt(self, receipt: Receipt) -> None:
+        import win32print  # type: ignore[import-untyped]
 
         formatter = ReceiptFormatter(width=48)
         text = formatter.format_receipt(receipt)
 
         # Get printer handle
-        printer_handle = win32print.OpenPrinter(self._printer_name)
+        printer_handle: Any = win32print.OpenPrinter(self._printer_name)
         try:
             # Start document
             job_info = ("NexoERP Receipt", None, "RAW")
@@ -47,7 +49,7 @@ class WindowsSpoolerPrinter(ReceiptPrinterPort):
     def open_cash_drawer(self) -> None:
         import win32print
 
-        printer_handle = win32print.OpenPrinter(self._printer_name)
+        printer_handle: Any = win32print.OpenPrinter(self._printer_name)
         try:
             job_info = ("NexoERP Cash Drawer", None, "RAW")
             win32print.StartDocPrinter(printer_handle, 1, job_info)

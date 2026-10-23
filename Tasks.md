@@ -11,22 +11,33 @@ Modelos de código funcionam melhor com **contexto fixo + tarefas pequenas + cri
 
 ## Status atual
 
-Baseado na auditoria de 18/10/2026 e na varredura de arquivos vazios, atualizado em 20/10/2026 com o diagnóstico da tela de login e do build no Fedora. Confirme cada item rodando o critério de pronto antes de marcá-lo como concluído de verdade.
+Baseado na auditoria de 18/10/2026 e na varredura de arquivos vazios, atualizado em 20/10/2026 com o diagnóstico da tela de login e do build no Fedora. **Atualizado em 23/10/2026 após correções da Fase C e auditoria completa.** Confirme cada item rodando o critério de pronto antes de marcá-lo como concluído de verdade.
 
 | Tarefa | Status |
 |---|---|
-| 0.1 a 0.3 Fundação, núcleo, Alembic/bootstrap | Implementadas. O bootstrap está **quebrado** por um bug no audit (ver Fase C) |
-| 0.4 Empacotamento no CI | Configurado. Build real em Windows e Linux **ainda não verificado** |
-| 1.1 a 1.6 Identity, Companies, Audit, Catalog, Pricing | Implementadas, com pendências da Fase C |
-| 1.2 Identity (telas) | O login abre, mas com **dois bugs**: o logo some no build do PyInstaller e há artefato visual (quadrado branco) no Wayland/Fedora (ver C.7). Além disso, `admin/admin` funcionando contraria a regra "sem senha padrão" (ver C.8) |
-| 2.1 Cash (domínio e casos de uso) | Implementada, **sem telas** (ver 2.2.1) |
-| 2.2 Sales (domínio e casos de uso) | **Em andamento/correção** |
-| 3.1 Treasury | Parcial (livro-razão e subscribers). Verificar contas a pagar/receber |
-| 1.7, 2.3, 2.4, 2.5, 3.2, 3.3, 4.x, 5.x | Não iniciadas (1.7, 2.5, 3.3 e 4.4 são tarefas novas) |
+| 0.1 a 0.3 Fundação, núcleo, Alembic/bootstrap | ✅ Implementadas. Bootstrap corrigido (migração 0009 com bypass de auditoria) |
+| 0.4 Empacotamento no CI | ✅ Configurado. Build PyInstaller onedir validado localmente (logo incluído). Build real em VM Windows/Linux **pendente** |
+| 1.1 a 1.6 Identity, Companies, Audit, Catalog, Pricing | ✅ Implementadas (domínio, aplicação, infraestrutura, apresentação) |
+| 1.2 Identity (telas) | ✅ Corrigidos: logo carrega no build, sem FramelessWindowHint/WA_TranslucentBackground, sem artefato duplicado. `admin/admin` não existe (seed exige NEXOERP_ADMIN_PASSWORD, migração 0009 força troca) |
+| 1.7 Configurações (NOVA) | ✅ Implementada (`settings` module: company_id, receipt header/footer, session timeout, printer settings) |
+| 2.1 Cash (domínio, casos de uso) | ✅ Implementada |
+| 2.2.1 Telas do Caixa (NOVA) | ✅ Implementada (`cash/presentation`: abertura, sangria, suprimento, fechamento, relatório) |
+| 2.2 Sales (domínio, casos de uso) | ✅ Implementada (atômica, pagamentos mistos, desconto com PIN, cancelamento/estorno) |
+| 2.3 Tela PDV (NOVA) | ✅ Implementada (`pos_view.py`, `pos_presenter.py`: teclado, multiplicador `3*código`, pagamento misto, desconto supervisor) |
+| 2.4 Receipts (NOVA) | ✅ Implementada (gerador, preview, ESC/POS, Windows spooler, CUPS, settings dialog) — mypy zerado |
+| 2.5 Compras/Inventário (NOVA) | ✅ Implementada (`purchases` module: RegisterPurchase, CountInventory) |
+| 3.1 Treasury | ✅ Implementada (domínio, app, infra: payables, receivables, financial_entries, subscribers) |
+| 3.2 Fluxo de Caixa UI (NOVA) | ⚠️ Parcial (`treasury/presentation` só tem `cash_flow_presenter.py` básico) |
+| 3.3 Clientes/Fiado (NOVA, opcional) | ✅ Implementada (`customers` module) |
+| 4.1 Backup | ✅ Implementada (sqlite3.backup, rotação, checksum, triggers, restore guiado) |
+| 4.2 Reports | ✅ Implementada (vendas/estoque/margem/DRE/fechamento, CSV/PDF, SQL direto) |
+| 4.3 FiscalPort | ✅ Implementada (apenas Protocol, sem emissão real) |
+| 4.4 Import CSV (NOVA) | ✅ Implementada (`import_csv` module: preview, validação, transação única, auditoria) |
+| 5.x Endurecimento | ❌ Não iniciado |
 
-**Antes de avançar para a 2.3, conclua a Fase C (correções).**
+**Fase C (C.1 a C.8): ✅ CONCLUÍDA** — Todos os itens resolvidos ou verificados como não aplicáveis/inexistentes.
 
-**Ordem sugerida daqui para frente:** C.1 a C.8 → fechar a 2.2 → 2.2.1 → 2.3 → 1.7 → 2.4 → 2.5 → completar a 3.1 → 3.2 → 3.3 (opcional) → 4.1 a 4.4 → 5.x. A 1.7 vem antes da 2.4 porque o cabeçalho do cupom e a impressora ficam nas configurações.
+**Próxima prioridade real:** Completar `treasury/presentation` (Tarefa 3.2) → Tarefa 5.x (Endurecimento: carga 50k/100k, exceções, build real em VM, docs usuário).
 
 ---
 
