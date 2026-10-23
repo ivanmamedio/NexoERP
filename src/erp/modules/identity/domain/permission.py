@@ -37,6 +37,7 @@ class Permission(Entity):
 PERMISSION_PRODUCT_PRICE_UPDATE = Permission("product.price.update")
 PERMISSION_TREASURY_VIEW = Permission("treasury.view")
 PERMISSION_CASH_SANGRIA = Permission("cash.sangria")
+PERMISSION_SALE_VIEW = Permission("sale.view")
 PERMISSION_SALE_DISCOUNT = Permission("sale.discount")
 PERMISSION_SALE_CANCEL = Permission("sale.cancel")
 PERMISSION_USER_MANAGE = Permission("user.manage")
@@ -57,6 +58,7 @@ ALL_PERMISSIONS: frozenset[Permission] = frozenset(
         PERMISSION_PRODUCT_PRICE_UPDATE,
         PERMISSION_TREASURY_VIEW,
         PERMISSION_CASH_SANGRIA,
+        PERMISSION_SALE_VIEW,
         PERMISSION_SALE_DISCOUNT,
         PERMISSION_SALE_CANCEL,
         PERMISSION_USER_MANAGE,
@@ -82,6 +84,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             "product.price.update",
             "treasury.view",
             "cash.sangria",
+            "sale.view",
             "sale.discount",
             "sale.cancel",
             "user.manage",
@@ -99,6 +102,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
     ),
     "Caixa": frozenset(
         {
+            "sale.view",
             "sale.discount",
             "sale.cancel",
             "cash.open_close",
