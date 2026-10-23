@@ -106,6 +106,38 @@ class SqlAlchemyProductRepository(ProductRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
+    def list_all_skus(self, company_id: int | None = None) -> list[str]:
+        """Lista todos os SKUs de produtos para uma empresa."""
+        stmt = select(ProductModel.sku)
+        if company_id is not None:
+            stmt = stmt.where(ProductModel.company_id == company_id)
+        else:
+            stmt = self._filter_company(stmt)
+        models = self._session.execute(stmt).scalars().all()
+        return list(models)
+
+    def add_snapshot(self, product_snapshot: object) -> None:
+        """Adiciona um produto via snapshot (port do import_csv)."""
+        model = ProductModel()
+        model.company_id = product_snapshot.company_id  # type: ignore[attr-defined]
+        model.sku = product_snapshot.sku  # type: ignore[attr-defined]
+        model.name = product_snapshot.name  # type: ignore[attr-defined]
+        model.description = product_snapshot.description  # type: ignore[attr-defined]
+        model.unit = product_snapshot.unit  # type: ignore[attr-defined]
+        model.cost_cents = product_snapshot.cost_cents  # type: ignore[attr-defined]
+        model.margin_pct = product_snapshot.margin_pct  # type: ignore[attr-defined]
+        model.price_cents = product_snapshot.price_cents  # type: ignore[attr-defined]
+        model.min_stock_qty = product_snapshot.min_stock_qty  # type: ignore[attr-defined]
+        model.stock_qty = product_snapshot.stock_qty  # type: ignore[attr-defined]
+        model.sold_by_weight = product_snapshot.sold_by_weight  # type: ignore[attr-defined]
+        model.active = product_snapshot.active  # type: ignore[attr-defined]
+        self._session.add(model)
+        self._session.flush()
+
+    def commit(self) -> None:
+        """Confirma a transação atual."""
+        self._session.commit()
+
     def _active_products(self, company_id: int | None) -> Select[ProductModel]:
         stmt: Select[ProductModel] = select(ProductModel).where(ProductModel.active.is_(True))
         cid = company_id if company_id is not None else self._company_id()

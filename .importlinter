@@ -20,6 +20,7 @@ source_modules =
     erp.modules.settings
     erp.modules.treasury
     erp.modules.customers
+    erp.modules.import_csv
 forbidden_modules =
     erp.modules.audit.domain
     erp.modules.audit.infrastructure
@@ -60,6 +61,9 @@ forbidden_modules =
     erp.modules.treasury.domain
     erp.modules.treasury.infrastructure
     erp.modules.treasury.presentation
+    erp.modules.import_csv.domain
+    erp.modules.import_csv.infrastructure
+    erp.modules.import_csv.presentation
     erp.modules.customers.domain
     erp.modules.customers.infrastructure
     erp.modules.customers.presentation

@@ -50,6 +50,7 @@ PERMISSION_SETTINGS_UPDATE = Permission("settings.update")
 PERMISSION_CUSTOMER_CREATE = Permission("customer.create")
 PERMISSION_CUSTOMER_UPDATE = Permission("customer.update")
 PERMISSION_CUSTOMER_READ = Permission("customer.read")
+PERMISSION_PRODUCT_IMPORT = Permission("product.import")
 
 ALL_PERMISSIONS: frozenset[Permission] = frozenset(
     {
@@ -69,6 +70,7 @@ ALL_PERMISSIONS: frozenset[Permission] = frozenset(
         PERMISSION_CUSTOMER_CREATE,
         PERMISSION_CUSTOMER_UPDATE,
         PERMISSION_CUSTOMER_READ,
+        PERMISSION_PRODUCT_IMPORT,
     }
 )
 
@@ -92,6 +94,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             "customer.create",
             "customer.update",
             "customer.read",
+            "product.import",
         }
     ),
     "Caixa": frozenset(
