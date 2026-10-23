@@ -20,7 +20,7 @@ from erp.modules.reports.domain import (
     ReportType,
 )
 from erp.modules.reports.infrastructure.generator import SqlReportGenerator
-from erp.modules.reports.infrastructure.models import Base
+from erp.modules.reports.infrastructure.models import ReportModel
 from erp.modules.reports.infrastructure.repository import (
     SqlAlchemyReportRepository,
 )
@@ -30,7 +30,8 @@ from erp.modules.reports.infrastructure.repository import (
 def session(tmp_path: Path) -> Generator[Session, None, None]:
     db_file = tmp_path / "test.db"
     engine = create_engine(f"sqlite:///{db_file}")
-    Base.metadata.create_all(engine)
+    # Create only the reports table, not all registered models
+    ReportModel.__table__.create(engine, checkfirst=True)
 
     # Criar tabelas necessárias para os geradores de relatório
     with Session(engine) as setup_session:
@@ -69,9 +70,9 @@ def session(tmp_path: Path) -> Generator[Session, None, None]:
                     company_id INTEGER NOT NULL,
                     name VARCHAR(200) NOT NULL,
                     sku VARCHAR(100) NOT NULL,
-                    cost_price REAL NOT NULL DEFAULT 0,
-                    sale_price REAL NOT NULL DEFAULT 0,
-                    min_stock INTEGER NOT NULL DEFAULT 0,
+                    cost_cents INTEGER NOT NULL DEFAULT 0,
+                    price_cents INTEGER NOT NULL DEFAULT 0,
+                    min_stock_qty INTEGER NOT NULL DEFAULT 0,
                     active INTEGER NOT NULL DEFAULT 1,
                     category_id INTEGER
                 )
@@ -228,15 +229,15 @@ def test_sql_report_generator_low_stock(session: Session) -> None:
 
     session.execute(
         text(
-            "INSERT INTO products (company_id, name, sku, min_stock, active, "
-            "cost_price, sale_price) VALUES (1, 'Produto Teste', 'TEST-001', "
-            "10, 1, 50.00, 100.00)"
+            "INSERT INTO products (company_id, name, sku, min_stock_qty, active, "
+            "cost_cents, price_cents) VALUES (1, 'Produto Teste', 'TEST-001', "
+            "10, 1, 5000, 10000)"
         )
     )
     session.commit()
 
     rows = generator.generate_low_stock(_make_filter(company_id=1))
-    assert len(rows) >= 1  # Sem tabela inventory, estoque = 0 <= min_stock 10
+    assert len(rows) >= 1  # Sem tabela inventory, estoque = 0 <= min_stock_qty 10
 
 
 def test_sql_report_generator_profit_margin(session: Session) -> None:
@@ -244,8 +245,8 @@ def test_sql_report_generator_profit_margin(session: Session) -> None:
 
     session.execute(
         text(
-            "INSERT INTO products (company_id, name, sku, cost_price, sale_price, active) "
-            "VALUES (1, 'Produto Teste', 'TEST-001', 50.00, 100.00, 1)"
+            "INSERT INTO products (company_id, name, sku, cost_cents, price_cents, active) "
+            "VALUES (1, 'Produto Teste', 'TEST-001', 5000, 10000, 1)"
         )
     )
     session.commit()
@@ -283,7 +284,7 @@ class FakeGenerator(ReportGeneratorPort):
 
 def test_csv_export(tmp_path: Path) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
+    ReportModel.__table__.create(engine, checkfirst=True)
     repo = SqlAlchemyReportRepository(Session(engine))
 
     service = ReportService(
@@ -313,8 +314,8 @@ def test_csv_export(tmp_path: Path) -> None:
 def test_report_isolation_between_companies(tmp_path: Path) -> None:
     engine1 = create_engine("sqlite:///:memory:")
     engine2 = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine1)
-    Base.metadata.create_all(engine2)
+    ReportModel.__table__.create(engine1, checkfirst=True)
+    ReportModel.__table__.create(engine2, checkfirst=True)
 
     repo1 = SqlAlchemyReportRepository(Session(engine1))
     repo2 = SqlAlchemyReportRepository(Session(engine2))

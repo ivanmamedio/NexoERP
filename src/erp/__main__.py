@@ -30,7 +30,7 @@ from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyUserRepository,
 )
 from erp.shared.application.session import CurrentSession
-from erp.shared.ui.resources import resource_path
+from erp.ui.resource_paths import resource_path
 from erp.ui.splash import show_splash_screen
 
 if TYPE_CHECKING:
@@ -225,7 +225,7 @@ def main() -> int:
     app = QtWidgets.QApplication(sys.argv)
 
     # Splash screen - usa helper de recursos
-    logo_path = resource_path("ui", "resources", "logo.png")
+    logo_path = resource_path("erp", "ui", "resources", "logo.png")
     splash = show_splash_screen(logo_path, duration_ms=0)  # 0 = não auto-fechar
     splash.showMessage(
         "Carregando módulos...",

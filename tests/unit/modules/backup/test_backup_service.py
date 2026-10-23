@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from erp.modules.backup.application.service import BackupService
 from erp.modules.backup.domain import BackupStatus
-from erp.modules.backup.infrastructure.models import Base
+from erp.modules.backup.infrastructure.models import BackupModel
 
 
 class _TempDB:
@@ -20,7 +20,8 @@ class _TempDB:
         self.tmp_path = tmp_path
         self.db_file = tmp_path / "test.db"
         self.engine = create_engine(f"sqlite:///{self.db_file}")
-        Base.metadata.create_all(self.engine)
+        # Create only the backup table, not all registered models
+        BackupModel.__table__.create(self.engine, checkfirst=True)
 
     def session(self) -> Session:
         return Session(self.engine)

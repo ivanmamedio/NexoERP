@@ -159,12 +159,17 @@ class SqlAlchemyPayableRepository(PayableRepository):
 
     def add(self, payable: Payable) -> None:
         model = self._to_model(payable)
+        # Add installments to the model's relationship
+        for inst in payable.installments:
+            inst_model = self._installment_to_model(inst)
+            model.installments.append(inst_model)
         self._session.add(model)
         self._session.flush()
         payable.id = model.id
-        # Update installments with payable_id
-        for inst in payable.installments:
-            inst.id = self._find_installment_id(inst, payable.id)
+        # Update domain installments with generated IDs
+        for i, inst_model in enumerate(model.installments):
+            if i < len(payable.installments):
+                payable.installments[i].id = inst_model.id
 
     def get_by_id(self, payable_id: int) -> Payable | None:
         model = self._session.get(PayableModel, payable_id)
@@ -248,6 +253,16 @@ class SqlAlchemyPayableRepository(PayableRepository):
             paid_at=model.paid_at,
             paid_amount_cents=model.paid_amount_cents,
         )
+
+    def _installment_to_model(self, installment: PayableInstallment) -> PayableInstallmentModel:
+        model = PayableInstallmentModel()
+        model.installment_number = installment.installment_number
+        model.due_date = installment.due_date
+        model.amount_cents = installment.amount_cents
+        model.status = installment.status
+        model.paid_at = installment.paid_at
+        model.paid_amount_cents = installment.paid_amount_cents
+        return model
 
 
 class SqlAlchemyReceivableRepository(ReceivableRepository):

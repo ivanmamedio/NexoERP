@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from erp.shared.ui.resources import resource_path
+from erp.ui.resource_paths import resource_path
 
 if TYPE_CHECKING:
     from erp.modules.identity.presentation.login_presenter import LoginPresenter
@@ -156,13 +156,11 @@ class LoginDialog(QDialog):
         self._username = QLineEdit(card)
         self._username.setObjectName("UsernameInput")
         self._username.setPlaceholderText("Usuário")
-        card_layout.addWidget(self._username)
 
         self._password = QLineEdit(card)
         self._password.setObjectName("PasswordInput")
         self._password.setPlaceholderText("Senha")
         self._password.setEchoMode(QLineEdit.EchoMode.Password)
-        card_layout.addWidget(self._password)
 
         # Formulário com rótulos.
         form = QFormLayout()
@@ -201,7 +199,7 @@ class LoginDialog(QDialog):
 
     def _load_logo(self) -> None:
         """Carrega a logo em desenvolvimento ou no bundle PyInstaller."""
-        path = resource_path("ui", "resources", "logo.png")
+        path = resource_path("erp", "ui", "resources", "logo.png")
         pixmap = QPixmap(str(path))
 
         if pixmap.isNull():

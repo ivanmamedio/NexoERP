@@ -6,7 +6,9 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QSplashScreen
+from PySide6.QtWidgets import QApplication, QSplashScreen, QWidget
+
+from erp.ui.resource_paths import resource_path
 
 
 class NexoERPSplashScreen(QSplashScreen):
@@ -14,7 +16,7 @@ class NexoERPSplashScreen(QSplashScreen):
 
     def __init__(self, logo_path: Path | None = None) -> None:
         if logo_path is None:
-            logo_path = Path(__file__).parent.parent / "resources" / "logo.png"
+            logo_path = resource_path("erp", "ui", "resources", "logo.png")
 
         pixmap = QPixmap(str(logo_path))
         if pixmap.isNull():
@@ -49,7 +51,7 @@ class NexoERPSplashScreen(QSplashScreen):
         self.showMessage(message, alignment, color)
         QApplication.processEvents()
 
-    def finish_loading(self, main_window) -> None:
+    def finish_loading(self, main_window: QWidget) -> None:
         """Finaliza splash e mostra janela principal."""
         self.finish(main_window)
 
