@@ -23,17 +23,19 @@ class FakeUserRepository(UserRepository):
     def get_by_id(self, user_id: int) -> User | None:
         return self._user
 
-    def get_by_username(self, username: str) -> User | None:
+    def get_by_user_number(self, user_number: int) -> User | None:
         return self._user
 
-    def list_all(self) -> list[User]:
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
         return []
 
     def get_roles(self, user: User) -> list[Role]:
         return []
 
     def get_permissions(self, user: User) -> list[Permission]:
-        return [Permission(code=p) for p in self._perms.get(user.username, [])]
+        if user is None:
+            return []
+        return [Permission(code=p) for p in self._perms.get(str(user.user_number), [])]
 
     def assign_role(self, user: User, role, company_id=None) -> None:
         pass
@@ -67,10 +69,10 @@ class FakePermissionGate(PermissionGate):
 
 
 def test_assign_role_success() -> None:
-    user = User(id=1, username="joao", is_active=True)
+    user = User(id=1, user_number=0, employee_name="João", is_active=True)
     role = Role(id=2, name="Caixa", description="Caixa", is_active=True)
     repo = FakeUserRepository(user)
-    repo._perms = {"admin": ["user.manage"]}  # type: ignore[attr-defined]
+    repo._perms = {"0": ["user.manage"]}  # type: ignore[attr-defined]
     role_repo = FakeRoleRepository(role)
     gate = FakePermissionGate(allow=True)
     uc = AssignRole(repo, role_repo, gate)
@@ -92,10 +94,10 @@ def test_assign_role_user_not_found() -> None:
 
 
 def test_assign_role_requires_user_manage() -> None:
-    user = User(id=1, username="joao", is_active=True)
+    user = User(id=1, user_number=0, employee_name="João", is_active=True)
     role = Role(id=2, name="Caixa", description="Caixa", is_active=True)
     repo = FakeUserRepository(user)
-    repo._perms = {"admin": []}  # type: ignore[attr-defined]
+    repo._perms = {"0": []}  # type: ignore[attr-defined]
     role_repo = FakeRoleRepository(role)
     gate = FakePermissionGate(allow=False)
     uc = AssignRole(repo, role_repo, gate)

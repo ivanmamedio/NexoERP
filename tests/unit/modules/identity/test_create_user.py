@@ -17,27 +17,27 @@ from erp.shared.domain.errors import PermissionDenied
 
 class FakeUserRepository(UserRepository):
     def __init__(self) -> None:
-        self._users: dict[str, User] = {}
+        self._users: dict[int, User] = {}
         self._next_id = 1
         self.assigned_roles: dict[int, Role] = {}
 
     def add(self, user: User) -> None:
-        if user.username in self._users:
-            raise ValueError(f"Usuário '{user.username}' já existe")
+        if any(u.employee_name == user.employee_name for u in self._users.values()):
+            raise ValueError(f"Funcionário '{user.employee_name}' já existe")
         user.id = self._next_id
         self._next_id += 1
-        self._users[user.username] = user
+        self._users[user.id] = user
 
     def get_by_id(self, user_id: int) -> User | None:
+        return self._users.get(user_id)
+
+    def get_by_user_number(self, user_number: int) -> User | None:
         for u in self._users.values():
-            if u.id == user_id:
+            if u.user_number == user_number:
                 return u
         return None
 
-    def get_by_username(self, username: str) -> User | None:
-        return self._users.get(username)
-
-    def list_all(self) -> list[User]:
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
         return list(self._users.values())
 
     def get_roles(self, user: User) -> list:
@@ -47,10 +47,10 @@ class FakeUserRepository(UserRepository):
         return []
 
     def assign_role(self, user: User, role, company_id=None) -> None:
-        self.assigned_roles[user.id] = role
+        pass
 
     def save(self, user: User) -> None:
-        self._users[user.username] = user
+        self._users[user.id] = user
 
 
 class FakePasswordHasher(PasswordHasher):
@@ -85,7 +85,7 @@ def test_create_user_success() -> None:
     result = uc.execute(
         CreateUserInput(
             actor_id=1,
-            username="joao",
+            employee_name="João",
             password="senha123",
             role_name="Caixa",
             must_change_password=False,
@@ -94,15 +94,18 @@ def test_create_user_success() -> None:
     )
 
     assert result.user_id == 1
-    assert result.username == "joao"
+    assert result.user_number == 0
+    assert result.employee_name == "João"
     assert result.role_name == "Caixa"
 
-    user = repo.get_by_username("joao")
+    user = repo.get_by_id(1)
     assert user is not None
+    assert user.user_number == 0
+    assert user.employee_name == "João"
     assert user.password_hash == "hash(senha123)"
 
 
-def test_create_user_duplicate_username() -> None:
+def test_create_user_duplicate_employee_name() -> None:
     repo = FakeUserRepository()
     hasher = FakePasswordHasher()
     uc = CreateUser(repo, hasher, FakePermissionGate())
@@ -112,7 +115,7 @@ def test_create_user_duplicate_username() -> None:
     uc.execute(
         CreateUserInput(
             actor_id=1,
-            username="joao",
+            employee_name="João",
             password="senha123",
             role_name="Caixa",
         ),
@@ -123,7 +126,7 @@ def test_create_user_duplicate_username() -> None:
         uc.execute(
             CreateUserInput(
                 actor_id=1,
-                username="joao",
+                employee_name="João",
                 password="senha456",
                 role_name="Caixa",
             ),
@@ -145,7 +148,7 @@ def test_create_user_requires_user_manage() -> None:
         uc.execute(
             CreateUserInput(
                 actor_id=1,
-                username="joao",
+                employee_name="João",
                 password="senha123",
                 role_name="Caixa",
             ),

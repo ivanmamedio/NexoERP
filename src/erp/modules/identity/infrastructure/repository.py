@@ -29,7 +29,8 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
     def _to_domain(self, model: UserModel) -> User:
         return User(
             id=model.id,
-            username=model.username,
+            user_number=model.user_number,
+            employee_name=model.employee_name,
             password_hash=model.password_hash,
             must_change_password=model.must_change_password,
             failed_login_attempts=model.failed_login_attempts,
@@ -41,7 +42,8 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
 
     def _to_model(self, domain: User) -> UserModel:
         model = UserModel()
-        model.username = domain.username
+        model.user_number = domain.user_number
+        model.employee_name = domain.employee_name
         model.password_hash = domain.password_hash
         model.must_change_password = domain.must_change_password
         model.failed_login_attempts = domain.failed_login_attempts
@@ -64,8 +66,8 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
 
     # ---- Custom queries beyond generic CRUD ----
 
-    def get_by_username(self, username: str) -> User | None:
-        stmt = select(UserModel).where(UserModel.username == username)
+    def get_by_user_number(self, user_number: int) -> User | None:
+        stmt = select(UserModel).where(UserModel.user_number == user_number)
         stmt = self._apply_company_filter(stmt)
         model = self._session.execute(stmt).scalar_one_or_none()
         return self._to_domain(model) if model else None

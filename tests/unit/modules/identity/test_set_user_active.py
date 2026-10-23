@@ -25,17 +25,17 @@ class FakeUserRepository(UserRepository):
     def get_by_id(self, user_id: int) -> User | None:
         return self._user
 
-    def get_by_username(self, username: str) -> User | None:
+    def get_by_user_number(self, user_number: int) -> User | None:
         return self._user
 
-    def list_all(self) -> list[User]:
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
         return []
 
     def get_roles(self, user: User) -> list:
         return []
 
-    def get_permissions(self, user: User) -> list[Permission]:
-        return [Permission(code=p) for p in self._perms.get(user.username, [])]
+    def get_permissions(self, user: User) -> list:
+        return []
 
     def assign_role(self, user: User, role, company_id=None) -> None:
         pass
@@ -55,9 +55,9 @@ class FakePermissionGate(PermissionGate):
 
 
 def test_set_user_active_deactivate() -> None:
-    user = User(id=2, username="maria", is_active=True)
+    user = User(id=2, user_number=1, employee_name="Maria", is_active=True)
     repo = FakeUserRepository(user)
-    repo._perms = {"admin": ["user.manage"]}  # type: ignore[attr-defined]
+    repo._perms = {"1": ["user.manage"]}  # type: ignore[attr-defined]
     gate = FakePermissionGate(allow=True)
     uc = SetUserActive(repo, gate)
 
@@ -69,9 +69,9 @@ def test_set_user_active_deactivate() -> None:
 
 
 def test_set_user_active_cannot_deactivate_self() -> None:
-    user = User(id=1, username="joao", is_active=True)
+    user = User(id=1, user_number=0, employee_name="João", is_active=True)
     repo = FakeUserRepository(user)
-    repo._perms = {"admin": ["user.manage"]}  # type: ignore[attr-defined]
+    repo._perms = {"0": ["user.manage"]}  # type: ignore[attr-defined]
     gate = FakePermissionGate(allow=True)
     uc = SetUserActive(repo, gate)
 
@@ -80,9 +80,9 @@ def test_set_user_active_cannot_deactivate_self() -> None:
 
 
 def test_set_user_active_requires_user_manage() -> None:
-    user = User(id=1, username="joao", is_active=True)
+    user = User(id=1, user_number=0, employee_name="João", is_active=True)
     repo = FakeUserRepository(user)
-    repo._perms = {"admin": []}  # type: ignore[attr-defined]
+    repo._perms = {"0": []}  # type: ignore[attr-defined]
     gate = FakePermissionGate(allow=False)
     uc = SetUserActive(repo, gate)
 

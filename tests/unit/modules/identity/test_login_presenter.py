@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from erp.modules.identity.application.authenticate import AuthenticateOutput
 from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.presentation.login_presenter import LoginPresenter
 from erp.shared.application.session import CurrentSession
@@ -14,10 +15,11 @@ class FakeIdentityServices(IdentityServices):
         self.fail_message = "Usuário ou senha inválidos"
         self.must_change_password = False
         self.return_user_id = 1
-        self.return_username = "joao"
+        self.return_user_number = 0
+        self.return_employee_name = "João"
         self.return_company_id = 1
 
-    def authenticate(self, username: str, password: str):  # type: ignore[override]
+    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
         self.authenticate_calls += 1
         if self.should_fail:
             raise ValueError(self.fail_message)
@@ -25,7 +27,8 @@ class FakeIdentityServices(IdentityServices):
 
         return AuthenticateOutput(
             user_id=self.return_user_id,
-            username=self.return_username,
+            user_number=self.return_user_number,
+            employee_name=self.return_employee_name,
             company_id=self.return_company_id,
             must_change_password=self.must_change_password,
         )
@@ -39,7 +42,7 @@ class FakeIdentityServices(IdentityServices):
     def list_roles(self, *, actor_id):  # type: ignore[override]
         raise NotImplementedError
 
-    def create_user(self, *, username, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(self, *, employee_name, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
         raise NotImplementedError
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
@@ -49,6 +52,9 @@ class FakeIdentityServices(IdentityServices):
         raise NotImplementedError
 
     def check_permission(self, *, user_id, permission_code):  # type: ignore[override]
+        raise NotImplementedError
+
+    def reset_password_by_admin(self, *, actor_id, target_user_id):  # type: ignore[override]
         raise NotImplementedError
 
 
@@ -74,12 +80,13 @@ def test_login_presenter_success() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login("joao", "senha123")
+    result = presenter.login(0, "senha123")
 
     assert result is True
     assert services.authenticate_calls == 1
     assert session.user_id == 1
-    assert session.username == "joao"
+    assert session.user_number == 0
+    assert session.username == "João"  # compatibilidade
     assert session.company_id == 1
     assert view.accepted is True
     assert view.errors == []
@@ -93,7 +100,7 @@ def test_login_presenter_propagates_company_id() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    presenter.login("joao", "senha123")
+    presenter.login(0, "senha123")
 
     assert session.company_id == 7
 
@@ -104,12 +111,12 @@ def test_login_presenter_empty_fields() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login("", "senha123")
+    result = presenter.login(0, "")
 
     assert result is False
     assert services.authenticate_calls == 0
     assert session.user_id is None
-    assert view.errors == ["Informe usuário e senha."]
+    assert view.errors == ["Informe número de usuário e senha."]
 
 
 def test_login_presenter_invalid_credentials() -> None:
@@ -119,7 +126,7 @@ def test_login_presenter_invalid_credentials() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login("joao", "senha_errada")
+    result = presenter.login(0, "senha_errada")
 
     assert result is False
     assert session.user_id is None
@@ -135,20 +142,21 @@ def test_login_presenter_sets_must_change_password() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    presenter.login("joao", "senha123")
+    presenter.login(0, "senha123")
 
     assert presenter.must_change_password is True
 
 
 def test_login_presenter_logout() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="joao")
+    session = CurrentSession(user_id=1, user_number=0, username="João")
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
     presenter.logout()
 
     assert session.user_id is None
+    assert session.user_number is None
     assert session.username is None
     assert session.company_id is None
     assert presenter.must_change_password is False

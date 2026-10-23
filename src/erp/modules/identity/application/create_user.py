@@ -15,7 +15,7 @@ from erp.modules.identity.domain.user import User
 @dataclass(slots=True, frozen=True)
 class CreateUserInput:
     actor_id: int
-    username: str
+    employee_name: str
     password: str
     role_name: str
     company_id: int | None = None
@@ -25,12 +25,16 @@ class CreateUserInput:
 @dataclass(slots=True, frozen=True)
 class CreateUserOutput:
     user_id: int
-    username: str
+    user_number: int
+    employee_name: str
     role_name: str
 
 
 class CreateUser:
-    """Cria um novo usuário associado a um papel (requer user.manage)."""
+    """Cria um novo usuário associado a um papel (requer user.manage).
+
+    Gera user_number sequencial automaticamente (0, 1, 2...).
+    """
 
     def __init__(
         self,
@@ -49,15 +53,22 @@ class CreateUser:
     ) -> CreateUserOutput:
         self._gate.require(data.actor_id, PERMISSION_USER_MANAGE.code)
 
-        if self._user_repo.get_by_username(data.username) is not None:
-            raise ValueError(f"Usuário '{data.username}' já existe")
+        # Verificar se employee_name já existe (opcional, pode permitir duplicados)
+        existing = self._user_repo.list_all()
+        if any(u.employee_name == data.employee_name for u in existing):
+            raise ValueError(f"Funcionário '{data.employee_name}' já existe")
 
         validate_password_policy(data.password)
         password_hash = self._password_hasher.hash(data.password)
 
+        # Gerar próximo user_number sequencial
+        existing_users = self._user_repo.list_all()
+        next_number = max((u.user_number for u in existing_users), default=-1) + 1
+
         user = User(
-            username=data.username,
-            password_hash=password_hash,
+            user_number=next_number,
+            employee_name=data.employee_name,
+            password_hash=self._password_hasher.hash(data.password),
             must_change_password=data.must_change_password,
             company_id=data.company_id,
         )
@@ -67,6 +78,7 @@ class CreateUser:
 
         return CreateUserOutput(
             user_id=user.id or 0,
-            username=user.username,
+            user_number=user.user_number,
+            employee_name=user.employee_name,
             role_name=role.name,
         )

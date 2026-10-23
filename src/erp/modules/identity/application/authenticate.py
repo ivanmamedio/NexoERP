@@ -9,20 +9,21 @@ from erp.modules.identity.application.ports import PasswordHasher, UserRepositor
 
 @dataclass(slots=True, frozen=True)
 class AuthenticateInput:
-    username: str
+    user_number: int
     password: str
 
 
 @dataclass(slots=True, frozen=True)
 class AuthenticateOutput:
     user_id: int
-    username: str
+    user_number: int
+    employee_name: str
     company_id: int | None
     must_change_password: bool
 
 
 class Authenticate:
-    """Autentica um usuário verificando username e senha."""
+    """Autentica um usuário verificando user_number e senha."""
 
     def __init__(
         self,
@@ -33,7 +34,7 @@ class Authenticate:
         self._password_hasher = password_hasher
 
     def execute(self, data: AuthenticateInput) -> AuthenticateOutput:
-        user = self._user_repo.get_by_username(data.username)
+        user = self._user_repo.get_by_user_number(data.user_number)
         if user is None:
             raise ValueError("Usuário ou senha inválidos")
 
@@ -53,7 +54,8 @@ class Authenticate:
 
         return AuthenticateOutput(
             user_id=user.id or 0,
-            username=user.username,
+            user_number=user.user_number,
+            employee_name=user.employee_name,
             company_id=user.company_id,
             must_change_password=user.must_change_password,
         )

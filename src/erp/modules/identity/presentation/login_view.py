@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -153,9 +154,10 @@ class LoginDialog(QDialog):
         card_layout.addWidget(subtitle)
 
         # Campos.
-        self._username = QLineEdit(card)
-        self._username.setObjectName("UsernameInput")
-        self._username.setPlaceholderText("Usuário")
+        self._user_number = QLineEdit(card)
+        self._user_number.setObjectName("UserNumberInput")
+        self._user_number.setPlaceholderText("Número do usuário")
+        self._user_number.setValidator(QIntValidator(0, 999999, self))
 
         self._password = QLineEdit(card)
         self._password.setObjectName("PasswordInput")
@@ -167,7 +169,7 @@ class LoginDialog(QDialog):
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         form.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         form.setVerticalSpacing(14)
-        form.addRow("Usuário:", self._username)
+        form.addRow("Número:", self._user_number)
         form.addRow("Senha:", self._password)
         card_layout.addLayout(form)
 
@@ -233,7 +235,17 @@ class LoginDialog(QDialog):
             return
 
         self._error_label.hide()
+        user_number_text = self._user_number.text().strip()
+        if not user_number_text:
+            self.show_error("Informe o número do usuário.")
+            return
+        try:
+            user_number = int(user_number_text)
+        except ValueError:
+            self.show_error("Número do usuário inválido.")
+            return
+
         self._presenter.login(
-            self._username.text(),
+            user_number,
             self._password.text(),
         )

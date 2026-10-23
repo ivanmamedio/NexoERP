@@ -54,7 +54,7 @@ def create_first_admin(
     *,
     session: Session,
     password_hasher: BcryptHasher,
-    username: str,
+    employee_name: str,
     password: str,
 ) -> User | None:
     """Cria o primeiro usuário administrador, se ainda não existir.
@@ -65,12 +65,13 @@ def create_first_admin(
     user_repo = SqlAlchemyUserRepository(session)
     role_repo = SqlAlchemyRoleRepository(session)
 
-    existing = user_repo.get_by_username(username)
+    existing = user_repo.get_by_user_number(0)  # admin é sempre user_number 0
     if existing is not None:
         return None  # Não sobrescreve usuário existente
 
     admin_user = User(
-        username=username,
+        user_number=0,
+        employee_name=employee_name,
         password_hash=password_hasher.hash(password),
         must_change_password=True,
         is_active=True,

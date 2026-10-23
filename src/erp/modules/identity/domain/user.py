@@ -10,10 +10,15 @@ from erp.shared.domain.entities import Entity
 
 @dataclass(slots=True)
 class User(Entity):
-    """Usuário do sistema com controle de senha e bloqueio por tentativas falhas."""
+    """Usuário do sistema com controle de senha e bloqueio por tentativas falhas.
+
+    Login é feito via user_number (sequencial: 0, 1, 2...).
+    employee_name é o nome do funcionário para exibição.
+    """
 
     id: int | None = field(default=None)
-    username: str = field(default="")
+    user_number: int = field(default=0)  # Número sequencial único (0, 1, 2...) - usado para login
+    employee_name: str = field(default="")  # Nome do funcionário (exibição)
     password_hash: str = field(default="")
     must_change_password: bool = field(default=False)
     failed_login_attempts: int = field(default=0)
@@ -38,3 +43,8 @@ class User(Entity):
         if self.locked_until is None:
             return False
         return datetime.now(UTC) < self.locked_until
+
+    @property
+    def display_name(self) -> str:
+        """Nome para exibição (employee_name ou user_number)."""
+        return self.employee_name or f"Usuário {self.user_number}"

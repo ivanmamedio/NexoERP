@@ -6,6 +6,7 @@ from erp.shared.domain.errors import DomainError
 @dataclass
 class CurrentSession:
     user_id: int | None = None
+    user_number: int | None = None
     company_id: int | None = None
     username: str | None = None
 

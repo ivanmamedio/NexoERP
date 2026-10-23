@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialogButtonBox
 
+from erp.modules.identity.application.authenticate import AuthenticateOutput
 from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.presentation.login_presenter import LoginPresenter
 from erp.modules.identity.presentation.login_view import LoginDialog
@@ -19,12 +20,12 @@ class FakeIdentityServices(IdentityServices):
     def __init__(self) -> None:
         self.calls = 0
         self.fail = False
-        self.last_username: str | None = None
+        self.last_user_number: int | None = None
         self.last_password: str | None = None
 
-    def authenticate(self, username: str, password: str):  # type: ignore[override]
+    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
         self.calls += 1
-        self.last_username = username
+        self.last_user_number = user_number
         self.last_password = password
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
@@ -33,7 +34,7 @@ class FakeIdentityServices(IdentityServices):
         )
 
         return AuthenticateOutput(
-            user_id=1, username="joao", company_id=1, must_change_password=False
+            user_id=1, user_number=0, employee_name="João", company_id=1, must_change_password=False
         )
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
@@ -45,7 +46,7 @@ class FakeIdentityServices(IdentityServices):
     def list_roles(self, *, actor_id):  # type: ignore[override]
         raise NotImplementedError
 
-    def create_user(self, *, username, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(self, *, employee_name, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
         raise NotImplementedError
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
@@ -55,6 +56,9 @@ class FakeIdentityServices(IdentityServices):
         raise NotImplementedError
 
     def check_permission(self, *, user_id, permission_code):  # type: ignore[override]
+        raise NotImplementedError
+
+    def reset_password_by_admin(self, *, actor_id, target_user_id):  # type: ignore[override]
         raise NotImplementedError
 
 
@@ -104,7 +108,7 @@ def test_login_dialog_enter_button_calls_presenter(qtbot):
     qtbot.addWidget(dialog)
     dialog.show()
 
-    dialog._username.setText("joao")
+    dialog._user_number.setText("0")
     dialog._password.setText("senha123")
 
     submit_button = dialog._buttons.button(QDialogButtonBox.StandardButton.Ok)
@@ -113,7 +117,7 @@ def test_login_dialog_enter_button_calls_presenter(qtbot):
     submit_button.click()
 
     assert services.calls == 1
-    assert services.last_username == "joao"
+    assert services.last_user_number == 0
     assert services.last_password == "senha123"
     assert session.user_id == 1
     assert session.company_id == 1

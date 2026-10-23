@@ -26,16 +26,16 @@ class FakeUserRepository(UserRepository):
     def get_by_id(self, user_id: int) -> User | None:
         return self._user
 
-    def get_by_username(self, username: str) -> User | None:
+    def get_by_user_number(self, user_number: int) -> User | None:
         return self._user
 
-    def list_all(self) -> list[User]:
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
         return []
 
     def get_roles(self, user: User) -> list[Role]:
         return []
 
-    def get_permissions(self, user: User) -> list[Permission]:
+    def get_permissions(self, user: User) -> list:
         return []
 
     def assign_role(self, user: User, role, company_id=None) -> None:
@@ -70,7 +70,8 @@ class FakePermissionGate(PermissionGate):
 def test_change_password_with_current_password() -> None:
     user = User(
         id=1,
-        username="joao",
+        user_number=0,
+        employee_name="João",
         password_hash="hash(senha_antiga1)",
         is_active=True,
     )
@@ -96,7 +97,8 @@ def test_change_password_without_current_password() -> None:
     """Quando current_password é None (primeiro acesso, must_change_password=True)."""
     user = User(
         id=1,
-        username="joao",
+        user_number=0,
+        employee_name="João",
         password_hash="hash(temp)",
         is_active=True,
         must_change_password=True,
@@ -122,7 +124,8 @@ def test_change_password_without_current_password() -> None:
 def test_change_password_wrong_current() -> None:
     user = User(
         id=1,
-        username="joao",
+        user_number=0,
+        employee_name="João",
         password_hash="hash(senha_antiga1)",
         is_active=True,
     )
@@ -161,7 +164,8 @@ def test_change_password_admin_reset_requires_user_manage() -> None:
     """Sem user.manage, não se pode resetar a senha de outro usuário."""
     user = User(
         id=2,
-        username="maria",
+        user_number=1,
+        employee_name="Maria",
         password_hash="hash(senha_antiga1)",
         is_active=True,
     )
