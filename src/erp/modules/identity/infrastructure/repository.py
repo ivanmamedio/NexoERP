@@ -36,6 +36,7 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
             locked_until=model.locked_until,
             is_active=model.is_active,
             company_id=model.company_id,
+            roles=[r.name for r in model.roles if r.is_active],
         )
 
     def _to_model(self, domain: User) -> UserModel:

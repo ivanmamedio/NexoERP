@@ -54,7 +54,7 @@ class _App:
         self._session = CurrentSession()
         self._main_window: MainWindow | None = None
 
-    def run(self) -> int:
+    def run(self, splash: "NexoERPSplashScreen | None" = None) -> int:
         while True:
             self._session = CurrentSession()
             if not self._has_any_user():
@@ -77,6 +77,9 @@ class _App:
                     continue
 
             self._open_main_window()
+            # Fecha splash quando janela principal abrir
+            if splash is not None and self._main_window is not None:
+                splash.finish(self._main_window)
             while self._main_window is not None and self._main_window.isVisible():
                 self._app.processEvents()
         # Unreachable, but needed for type checker
@@ -236,15 +239,7 @@ def main() -> int:
     services: IdentityServices = SqlIdentityServices(ctx.engine)
     runner = _App(app, services)
 
-    # Fecha splash quando janela principal abrir
-    def on_main_window_ready() -> None:
-        if hasattr(runner, "_main_window") and runner._main_window:
-            splash.finish(runner._main_window)
-
-    # Timer para fechar splash após UI carregar
-    QTimer.singleShot(2000, on_main_window_ready)
-
-    exit_code = runner.run()
+    exit_code = runner.run(splash=splash)
 
     # Backup no fechamento do app
     try:
