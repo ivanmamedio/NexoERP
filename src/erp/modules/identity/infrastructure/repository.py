@@ -50,6 +50,15 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
         model.company_id = domain.company_id
         return model
 
+    def _copy_domain_to_model(self, domain: User, model: UserModel) -> None:
+        """Override para pular o campo 'roles' (gerenciado via tabela de associação)."""
+        for key in domain.__dataclass_fields__:
+            if key in ("id", "roles"):  # id não atualiza, roles gerenciado via tabela associação
+                continue
+            value = getattr(domain, key)
+            if hasattr(model, key):
+                setattr(model, key, value)
+
     def list_all(self, *, company_id: int | None = None) -> list[User]:
         return cast(list[User], super().list_all(company_id=company_id))
 

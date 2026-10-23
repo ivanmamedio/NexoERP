@@ -31,7 +31,7 @@ from erp.modules.identity.infrastructure.repository import (
 )
 from erp.shared.application.session import CurrentSession
 from erp.ui.resource_paths import resource_path
-from erp.ui.splash import show_splash_screen
+from erp.ui.splash import show_splash_screen, NexoERPSplashScreen
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication

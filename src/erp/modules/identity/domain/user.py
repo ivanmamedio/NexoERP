@@ -20,7 +20,7 @@ class User(Entity):
     locked_until: datetime | None = field(default=None)
     is_active: bool = field(default=True)
     company_id: int | None = field(default=None)
-    roles: list = field(default_factory=list)  # Carregado separadamente via repo.get_roles()
+    roles: list[str] = field(default_factory=list)  # Carregado separadamente via repo.get_roles()
 
     def record_failed_login(self) -> None:
         """Incrementa tentativas falhas e bloqueia após 5."""
