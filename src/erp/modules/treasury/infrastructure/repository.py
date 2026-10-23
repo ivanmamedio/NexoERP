@@ -188,6 +188,30 @@ class SqlAlchemyPayableRepository(PayableRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
+    ) -> list[Payable]:
+        """Lista contas a pagar com vencimento no intervalo (baseado nas parcelas)."""
+        stmt = (
+            select(PayableModel)
+            .join(PayableInstallmentModel, PayableModel.id == PayableInstallmentModel.payable_id)
+            .where(
+                PayableInstallmentModel.due_date >= start_date,
+                PayableInstallmentModel.due_date <= end_date,
+            )
+        )
+        if company_id is not None:
+            stmt = stmt.where(PayableModel.company_id == company_id)
+        if status is not None:
+            stmt = stmt.where(PayableModel.status == status)
+        models = self._session.execute(stmt).unique().scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
     def save(self, payable: Payable) -> None:
         model = self._session.get(PayableModel, payable.id)
         if model is None:
@@ -195,6 +219,8 @@ class SqlAlchemyPayableRepository(PayableRepository):
             return
         self._update_model(model, payable)
         self._session.flush()
+
+    # ... rest of the methods unchanged
 
     def _to_model(self, payable: Payable) -> PayableModel:
         model = PayableModel()
@@ -299,6 +325,26 @@ class SqlAlchemyReceivableRepository(ReceivableRepository):
         self, company_id: int | None = None, status: str | None = None
     ) -> list[Receivable]:
         stmt = select(ReceivableModel)
+        if company_id is not None:
+            stmt = stmt.where(ReceivableModel.company_id == company_id)
+        if status is not None:
+            stmt = stmt.where(ReceivableModel.status == status)
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
+    ) -> list[Receivable]:
+        """Lista contas a receber com vencimento no intervalo."""
+        stmt = select(ReceivableModel).where(
+            ReceivableModel.due_date >= start_date,
+            ReceivableModel.due_date <= end_date,
+        )
         if company_id is not None:
             stmt = stmt.where(ReceivableModel.company_id == company_id)
         if status is not None:

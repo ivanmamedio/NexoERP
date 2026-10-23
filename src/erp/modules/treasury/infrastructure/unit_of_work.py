@@ -6,7 +6,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from erp.modules.treasury.infrastructure.repository import (
+    SqlAlchemyFinancialCategoryRepository,
     SqlAlchemyFinancialEntryRepository,
+    SqlAlchemyPayableRepository,
+    SqlAlchemyReceivableRepository,
 )
 from erp.shared.application.ports import UnitOfWork
 from erp.shared.infrastructure.database import get_session_factory
@@ -22,10 +25,16 @@ class SqlAlchemyTreasuryUnitOfWork(UnitOfWork):
         self._session_factory = get_session_factory(engine)
         self._session: Session | None = None
         self.financial_entries: SqlAlchemyFinancialEntryRepository | None = None
+        self.financial_categories: SqlAlchemyFinancialCategoryRepository | None = None
+        self.payables: SqlAlchemyPayableRepository | None = None
+        self.receivables: SqlAlchemyReceivableRepository | None = None
 
     def __enter__(self) -> SqlAlchemyTreasuryUnitOfWork:
         self._session = self._session_factory()
         self.financial_entries = SqlAlchemyFinancialEntryRepository(self._session)
+        self.financial_categories = SqlAlchemyFinancialCategoryRepository(self._session)
+        self.payables = SqlAlchemyPayableRepository(self._session)
+        self.receivables = SqlAlchemyReceivableRepository(self._session)
         return self
 
     def __exit__(

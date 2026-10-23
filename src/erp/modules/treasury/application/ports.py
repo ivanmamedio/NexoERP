@@ -41,6 +41,14 @@ class PayableRepository(Protocol):
     def list_by_company(
         self, company_id: int | None = None, status: str | None = None
     ) -> list[Payable]: ...
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
+    ) -> list[Payable]: ...
     def save(self, payable: Payable) -> None: ...
 
 
@@ -50,5 +58,13 @@ class ReceivableRepository(Protocol):
     def get_by_id(self, receivable_id: int) -> Receivable | None: ...
     def list_by_company(
         self, company_id: int | None = None, status: str | None = None
+    ) -> list[Receivable]: ...
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
     ) -> list[Receivable]: ...
     def save(self, receivable: Receivable) -> None: ...
