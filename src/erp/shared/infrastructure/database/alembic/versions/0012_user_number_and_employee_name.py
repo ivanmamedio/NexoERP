@@ -21,14 +21,14 @@ _BYPASS_ENABLE = "UPDATE audit_bypass SET enabled = 1 WHERE id = 1"
 _BYPASS_DISABLE = "UPDATE audit_bypass SET enabled = 0 WHERE id = 1"
 
 
-def _enable_bypass(connection) -> None:
+def _enable_bypass(connection: sa.engine.Connection) -> None:
     try:
         connection.execute(sa.text(_BYPASS_ENABLE))
     except Exception:
         pass
 
 
-def _disable_bypass(connection) -> None:
+def _disable_bypass(connection: sa.engine.Connection) -> None:
     try:
         connection.execute(sa.text(_BYPASS_DISABLE))
     except Exception:

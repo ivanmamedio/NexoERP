@@ -15,6 +15,7 @@ from erp.modules.identity.application.change_password import ChangePasswordOutpu
 from erp.modules.identity.application.create_user import CreateUserOutput
 from erp.modules.identity.application.list_roles import ListRolesOutput
 from erp.modules.identity.application.list_users import ListUsersOutput
+from erp.modules.identity.application.reset_password_by_admin import ResetPasswordByAdminOutput
 from erp.modules.identity.application.set_user_active import SetUserActiveOutput
 
 
@@ -22,7 +23,7 @@ from erp.modules.identity.application.set_user_active import SetUserActiveOutput
 class IdentityServices(Protocol):
     """Operações de identity expostas para a camada de apresentação."""
 
-    def authenticate(self, username: str, password: str) -> AuthenticateOutput: ...
+    def authenticate(self, user_number: int, password: str) -> AuthenticateOutput: ...
 
     def change_password(
         self,
@@ -40,7 +41,7 @@ class IdentityServices(Protocol):
     def create_user(
         self,
         *,
-        username: str,
+        employee_name: str,
         password: str,
         role_name: str,
         actor_id: int,
@@ -52,5 +53,9 @@ class IdentityServices(Protocol):
     def set_user_active(
         self, *, user_id: int, is_active: bool, actor_id: int
     ) -> SetUserActiveOutput: ...
+
+    def reset_password_by_admin(
+        self, *, actor_id: int, target_user_id: int
+    ) -> ResetPasswordByAdminOutput: ...
 
     def check_permission(self, *, user_id: int, permission_code: str) -> bool: ...

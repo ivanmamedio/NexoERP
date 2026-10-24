@@ -16,7 +16,7 @@ import os
 import sys
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog
 from sqlalchemy.engine import Engine
 
@@ -31,7 +31,7 @@ from erp.modules.identity.infrastructure.repository import (
 )
 from erp.shared.application.session import CurrentSession
 from erp.ui.resource_paths import resource_path
-from erp.ui.splash import show_splash_screen, NexoERPSplashScreen
+from erp.ui.splash import NexoERPSplashScreen, show_splash_screen
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -54,7 +54,7 @@ class _App:
         self._session = CurrentSession()
         self._main_window: MainWindow | None = None
 
-    def run(self, splash: "NexoERPSplashScreen | None" = None) -> int:
+    def run(self, splash: NexoERPSplashScreen | None = None) -> int:
         while True:
             self._session = CurrentSession()
             if not self._has_any_user():
@@ -178,6 +178,10 @@ class _App:
         )
         self._main_window.change_password_requested.connect(self._on_change_password_requested)
         self._main_window.users_requested.connect(self._on_users_requested)
+        # self._main_window.companies_requested.connect(self._on_companies_requested)
+        # self._main_window.catalog_requested.connect(self._on_catalog_requested)
+        # self._main_window.pos_requested.connect(self._on_pos_requested)
+        # self._main_window.cash_requested.connect(self._on_cash_requested)
         self._main_window.session_expired.connect(self._on_session_expired)
         self._main_window.start_session_guard()
         self._main_window.show()
@@ -201,6 +205,10 @@ class _App:
         widget.set_presenter(presenter)
         presenter.load()
         dialog.exec()
+
+    # def _on_companies_requested(self) -> None:
+#     # TODO: Implementar quando companies/presentation estiver pronto
+#     pass
 
     def _on_session_expired(self) -> None:
         _logger.info("Sessão expirada por ociosidade")

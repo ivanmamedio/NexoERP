@@ -29,9 +29,6 @@ class FakeIdentityServices(IdentityServices):
         self.last_password = password
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
-        from erp.modules.identity.application.authenticate import (
-            AuthenticateOutput,
-        )
 
         return AuthenticateOutput(
             user_id=1, user_number=0, employee_name="João", company_id=1, must_change_password=False

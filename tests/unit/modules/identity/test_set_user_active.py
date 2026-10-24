@@ -10,7 +10,6 @@ from erp.modules.identity.application.set_user_active import (
     SetUserActive,
     SetUserActiveInput,
 )
-from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.user import User
 from erp.shared.domain.errors import PermissionDenied
 

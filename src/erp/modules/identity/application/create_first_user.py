@@ -17,7 +17,7 @@ from erp.modules.identity.domain.user import User
 
 @dataclass(slots=True, frozen=True)
 class CreateFirstUserInput:
-    username: str
+    employee_name: str
     password: str
     role_name: str = "Administrador"
 
@@ -25,8 +25,10 @@ class CreateFirstUserInput:
 @dataclass(slots=True, frozen=True)
 class CreateFirstUserOutput:
     user_id: int
-    username: str
+    user_number: int
+    employee_name: str
     role_name: str
+    is_first_admin: bool = False
 
 
 class CreateFirstUser:
@@ -34,6 +36,7 @@ class CreateFirstUser:
 
     Não exige permissão user.manage (não há usuário autenticado).
     Define must_change_password=True para forçar a troca na próxima sessão.
+    O user_number do primeiro admin é sempre 0.
     """
 
     def __init__(
@@ -56,7 +59,8 @@ class CreateFirstUser:
         password_hash = self._password_hasher.hash(data.password)
 
         user = User(
-            username=data.username,
+            user_number=0,  # Primeiro admin sempre tem user_number = 0
+            employee_name=data.employee_name,
             password_hash=password_hash,
             must_change_password=True,
             is_active=True,
@@ -65,8 +69,11 @@ class CreateFirstUser:
         self._user_repo.assign_role(user, role)
         self._user_repo.save(user)
 
+        is_first_admin = user.user_number == 0
         return CreateFirstUserOutput(
             user_id=user.id or 0,
-            username=user.username,
+            user_number=user.user_number,
+            employee_name=user.employee_name,
             role_name=role.name,
+            is_first_admin=is_first_admin,
         )

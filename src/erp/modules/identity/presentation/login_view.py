@@ -6,8 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPixmap
-from PySide6.QtGui import QIntValidator
+from PySide6.QtGui import QColor, QIntValidator, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,

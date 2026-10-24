@@ -85,7 +85,7 @@ class UsersWidget(QWidget):
         self._table.setRowCount(len(users))
         for row, user in enumerate(users):
             self._table.setItem(row, 0, QTableWidgetItem(str(user.user_id)))
-            self._table.setItem(row, 1, QTableWidgetItem(user.username))
+            self._table.setItem(row, 1, QTableWidgetItem(user.employee_name))
             self._table.setItem(row, 2, QTableWidgetItem(", ".join(user.role_names)))
             self._table.setItem(row, 3, QTableWidgetItem("Sim" if user.is_active else "Não"))
             self._table.setItem(row, 4, QTableWidgetItem(self._status_text(user)))

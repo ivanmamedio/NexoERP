@@ -30,7 +30,7 @@ class FirstUseDialog(QDialog):
 
         self.setWindowTitle("NexoERP — Primeiro Uso")
         self.setModal(True)
-        self.setFixedSize(480, 520)
+        self.setMinimumSize(480, 520)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setObjectName("FirstUseDialog")
         self.setStyleSheet(_QSS)
@@ -130,6 +130,8 @@ class FirstUseDialog(QDialog):
         self._error_label.hide()
         self._info_label.setText(message)
         self._info_label.show()
+        # Ajusta o tamanho do diálogo se a mensagem for longa
+        self.adjustSize()
 
     def clear_passwords(self) -> None:
         self._password.clear()

@@ -23,7 +23,6 @@ class FakeIdentityServices(IdentityServices):
         self.authenticate_calls += 1
         if self.should_fail:
             raise ValueError(self.fail_message)
-        from erp.modules.identity.application.authenticate import AuthenticateOutput
 
         return AuthenticateOutput(
             user_id=self.return_user_id,

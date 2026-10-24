@@ -22,7 +22,6 @@ class FakeIdentityServices(IdentityServices):
         self.calls += 1
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
-        from erp.modules.identity.application.authenticate import AuthenticateOutput
 
         return AuthenticateOutput(
             user_id=1,

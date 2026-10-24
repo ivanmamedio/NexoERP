@@ -70,9 +70,9 @@ class FirstUsePresenter:
             return False
 
         # Verifica se já existe usuário (segurança em profundidade)
-        existing = self._user_repo.get_by_username(username)
+        existing = self._user_repo.get_by_user_number(0)  # Admin sempre tem user_number 0
         if existing is not None:
-            self._view.show_error(f"Usuário '{username}' já existe.")
+            self._view.show_error("Usuário administrador já existe.")
             self._view.clear_passwords()
             return False
 
@@ -89,9 +89,9 @@ class FirstUsePresenter:
 
         try:
             use_case = CreateFirstUser(self._user_repo, self._password_hasher)
-            use_case.execute(
+            output = use_case.execute(
                 CreateFirstUserInput(
-                    username=username,
+                    employee_name=username,
                     password=password,
                     role_name=role.name,
                 ),
@@ -103,10 +103,23 @@ class FirstUsePresenter:
             return False
 
         # Define a sessão para o usuário recém-criado
-        self._session.user_id = 1  # Será corrigido após o login real
-        self._session.username = username
+        self._session.user_id = output.user_id
+        self._session.username = output.employee_name
         self._session.company_id = None  # Será selecionado após o login
 
-        self._view.show_info("Primeiro administrador criado com sucesso.")
+        # Mostra o número gerado (0 para o primeiro admin)
+        if output.is_first_admin:
+            self._view.show_info(
+                f"Primeiro administrador criado com sucesso!\n\n"
+                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
+                f"IMPORTANTE: Guarde este número para fazer login!\n"
+                f"O login é feito com o NÚMERO DO USUÁRIO, não com o nome."
+            )
+        else:
+            self._view.show_info(
+                f"Usuário '{output.employee_name}' criado com sucesso!\n\n"
+                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
+                f"Guarde este número para fazer login."
+            )
         self._view.accept()
         return True

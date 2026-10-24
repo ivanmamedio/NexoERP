@@ -49,7 +49,9 @@ class FakeIdentityServices(IdentityServices):
             raise ValueError(self.fail_message)
         from erp.modules.identity.application.create_user import CreateUserOutput
 
-        return CreateUserOutput(user_id=1, user_number=0, employee_name=employee_name, role_name=role_name)
+        return CreateUserOutput(
+            user_id=1, user_number=0, employee_name=employee_name, role_name=role_name
+        )
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
         self.assign_calls += 1

@@ -10,7 +10,6 @@ from erp.modules.identity.application.change_password import (
 )
 from erp.modules.identity.application.permission_gate import PermissionGate
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
-from erp.modules.identity.domain.permission import Permission
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 from erp.shared.domain.errors import PermissionDenied

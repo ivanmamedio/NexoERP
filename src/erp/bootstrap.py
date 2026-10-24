@@ -205,23 +205,23 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         seed(session=session, password_hasher=hasher)
         admin_password = os.environ.get("NEXOERP_ADMIN_PASSWORD")
         if admin_password:
-            username = os.environ.get("NEXOERP_ADMIN_USERNAME", "admin")
+            employee_name = os.environ.get("NEXOERP_ADMIN_USERNAME", "admin")
             create_first_admin(
                 session=session,
                 password_hasher=hasher,
-                username=username,
+                employee_name=employee_name,
                 password=admin_password,
             )
-            _logger.info("Initial admin ensured for user %r", username)
+            _logger.info("Initial admin ensured for employee %r", employee_name)
             # Atribuir role Administrador ao admin recém-criado
             user_repo = SqlAlchemyUserRepository(session)
             role_repo = SqlAlchemyRoleRepository(session)
-            admin = user_repo.get_by_username(username)
+            admin = user_repo.get_by_user_number(0)  # admin é sempre user_number 0
             admin_role = role_repo.get_by_name("Administrador")
             if admin and admin_role:
                 user_repo.assign_role(admin, admin_role)
                 session.commit()
-                _logger.info("Role 'Administrador' atribuída ao admin %r", username)
+                _logger.info("Role 'Administrador' atribuída ao admin %r", employee_name)
 
     # Audit services + EventBus subscriber
     event_bus = EventBus()
