@@ -83,7 +83,9 @@ class UsersPresenter:
             self._view.show_error(str(exc))
             return
 
-        self._view.show_info(f"Usuário '{output.employee_name}' criado com papel '{output.role_name}'.")
+        self._view.show_info(
+            f"Usuário '{output.employee_name}' criado com papel '{output.role_name}'."
+        )
         self._view.clear_user_form()
         self.load()
 

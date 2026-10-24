@@ -85,6 +85,7 @@ class GetPayablesDueSoon:
         end_date = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         # Adiciona dias à frente
         from datetime import timedelta
+
         end_date = end_date + timedelta(days=input_data.days_ahead)
 
         result = self._list_by_due.execute(
@@ -103,9 +104,7 @@ class GetPayablesDueSoon:
 
         for p in result.payables:
             # Filtrar apenas parcelas pendentes
-            pending_installments = [
-                i for i in p.installments if i.status == "pending"
-            ]
+            pending_installments = [i for i in p.installments if i.status == "pending"]
             if not pending_installments:
                 continue
 

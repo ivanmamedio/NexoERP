@@ -43,7 +43,9 @@ class FakeIdentityServices(IdentityServices):
 
         return self.roles_output or ListRolesOutput(roles=())
 
-    def create_user(self, *, employee_name, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(
+        self, *, employee_name, password, role_name, actor_id, must_change_password=False
+    ):  # type: ignore[override]
         self.create_calls += 1
         if self.should_fail:
             raise ValueError(self.fail_message)

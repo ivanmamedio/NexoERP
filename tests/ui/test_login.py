@@ -40,7 +40,9 @@ class FakeIdentityServices(IdentityServices):
     def list_roles(self, *, actor_id):  # type: ignore[override]
         raise NotImplementedError
 
-    def create_user(self, *, employee_name, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(
+        self, *, employee_name, password, role_name, actor_id, must_change_password=False
+    ):  # type: ignore[override]
         raise NotImplementedError
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]

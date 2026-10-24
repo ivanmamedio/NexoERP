@@ -59,7 +59,9 @@ class FakePermissionGate(PermissionGate):
             raise PermissionDenied(f"Permissão negada: '{permission_code}'.")
 
 
-def _user(uid: int, user_number: int, employee_name: str, active: bool = True, must_change: bool = False) -> User:
+def _user(
+    uid: int, user_number: int, employee_name: str, active: bool = True, must_change: bool = False
+) -> User:
     return User(
         id=uid,
         user_number=user_number,

@@ -235,12 +235,13 @@ class TestSecurityAudit:
                 assert company is not None
                 assert company[0] == "Teste"
 
-                # After migration 8706cf5235a7, users table has user_number and employee_name instead of username
+                # After migration 8706cf5235a7, users table has user_number and
+                # employee_name instead of username
                 # Check which columns exist
                 columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
                 column_names = {col[1] for col in columns}
                 print(f"Users table columns: {column_names}")
-                
+
                 if "username" in column_names:
                     # Old schema (before 8706cf5235a7)
                     user = conn.execute(text("SELECT username FROM users WHERE id = 1")).fetchone()
@@ -248,7 +249,9 @@ class TestSecurityAudit:
                     assert user[0] == "teste"
                 elif "user_number" in column_names and "employee_name" in column_names:
                     # New schema (after 8706cf5235a7)
-                    user = conn.execute(text("SELECT employee_name FROM users WHERE id = 1")).fetchone()
+                    user = conn.execute(
+                        text("SELECT employee_name FROM users WHERE id = 1")
+                    ).fetchone()
                     assert user is not None
                     assert user[0] == "teste"
                 else:

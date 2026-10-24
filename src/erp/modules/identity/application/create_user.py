@@ -59,7 +59,7 @@ class CreateUser:
             raise ValueError(f"Funcionário '{data.employee_name}' já existe")
 
         validate_password_policy(data.password)
-        password_hash = self._password_hasher.hash(data.password)
+        self._password_hasher.hash(data.password)
 
         # Gerar próximo user_number sequencial
         existing_users = self._user_repo.list_all()

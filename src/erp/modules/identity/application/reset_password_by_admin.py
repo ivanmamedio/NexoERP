@@ -46,7 +46,9 @@ class ResetPasswordByAdmin:
         self._gate.require(data.actor_id, PERMISSION_USER_MANAGE.code)
 
         if data.actor_id == data.target_user_id:
-            raise ValueError("Não é possível resetar a própria senha como admin. Use a troca de senha normal.")
+            raise ValueError(
+                "Não é possível resetar a própria senha como admin. Use a troca de senha normal."
+            )
 
         user = self._user_repo.get_by_id(data.target_user_id)
         if user is None:

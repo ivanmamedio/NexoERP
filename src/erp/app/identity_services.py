@@ -168,9 +168,9 @@ class SqlIdentityServices:
     ) -> ResetPasswordByAdminOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
-            result = ResetPasswordByAdmin(uow.users, self._hasher, PermissionGate(uow.users)).execute(
-                ResetPasswordByAdminInput(actor_id=actor_id, target_user_id=target_user_id)
-            )
+            result = ResetPasswordByAdmin(
+                uow.users, self._hasher, PermissionGate(uow.users)
+            ).execute(ResetPasswordByAdminInput(actor_id=actor_id, target_user_id=target_user_id))
             uow.commit()
             return result
 

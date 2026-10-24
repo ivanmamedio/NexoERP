@@ -207,8 +207,8 @@ class _App:
         dialog.exec()
 
     # def _on_companies_requested(self) -> None:
-#     # TODO: Implementar quando companies/presentation estiver pronto
-#     pass
+    #     # TODO: Implementar quando companies/presentation estiver pronto
+    #     pass
 
     def _on_session_expired(self) -> None:
         _logger.info("Sessão expirada por ociosidade")
