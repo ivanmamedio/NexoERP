@@ -53,6 +53,14 @@ class MainWindow(QMainWindow):
     pos_requested = Signal()
     #: Emitido pelo menu "Caixa".
     cash_requested = Signal()
+    #: Emitido pelo menu "Tesouraria / Fluxo de Caixa".
+    treasury_requested = Signal()
+    #: Emitido pelo menu "Relatórios".
+    reports_requested = Signal()
+    #: Emitido pelo menu "Configurações".
+    settings_requested = Signal()
+    #: Emitido pelo menu "Auditoria".
+    audit_requested = Signal()
     #: Emitido quando a sessão expira por ociosidade (deve voltar ao login).
     session_expired = Signal()
 
@@ -144,29 +152,29 @@ class MainWindow(QMainWindow):
             action_cash = caixa.addAction("&Caixa / Sessões...")
             action_cash.triggered.connect(self.cash_requested)
 
-        # Tesouraria (placeholder - será implementado na fase 3.2)
-        # if self._has_permission("treasury.view"):
-        #     tesouraria = menubar.addMenu("&Tesouraria")
-        #     action_treasury = tesouraria.addAction("&Tesouraria / Fluxo de Caixa...")
-        #     action_treasury.triggered.connect(self.treasury_requested)
+        # Tesouraria
+        if self._has_permission("treasury.view"):
+            tesouraria = menubar.addMenu("&Tesouraria")
+            action_treasury = tesouraria.addAction("&Fluxo de Caixa...")
+            action_treasury.triggered.connect(self.treasury_requested)
 
-        # Relatórios (placeholder - será implementado na fase 4.2)
-        # if self._has_permission("reports.view"):
-        #     relatorios = menubar.addMenu("&Relatórios")
-        #     action_reports = relatorios.addAction("&Relatórios...")
-        #     action_reports.triggered.connect(self.reports_requested)
+        # Relatórios
+        if self._has_permission("reports.view"):
+            relatorios = menubar.addMenu("&Relatórios")
+            action_reports = relatorios.addAction("&Gerar Relatório...")
+            action_reports.triggered.connect(self.reports_requested)
 
-        # Configurações (placeholder - será implementado na fase 1.7)
-        # if self._has_permission("settings.update"):
-        #     configuracoes = menubar.addMenu("Con&figurações")
-        #     action_settings = configuracoes.addAction("&Configurações...")
-        #     action_settings.triggered.connect(self.settings_requested)
+        # Configurações
+        if self._has_permission("settings.update"):
+            configuracoes = menubar.addMenu("Con&figurações")
+            action_settings = configuracoes.addAction("&Configurações...")
+            action_settings.triggered.connect(self.settings_requested)
 
-        # Auditoria (placeholder - será implementado na fase 1.4)
-        # if self._has_permission("audit.view"):
-        #     auditoria = menubar.addMenu("&Auditoria")
-        #     action_audit = auditoria.addAction("&Auditoria...")
-        #     action_audit.triggered.connect(self.audit_requested)
+        # Auditoria
+        if self._has_permission("audit.view"):
+            auditoria = menubar.addMenu("&Auditoria")
+            action_audit = auditoria.addAction("&Log de Auditoria...")
+            action_audit.triggered.connect(self.audit_requested)
 
         # Usuários (apenas para quem tem user.manage)
         if self._has_permission("user.manage"):
