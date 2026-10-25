@@ -55,7 +55,7 @@ jobs:
       - name: Build with PyInstaller (onedir)
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           echo "=== Starting PyInstaller build ==="
           echo "Working dir: $(pwd)"
           echo "Dist path: dist/${{ matrix.os }}"
@@ -71,7 +71,7 @@ jobs:
           echo "=== Full find from project root ==="
           find . -name "ERP*" -type d 2>/dev/null | head -20
           echo "=== find dist/ tree ==="
-          find dist/ -type f -o -type d 2>/dev/null | head -80
+          find dist/ -type f -o -type d 2>/dev/null | head -80 || true
           exit $PYI_EXIT
 
       - name: Package Linux (AppImage + .deb)
