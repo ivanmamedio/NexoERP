@@ -52,6 +52,13 @@ jobs:
       - name: Install dependencies
         run: uv sync --group build
 
+      - name: Debug migration file content
+        shell: bash
+        run: |
+          echo "=== Checking migration file in repo ==="
+          cat src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | head -100
+          echo "=== End of migration preview ==="
+
       - name: Build with PyInstaller (onedir)
         shell: bash
         run: |

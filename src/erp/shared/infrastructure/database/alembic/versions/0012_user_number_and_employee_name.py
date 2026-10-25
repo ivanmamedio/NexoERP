@@ -5,6 +5,8 @@ Nova lógica de usuários:
 - employee_name: nome do funcionário (exibição)
 - username: REMOVIDO - substituído por user_number
 - user_number 0 = admin obrigatório do sistema
+
+FIX v0.1.1: Uses batch_alter_table for SQLite compatibility (no ALTER COLUMN SET NOT NULL)
 """
 
 from __future__ import annotations
