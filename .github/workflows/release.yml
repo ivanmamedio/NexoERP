@@ -59,7 +59,7 @@ jobs:
           echo "=== Starting PyInstaller build ==="
           echo "Working dir: $(pwd)"
           echo "Dist path: dist/${{ matrix.os }}"
-          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }} -v 2>&1
+          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }} 2>&1
           PYI_EXIT=$?
           echo "=== PyInstaller exit code: $PYI_EXIT ==="
           echo "=== Current dir contents ==="
