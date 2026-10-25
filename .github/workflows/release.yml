@@ -56,11 +56,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
-          echo "=== PyInstaller output ==="
+          echo "=== Starting PyInstaller build ==="
+          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }} -v 2>&1
+          echo "=== PyInstaller exit code: $? ==="
+          echo "=== Full dist tree ==="
+          find dist/${{ matrix.os }} -type f -o -type d 2>/dev/null | head -50
+          echo "=== Looking for ERP* directories ==="
+          find dist/${{ matrix.os }} -name "ERP*" -type d 2>/dev/null
+          echo "=== dist/${{ matrix.os }} contents ==="
           ls -la dist/${{ matrix.os }}/
-          ls -la dist/${{ matrix.os }}/ERP/ 2>/dev/null || echo "ERP directory not found"
-          ls -la dist/${{ matrix.os }}/ERP/_internal/ 2>/dev/null || echo "_internal not found"
 
       - name: Package Linux (AppImage + .deb)
         if: matrix.os == 'ubuntu-22.04'
