@@ -57,14 +57,22 @@ jobs:
         run: |
           set -euo pipefail
           echo "=== Starting PyInstaller build ==="
+          echo "Working dir: $(pwd)"
+          echo "Dist path: dist/${{ matrix.os }}"
           uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }} -v 2>&1
-          echo "=== PyInstaller exit code: $? ==="
-          echo "=== Full dist tree ==="
-          find dist/${{ matrix.os }} -type f -o -type d 2>/dev/null | head -50
-          echo "=== Looking for ERP* directories ==="
-          find dist/${{ matrix.os }} -name "ERP*" -type d 2>/dev/null
-          echo "=== dist/${{ matrix.os }} contents ==="
-          ls -la dist/${{ matrix.os }}/
+          PYI_EXIT=$?
+          echo "=== PyInstaller exit code: $PYI_EXIT ==="
+          echo "=== Current dir contents ==="
+          ls -la
+          echo "=== dist/ contents (if exists) ==="
+          ls -la dist/ 2>/dev/null || echo "dist/ not found"
+          echo "=== dist/${{ matrix.os }} contents (if exists) ==="
+          ls -la dist/${{ matrix.os }}/ 2>/dev/null || echo "dist/${{ matrix.os }} not found"
+          echo "=== Full find from project root ==="
+          find . -name "ERP*" -type d 2>/dev/null | head -20
+          echo "=== find dist/ tree ==="
+          find dist/ -type f -o -type d 2>/dev/null | head -80
+          exit $PYI_EXIT
 
       - name: Package Linux (AppImage + .deb)
         if: matrix.os == 'ubuntu-22.04'
