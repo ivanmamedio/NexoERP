@@ -30,7 +30,9 @@ jobs:
         run: uv sync --group build
 
       - name: Build with PyInstaller (onedir)
+        shell: bash
         run: |
+          set -euo pipefail
           uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
           echo "=== PyInstaller output ==="
           ls -la dist/${{ matrix.os }}/
