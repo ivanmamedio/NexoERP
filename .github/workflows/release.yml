@@ -82,6 +82,12 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           DIST_PATH="dist/${{ matrix.os }}"
 
+          echo "=== Debug: checking dist structure ==="
+          ls -la "${DIST_PATH}/"
+          ls -la "${DIST_PATH}/ERP/"
+          echo "=== Contents of ERP dir ==="
+          find "${DIST_PATH}/ERP" -maxdepth 1 -mindepth 1
+
           # --- AppImage ---
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
@@ -89,7 +95,8 @@ jobs:
           ./appimagetool --appimage-extract > /dev/null
 
           mkdir -p AppDir/usr/bin
-          cp -r "${DIST_PATH}/ERP/*" AppDir/usr/bin/
+          # Copy the entire ERP directory contents (binary + _internal)
+          cp -r "${DIST_PATH}/ERP/." AppDir/usr/bin/
           cp packaging/linux/erp.desktop AppDir/erp.desktop
           cp packaging/linux/icons/erp.png AppDir/erp.png
           printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/usr/bin/ERP" "$@"' > AppDir/AppRun
