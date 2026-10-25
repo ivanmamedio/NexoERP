@@ -30,7 +30,12 @@ jobs:
         run: uv sync --group build
 
       - name: Build with PyInstaller (onedir)
-        run: uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
+        run: |
+          uv run pyinstaller packaging/pyinstaller.spec --distpath dist/${{ matrix.os }}
+          echo "=== PyInstaller output ==="
+          ls -la dist/${{ matrix.os }}/
+          ls -la dist/${{ matrix.os }}/ERP/ 2>/dev/null || echo "ERP directory not found"
+          ls -la dist/${{ matrix.os }}/ERP/_internal/ 2>/dev/null || echo "_internal not found"
 
       - name: Package Linux (AppImage + .deb)
         if: matrix.os == 'ubuntu-22.04'
