@@ -14,7 +14,8 @@ homepage: "https://github.com/ivanmamedio/NexoERP"
 license: "AGPL-3.0-only"
 contents:
   # App onedir do PyInstaller (binario + _internal/) em /opt/nexoerp
-  - src: dist/fedora-test/ERP/
+  # O placeholder __DIST_PATH__ é substituído no CI pelo diretório real (ex: dist/ubuntu-22.04)
+  - src: __DIST_PATH__/ERP/
     dst: /opt/nexoerp
   - src: /opt/nexoerp/ERP
     dst: /usr/bin/erp

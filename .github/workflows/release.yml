@@ -38,6 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
+          DIST_PATH="dist/${{ matrix.os }}"
 
           # --- AppImage ---
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
@@ -46,7 +47,7 @@ jobs:
           ./appimagetool --appimage-extract > /dev/null
 
           mkdir -p AppDir/usr/bin
-          cp -r dist/ubuntu-22.04/ERP/* AppDir/usr/bin/
+          cp -r "${DIST_PATH}/ERP/*" AppDir/usr/bin/
           cp packaging/linux/erp.desktop AppDir/erp.desktop
           cp packaging/linux/icons/erp.png AppDir/erp.png
           printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/usr/bin/ERP" "$@"' > AppDir/AppRun
@@ -58,7 +59,7 @@ jobs:
           NFPM_VERSION=2.48.0
           wget -q "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" -O nfpm.tar.gz
           tar xzf nfpm.tar.gz nfpm
-          sed "s/__VERSION__/${VERSION}/" packaging/linux/nfpm.yaml > nfpm.rendered.yaml
+          sed -e "s/__VERSION__/${VERSION}/" -e "s|__DIST_PATH__|${DIST_PATH}|" packaging/linux/nfpm.yaml > nfpm.rendered.yaml
           ./nfpm package --config nfpm.rendered.yaml --packager deb --target "dist/nexoerp-${VERSION}-amd64.deb"
 
       - name: Package Windows (Inno Setup)
