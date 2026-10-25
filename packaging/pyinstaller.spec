@@ -19,6 +19,12 @@ if not os.path.isfile(LOGO_PATH):
         "Informe o caminho correto ou adicione o arquivo antes de buildar."
     )
 
+# Coletar submódulos do sqlalchemy EXCLUINDO asyncio (usamos SQLite síncrono)
+_sqlalchemy_submodules = [
+    m for m in collect_submodules("sqlalchemy")
+    if not m.startswith("sqlalchemy.ext.asyncio")
+]
+
 a = Analysis(
     [os.path.join(SRC_DIR, "erp", "__main__.py")],
     pathex=[SRC_DIR],
@@ -30,7 +36,7 @@ a = Analysis(
         ),
         (LOGO_PATH, "erp/ui/resources"),
     ],
-    hiddenimports=collect_submodules("erp") + collect_submodules("sqlalchemy") + ["greenlet"],
+    hiddenimports=collect_submodules("erp") + _sqlalchemy_submodules + ["greenlet"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
