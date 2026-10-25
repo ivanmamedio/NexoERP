@@ -24,6 +24,7 @@ dev = [
 ]
 build = [
     "pyinstaller>=6.11",
+    "greenlet>=3.0",  # required by SQLAlchemy asyncio
 ]
 
 [build-system]

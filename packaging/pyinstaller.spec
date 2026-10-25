@@ -30,7 +30,7 @@ a = Analysis(
         ),
         (LOGO_PATH, "erp/ui/resources"),
     ],
-    hiddenimports=collect_submodules("erp") + collect_submodules("sqlalchemy"),
+    hiddenimports=collect_submodules("erp") + collect_submodules("sqlalchemy") + ["greenlet"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
