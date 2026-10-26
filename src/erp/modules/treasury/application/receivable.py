@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Tuple
 
 from erp.modules.treasury.application.ports import ReceivableRepository
 from erp.modules.treasury.domain.receivable import Receivable, ReceivableStatus
@@ -138,7 +139,7 @@ class ReceivableView:
 
 @dataclass(slots=True, frozen=True)
 class ListReceivablesOutput:
-    receivables: tuple[ReceivableView, ...]
+    receivables: Tuple[ReceivableView, ...]
 
 
 class ListReceivables:

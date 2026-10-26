@@ -20,7 +20,7 @@ class WindowsSpoolerPrinter(ReceiptPrinterPort):
         self._formatter = ReceiptFormatter(width=48)
 
     def print_receipt(self, receipt: Receipt) -> None:
-        import win32print  # type: ignore[import-untyped]
+        import win32print  # type: ignore[import-untyped,import-not-found]
 
         formatter = ReceiptFormatter(width=48)
         text = formatter.format_receipt(receipt)
@@ -29,7 +29,7 @@ class WindowsSpoolerPrinter(ReceiptPrinterPort):
         printer_handle: Any = win32print.OpenPrinter(self._printer_name)
         try:
             # Start document
-            job_info = ("NexoERP Receipt", None, "RAW")
+            job_info: tuple[str, None, str] = ("NexoERP Receipt", None, "RAW")
             win32print.StartDocPrinter(printer_handle, 1, job_info)
             win32print.StartPagePrinter(printer_handle)
 
@@ -47,11 +47,11 @@ class WindowsSpoolerPrinter(ReceiptPrinterPort):
             win32print.ClosePrinter(printer_handle)
 
     def open_cash_drawer(self) -> None:
-        import win32print
+        import win32print  # type: ignore[import-untyped,import-not-found]
 
         printer_handle: Any = win32print.OpenPrinter(self._printer_name)
         try:
-            job_info = ("NexoERP Cash Drawer", None, "RAW")
+            job_info: tuple[str, None, str] = ("NexoERP Cash Drawer", None, "RAW")
             win32print.StartDocPrinter(printer_handle, 1, job_info)
             win32print.StartPagePrinter(printer_handle)
 

@@ -27,7 +27,7 @@ class EscposPrinter(ReceiptPrinterPort):
         """Lazy initialization of the printer."""
         if self._printer is None:
             try:
-                from escpos.printer import File, Network, Serial, Usb  # type: ignore[import-untyped]
+                from escpos.printer import File, Network, Serial, Usb  # type: ignore[import-untyped,import-not-found]
             except ImportError as exc:
                 raise RuntimeError(
                     "python-escpos not installed. Run: uv add python-escpos"
@@ -64,7 +64,7 @@ class EscposPrinter(ReceiptPrinterPort):
                     vendor_id = v_id
                     product_id = p_id
 
-                from escpos.printer import Usb
+                from escpos.printer import Usb  # type: ignore[import-untyped,import-not-found]
 
                 self._printer = Usb(vendor_id, product_id, profile=self._profile)
         return self._printer
