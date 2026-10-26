@@ -65,18 +65,28 @@ jobs:
         shell: bash
         run: |
           echo "=== VERIFICATION ==="
-          # Check actual Python code (exclude comments/docstrings)
-          # Use grep -v to exclude lines starting with # or """
-          CODE_LINES=$(grep -v '^\s*#' src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | grep -v '^\s*"""' | grep -v '^\s*$' || true)
+          # Use awk to exclude docstrings (content between """) and comments
+          # State machine: skip lines inside """...""" docstrings
+          awk '
+            /^"""/ { in_doc = !in_doc; next }
+            in_doc { next }
+            /^\s*#/ { next }
+            /^\s*$/ { next }
+            { print }
+          ' src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py > /tmp/migration_code.txt
+          
+          echo "=== Filtered code ==="
+          cat /tmp/migration_code.txt
+          echo "=== End filtered ==="
 
-          if echo "$CODE_LINES" | grep -q "ALTER COLUMN.*SET NOT NULL"; then
+          if grep -q "ALTER COLUMN.*SET NOT NULL" /tmp/migration_code.txt; then
             echo "❌ FAIL: Found ALTER COLUMN SET NOT NULL in code (old syntax)"
             exit 1
           else
             echo "✅ OK: No ALTER COLUMN SET NOT NULL in code"
           fi
 
-          if echo "$CODE_LINES" | grep -q "batch_alter_table"; then
+          if grep -q "batch_alter_table" /tmp/migration_code.txt; then
             echo "✅ OK: Uses batch_alter_table"
           else
             echo "❌ FAIL: Missing batch_alter_table in code"
@@ -84,7 +94,6 @@ jobs:
           fi
 
           # Check if CREATE UNIQUE INDEX ix_users_username appears in upgrade function
-          # This is a more precise check - look at the upgrade function body
           if grep -A 50 "def upgrade" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | grep -q "CREATE UNIQUE INDEX ix_users_username"; then
             echo "❌ FAIL: ix_users_username created in UPGRADE (old bug)"
             exit 1
