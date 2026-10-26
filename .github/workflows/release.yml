@@ -68,21 +68,21 @@ jobs:
           # Check actual Python code (exclude comments/docstrings)
           # Use grep -v to exclude lines starting with # or """
           CODE_LINES=$(grep -v '^\s*#' src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | grep -v '^\s*"""' | grep -v '^\s*$' || true)
-          
+
           if echo "$CODE_LINES" | grep -q "ALTER COLUMN.*SET NOT NULL"; then
             echo "❌ FAIL: Found ALTER COLUMN SET NOT NULL in code (old syntax)"
             exit 1
           else
             echo "✅ OK: No ALTER COLUMN SET NOT NULL in code"
           fi
-          
+
           if echo "$CODE_LINES" | grep -q "batch_alter_table"; then
             echo "✅ OK: Uses batch_alter_table"
           else
             echo "❌ FAIL: Missing batch_alter_table in code"
             exit 1
           fi
-          
+
           # Check if CREATE UNIQUE INDEX ix_users_username appears in upgrade function
           # This is a more precise check - look at the upgrade function body
           if grep -A 50 "def upgrade" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | grep -q "CREATE UNIQUE INDEX ix_users_username"; then
@@ -92,6 +92,8 @@ jobs:
             echo "✅ OK: ix_users_username not in upgrade"
           fi
           echo "=== ALL CHECKS PASSED ==="
+
+      - name: Build with PyInstaller (onedir)
         shell: bash
         run: |
           set -eu
