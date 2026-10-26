@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history, no shallow clone
 
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-22.04'
@@ -58,6 +60,33 @@ jobs:
           echo "=== Checking migration file in repo ==="
           cat src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | head -100
           echo "=== End of migration preview ==="
+
+      - name: Verify migration has batch_alter_table (no ALTER COLUMN SET NOT NULL)
+        shell: bash
+        run: |
+          echo "=== VERIFICATION ==="
+          if grep -q "ALTER COLUMN.*SET NOT NULL" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py; then
+            echo "❌ FAIL: Found ALTER COLUMN SET NOT NULL (old syntax)"
+            exit 1
+          else
+            echo "✅ OK: No ALTER COLUMN SET NOT NULL"
+          fi
+          if grep -q "batch_alter_table" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py; then
+            echo "✅ OK: Uses batch_alter_table"
+          else
+            echo "❌ FAIL: Missing batch_alter_table"
+            exit 1
+          fi
+          if grep -q "CREATE UNIQUE INDEX ix_users_username" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py; then
+            # Check if it's in upgrade or downgrade
+            if grep -A 20 "def upgrade" src/erp/shared/infrastructure/database/alembic/versions/0012_user_number_and_employee_name.py | grep -q "CREATE UNIQUE INDEX ix_users_username"; then
+              echo "❌ FAIL: ix_users_username created in UPGRADE (old bug)"
+              exit 1
+            else
+              echo "✅ OK: ix_users_username only in downgrade"
+            fi
+          fi
+          echo "=== ALL CHECKS PASSED ==="
 
       - name: Build with PyInstaller (onedir)
         shell: bash
