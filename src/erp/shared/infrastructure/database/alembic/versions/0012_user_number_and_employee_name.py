@@ -46,20 +46,29 @@ def upgrade() -> None:
     columns = [col["name"] for col in inspector.get_columns("users")]
     has_username = "username" in columns
 
+    # Check if index exists
+    indexes = {idx["name"] for idx in inspector.get_indexes("users")}
+    has_username_index = "ix_users_username" in indexes
+
     _enable_bypass(connection)
     try:
-        # 1. Adicionar colunas novas (nullable=True inicialmente)
+        # 1. Drop index on username if it exists (must be before dropping column)
+        if has_username_index:
+            with op.batch_alter_table("users") as batch_op:
+                batch_op.drop_index("ix_users_username")
+
+        # 2. Adicionar colunas novas (nullable=True inicialmente)
         with op.batch_alter_table("users") as batch_op:
             batch_op.add_column(sa.Column("user_number", sa.Integer(), nullable=True))
             batch_op.add_column(sa.Column("employee_name", sa.String(200), nullable=True))
 
-        # 2. Popular user_number sequencial baseado na ordem de criação (id)
+        # 3. Popular user_number sequencial baseado na ordem de criação (id)
         # Admin (id=1) fica com user_number = 0
         connection.execute(
             sa.text("UPDATE users SET user_number = id - 1")
         )
 
-        # 3. Popular employee_name a partir do username existente (se existir)
+        # 4. Popular employee_name a partir do username existente (se existir)
         if has_username:
             connection.execute(
                 sa.text("UPDATE users SET employee_name = username")
@@ -70,22 +79,22 @@ def upgrade() -> None:
                 sa.text("UPDATE users SET employee_name = 'Usuário ' || id")
             )
 
-        # 4. Tornar user_number NOT NULL e UNIQUE (via batch_alter_table para SQLite)
+        # 5. Tornar user_number NOT NULL e UNIQUE (via batch_alter_table para SQLite)
         with op.batch_alter_table("users") as batch_op:
             batch_op.alter_column("user_number", existing_type=sa.Integer(), nullable=False)
             batch_op.create_index("ix_users_user_number", ["user_number"], unique=True)
 
-        # 5. Tornar employee_name NOT NULL
+        # 6. Tornar employee_name NOT NULL
         with op.batch_alter_table("users") as batch_op:
             batch_op.alter_column("employee_name", existing_type=sa.String(200), nullable=False)
 
-        # 6. Remover coluna username (depois de migrar dados) - só se existir
+        # 7. Remover coluna username (depois de migrar dados) - só se existir
         # SQLite tem limitações com DROP COLUMN, usamos batch_alter_table
         if has_username:
             with op.batch_alter_table("users") as batch_op:
                 batch_op.drop_column("username")
 
-        # 7. Atualizar sequence do user_number para próximos inserts
+        # 8. Atualizar sequence do user_number para próximos inserts
         # (SQLite não tem sequence, mas podemos usar trigger ou lógica na aplicação)
     finally:
         _disable_bypass(connection)
