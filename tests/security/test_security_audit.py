@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import subprocess
 import tempfile
 from pathlib import Path
@@ -262,6 +263,8 @@ class TestSecurityAudit:
             print("\n✓ Migration N-1 to N successful with data preserved")
 
         finally:
+            with contextlib.suppress(Exception):
+                engine.dispose()
             test_db.unlink(missing_ok=True)
 
 
