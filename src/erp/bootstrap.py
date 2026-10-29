@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import URL, Engine
 from sqlalchemy.orm import Session
 
 from erp.config import paths as app_paths
@@ -58,7 +59,7 @@ from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscri
 from erp.modules.treasury.application.credit_subscriber import TreasuryCreditSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
-from erp.shared.infrastructure.database.engine import build_engine
+from erp.shared.infrastructure.database.engine import _apply_pragmas
 from erp.shared.infrastructure.database.migrations import run_migrations
 
 _logger = logging.getLogger(__name__)
@@ -167,7 +168,10 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     _logger.info("Starting ERP bootstrap (data_dir=%s)", resolved_data_dir)
 
     db_path = resolved_data_dir / "erp.db"
-    engine = build_engine(db_path)
+    # Build engine and also get a clean URL for migrations (avoids Windows %3A issues)
+    db_url = URL.create("sqlite", database=str(db_path.resolve()))
+    engine = create_engine(db_url, future=True)
+    event.listen(engine, "connect", _apply_pragmas)
 
     # Backup automático antes de qualquer migração (tabela backups pode não
     # existir ainda em primeira execução)
@@ -193,7 +197,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         _logger.warning("Pre-migration backup skipped")
 
     # Migrations run synchronously at startup
-    run_migrations(engine.url.render_as_string(hide_password=False))
+    run_migrations(db_url.render_as_string(hide_password=False))
 
     # Install audit triggers (block direct UPDATE/DELETE on business tables)
     install_triggers(engine)

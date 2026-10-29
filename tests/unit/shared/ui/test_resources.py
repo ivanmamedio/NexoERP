@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -18,7 +19,8 @@ def test_resource_path_dev() -> None:
 
 def test_resource_path_frozen(monkeypatch) -> None:
     """No bundle PyInstaller, resolve relativo a sys._MEIPASS."""
-    fake_meipass = "/tmp/fake_meipass"
+    # Usa caminho multiplataforma
+    fake_meipass = str(Path("/tmp/fake_meipass"))
     # Simula ambiente congelado (PyInstaller define sys.frozen)
     sys_module = sys
     sys_module.frozen = True  # type: ignore[attr-defined]
@@ -27,7 +29,8 @@ def test_resource_path_frozen(monkeypatch) -> None:
     try:
         # O módulo usa sys diretamente, não precisa recarregar
         path = resource_path("erp", "ui", "resources", "logo.png")
-        assert str(path).startswith(fake_meipass + "/erp")
+        # Verifica prefixo usando os separadores da plataforma
+        assert str(path).startswith(fake_meipass + os.sep + "erp")
         assert path.name == "logo.png"
     finally:
         del sys_module.frozen  # type: ignore[attr-defined]
