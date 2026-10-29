@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import URL, Engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from erp.config import paths as app_paths
@@ -168,8 +168,10 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     _logger.info("Starting ERP bootstrap (data_dir=%s)", resolved_data_dir)
 
     db_path = resolved_data_dir / "erp.db"
-    # Build engine and also get a clean URL for migrations (avoids Windows %3A issues)
-    db_url = URL.create("sqlite", database=str(db_path.resolve()))
+    # Build engine and also get a clean URL for migrations (avoids Windows %3A%5C issues)
+    # Use explicit file URL format with forward slashes for Windows compatibility
+    resolved_path = db_path.resolve()
+    db_url = f"sqlite:///{resolved_path.as_posix()}"
     engine = create_engine(db_url, future=True)
     event.listen(engine, "connect", _apply_pragmas)
 
@@ -197,7 +199,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         _logger.warning("Pre-migration backup skipped")
 
     # Migrations run synchronously at startup
-    run_migrations(db_url.render_as_string(hide_password=False))
+    run_migrations(db_url)
 
     # Install audit triggers (block direct UPDATE/DELETE on business tables)
     install_triggers(engine)

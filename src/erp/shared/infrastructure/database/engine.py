@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import URL, Engine
+from sqlalchemy.engine import Engine
 
 
 def _apply_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore[no-untyped-def]
@@ -19,9 +19,11 @@ def _apply_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore
 def build_engine(db_path: Path) -> Engine:
     """Create an engine for db_path and register the PRAGMA hook."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    # Use SQLAlchemy URL.create() to handle Windows paths correctly (avoids C%3A encoding)
-    url = URL.create("sqlite", database=str(db_path.resolve()))
-    engine = create_engine(url, future=True)
+    # Use explicit file URL format to avoid Windows encoding issues (C%3A%5C)
+    # as_posix() converts backslashes to forward slashes for proper SQLite URL
+    resolved_path = db_path.resolve()
+    db_url = f"sqlite:///{resolved_path.as_posix()}"
+    engine = create_engine(db_url, future=True)
     event.listen(engine, "connect", _apply_pragmas)
     return engine
 

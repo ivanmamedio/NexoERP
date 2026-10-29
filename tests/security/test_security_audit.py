@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from sqlalchemy.engine import URL
 
 
 class TestSecurityAudit:
@@ -192,9 +191,9 @@ class TestSecurityAudit:
             engine = build_engine(test_db)
 
             test_cfg = Config("alembic.ini")
-            # Use URL.create para evitar problemas de encoding em Windows (C%3A%5C)
-            db_url = URL.create("sqlite", database=str(test_db.resolve()))
-            test_cfg.set_main_option("sqlalchemy.url", db_url.render_as_string(hide_password=False))
+            # Use explicit file URL format to avoid Windows encoding issues (C%3A%5C)
+            db_url = f"sqlite:///{test_db.resolve().as_posix()}"
+            test_cfg.set_main_option("sqlalchemy.url", db_url)
             command.upgrade(test_cfg, n_minus_1)
 
             with engine.connect() as conn:
