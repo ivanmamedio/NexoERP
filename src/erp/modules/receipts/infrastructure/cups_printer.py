@@ -13,6 +13,9 @@ from erp.modules.receipts.domain import Receipt
 class CupsPrinter(ReceiptPrinterPort):
     """CUPS printer adapter using lp command."""
 
+    _printer_name: str
+    _formatter: ReceiptFormatter
+
     def __init__(self, printer_name: str, width: int = 48) -> None:
         if sys.platform == "win32":
             raise RuntimeError("CUPS printer only works on Linux/Unix")
