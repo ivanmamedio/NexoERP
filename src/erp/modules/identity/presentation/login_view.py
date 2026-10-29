@@ -10,11 +10,11 @@ from PySide6.QtGui import QColor, QIntValidator, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
-    QFormLayout,
     QFrame,
     QGraphicsDropShadowEffect,
     QGridLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QVBoxLayout,
     QWidget,
@@ -27,10 +27,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_LOGO_WIDTH = 160
+_SHADOW_MARGIN = 24
+_CARD_MIN_WIDTH = 380
+
 # Estilo único por objectName (definido em um único lugar).
 _QSS = """
 QDialog#LoginDialog {
-    background-color: #f4f6f8;
+    background-color: #f2f4f7;
 }
 QLabel {
     color: #2c3e50;
@@ -41,28 +45,30 @@ QFrame#ShadowFrame {
 }
 QWidget#LoginCard {
     background-color: #ffffff;
-    border: 1px solid #e1e5e8;
+    border: 1px solid #e0e0e0;
     border-radius: 12px;
 }
-QLineEdit#UsernameInput,
+QLineEdit#UserNumberInput,
 QLineEdit#PasswordInput {
-    padding: 8px 10px;
+    padding: 8px 12px;
     border: 1px solid #bdc3c7;
     border-radius: 6px;
+    font-size: 14px;
     background-color: #ffffff;
     color: #2c3e50;
+    selection-background-color: #3498db;
     min-height: 40px;
 }
-QLineEdit#UsernameInput:focus,
+QLineEdit#UserNumberInput:focus,
 QLineEdit#PasswordInput:focus {
     border: 2px solid #3498db;
 }
 QPushButton#EnterButton {
     background-color: #3498db;
-    color: white;
+    color: #ffffff;
     border: none;
     border-radius: 6px;
-    padding: 9px 24px;
+    padding: 10px 24px;
     font-size: 14px;
     font-weight: 600;
     min-width: 120px;
@@ -72,10 +78,10 @@ QPushButton#EnterButton:hover {
     background-color: #2980b9;
 }
 QPushButton#EnterButton:pressed {
-    background-color: #1f618d;
+    background-color: #1a6fa0;
 }
 QLabel#ErrorLabel {
-    color: #c0392b;
+    color: #e74c3c;
     font-size: 12px;
 }
 QLabel#TitleLabel {
@@ -87,11 +93,14 @@ QLabel#SubtitleLabel {
     font-size: 12px;
     color: #7f8c8d;
 }
+QLabel#LogoLabel {
+    min-height: 72px;
+}
 """
 
 
 class LoginDialog(QDialog):
-    """Janela modal de login com decoração nativa e fundo opaco."""
+    """Diálogo modal de login: janela normal, card centralizado com sombra."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -99,122 +108,115 @@ class LoginDialog(QDialog):
 
         self.setWindowTitle("NexoERP — Entrar")
         self.setModal(True)
-        self.setFixedSize(480, 560)
-        # Janela normal do sistema: sem FramelessWindowHint, sem
-        # WA_TranslucentBackground (evita artefatos no Wayland).
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.setObjectName("LoginDialog")
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setStyleSheet(_QSS)
 
-        # Layout raiz da janela (único).
-        root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(28, 28, 28, 28)
-        root_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Frame vazio atrás do card, exclusivo para a sombra.
-        # QGraphicsDropShadowEffect só neste frame, nunca no card.
-        shadow_frame = QFrame(self)
-        shadow_frame.setObjectName("ShadowFrame")
-        shadow_frame.setContentsMargins(0, 0, 0, 0)
-
-        shadow = QGraphicsDropShadowEffect(shadow_frame)
-        shadow.setBlurRadius(22)
-        shadow.setColor(QColor(0, 0, 0, 35))
-        shadow.setOffset(0, 4)
-        shadow_frame.setGraphicsEffect(shadow)
-
-        shadow_layout = QGridLayout(shadow_frame)
-        shadow_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Card centralizado dentro do frame de sombra.
-        card = QWidget(shadow_frame)
-        card.setObjectName("LoginCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(32, 28, 32, 28)
-        card_layout.setSpacing(16)
-
-        # Logo.
-        self._logo_label = QLabel(card)
+        # Widgets criados uma única vez.
+        self._logo_label = QLabel()
         self._logo_label.setObjectName("LogoLabel")
         self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._logo_label.setMinimumHeight(72)
-        card_layout.addWidget(self._logo_label)
 
-        # Título.
-        title = QLabel("NexoERP", card)
-        title.setObjectName("TitleLabel")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(title)
+        self._title_label = QLabel("NexoERP")
+        self._title_label.setObjectName("TitleLabel")
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Subtítulo.
-        subtitle = QLabel("Sistema de Gestão Comercial", card)
-        subtitle.setObjectName("SubtitleLabel")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(subtitle)
+        self._subtitle_label = QLabel("Sistema de Gestão Comercial")
+        self._subtitle_label.setObjectName("SubtitleLabel")
+        self._subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Campos.
-        self._user_number = QLineEdit(card)
+        self._user_number = QLineEdit()
         self._user_number.setObjectName("UserNumberInput")
         self._user_number.setPlaceholderText("Número do usuário")
+        self._user_number.setAccessibleName("Número do usuário")
         self._user_number.setValidator(QIntValidator(0, 999999, self))
 
-        self._password = QLineEdit(card)
+        self._password = QLineEdit()
         self._password.setObjectName("PasswordInput")
         self._password.setPlaceholderText("Senha")
+        self._password.setAccessibleName("Senha")
         self._password.setEchoMode(QLineEdit.EchoMode.Password)
 
-        # Formulário com rótulos.
-        form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        form.setVerticalSpacing(14)
-        form.addRow("Número:", self._user_number)
-        form.addRow("Senha:", self._password)
-        card_layout.addLayout(form)
-
-        # Label de erro.
-        self._error_label = QLabel(card)
+        self._error_label = QLabel()
         self._error_label.setObjectName("ErrorLabel")
         self._error_label.setWordWrap(True)
         self._error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._error_label.hide()
-        card_layout.addWidget(self._error_label)
 
-        # Botão Entrar (default).
-        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, card)
+        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self._buttons.setObjectName("EnterButtons")
         submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
         if submit_button is not None:
             submit_button.setObjectName("EnterButton")
             submit_button.setText("Entrar")
             submit_button.setDefault(True)
-
         self._buttons.accepted.connect(self._on_submit)
-        card_layout.addWidget(self._buttons, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        shadow_layout.addWidget(card, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        root_layout.addWidget(shadow_frame, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Carrega logo após o layout estar montado.
         self._load_logo()
 
+        # Card (contém os campos) e host da sombra (frame VAZIO) são irmãos,
+        # ocupando a mesma célula do grid: a sombra fica atrás do card sem tocar
+        # nos filhos, evitando artefatos no Wayland.
+        card = self._build_card()
+        shadow_host = self._build_shadow_host()
+
+        layout = QGridLayout(self)
+        layout.setContentsMargins(_SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN, _SHADOW_MARGIN)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
+        layout.addWidget(shadow_host, 0, 0)
+        layout.addWidget(card, 0, 0)
+        card.raise_()
+
+    # --- construção ---------------------------------------------------------
+
+    def _build_shadow_host(self) -> QFrame:
+        """Frame vazio (sem filhos) que carrega a sombra, evitando artefatos."""
+        host = QFrame(self)
+        host.setObjectName("ShadowFrame")
+        effect = QGraphicsDropShadowEffect(host)
+        effect.setBlurRadius(24)
+        effect.setOffset(0, 4)
+        effect.setColor(QColor(0, 0, 0, 70))
+        host.setGraphicsEffect(effect)
+        return host
+
+    def _build_card(self) -> QFrame:
+        card = QFrame(self)
+        card.setObjectName("LoginCard")
+        card.setMinimumWidth(_CARD_MIN_WIDTH)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(40, 32, 40, 32)
+        layout.setSpacing(14)
+        center = Qt.AlignmentFlag.AlignCenter
+        layout.addWidget(self._logo_label, alignment=center)
+        layout.addWidget(self._title_label, alignment=center)
+        layout.addWidget(self._subtitle_label, alignment=center)
+        layout.addWidget(self._user_number)
+        layout.addWidget(self._password)
+        layout.addWidget(self._error_label)
+        layout.addWidget(self._buttons, alignment=center)
+        return card
+
     def _load_logo(self) -> None:
-        """Carrega a logo em desenvolvimento ou no bundle PyInstaller."""
+        """Carrega a logo (dev e PyInstaller). Se faltar, esconde o rótulo sem quebrar."""
         path = resource_path("erp", "ui", "resources", "logo.png")
         pixmap = QPixmap(str(path))
-
         if pixmap.isNull():
-            logger.warning("Não foi possível carregar a logo do NexoERP: %s", path)
-            self._logo_label.setText("NexoERP")
+            logger.warning("Logo não encontrada ou inválida: %s", path)
+            self._logo_label.hide()
             return
-
-        pixmap = pixmap.scaled(
-            160,
-            72,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
+        ratio = self.devicePixelRatioF()
+        scaled = pixmap.scaledToWidth(
+            int(_LOGO_WIDTH * ratio), Qt.TransformationMode.SmoothTransformation
         )
-        self._logo_label.setPixmap(pixmap)
+        scaled.setDevicePixelRatio(ratio)
+        self._logo_label.setPixmap(scaled)
+        self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    # --- LoginView protocol -------------------------------------------------
 
     def set_presenter(self, presenter: LoginPresenter) -> None:
         self._presenter = presenter
@@ -226,6 +228,8 @@ class LoginDialog(QDialog):
     def clear_password(self) -> None:
         self._password.clear()
         self._password.setFocus()
+
+    # --- internals ----------------------------------------------------------
 
     def _on_submit(self) -> None:
         if self._presenter is None:
@@ -244,7 +248,4 @@ class LoginDialog(QDialog):
             self.show_error("Número do usuário inválido.")
             return
 
-        self._presenter.login(
-            user_number,
-            self._password.text(),
-        )
+        self._presenter.login(user_number, self._password.text())
