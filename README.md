@@ -2,6 +2,9 @@
 
 ERP desktop offline-first para pequenos comércios.
 
+[![Contribuidor do XERJ Corpus Hub](https://hub.xerj.org/contributors/ivanmamedio/badge.svg)](https://hub.xerj.org/contributors/ivanmamedio)
+[![XERJ Corpus Hub Contributor](https://hub.xerj.org/contributors/ivanmamedio/badge.svg)](https://hub.xerj.org/contributors/ivanmamedio)
+
 ## Stack alvo
 
 - Python 3.12+
