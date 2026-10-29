@@ -19,7 +19,8 @@ def _apply_pragmas(dbapi_connection, connection_record) -> None:  # type: ignore
 def build_engine(db_path: Path) -> Engine:
     """Create an engine for db_path and register the PRAGMA hook."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    url = f"sqlite:///{db_path.as_posix()}"
+    # Use absolute path to avoid Windows URL interpolation issues (C: -> %3A)
+    url = f"sqlite:///{db_path.resolve().as_posix()}"
     engine = create_engine(url, future=True)
     event.listen(engine, "connect", _apply_pragmas)
     return engine

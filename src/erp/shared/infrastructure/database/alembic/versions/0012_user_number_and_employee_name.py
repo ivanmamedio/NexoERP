@@ -81,24 +81,14 @@ def upgrade() -> None:
             """)
             )
 
-        # 4. Tornar user_number NOT NULL e UNIQUE
-        connection.execute(
-            sa.text("""
-            ALTER TABLE users ALTER COLUMN user_number SET NOT NULL
-        """)
-        )
-        connection.execute(
-            sa.text("""
-            CREATE UNIQUE INDEX ix_users_user_number ON users (user_number)
-        """)
-        )
+        # 4. Tornar user_number NOT NULL e UNIQUE (via batch_alter_table para SQLite)
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.alter_column("user_number", existing_type=sa.Integer(), nullable=False)
+            batch_op.create_index("ix_users_user_number", ["user_number"], unique=True)
 
-        # 5. Tornar employee_name NOT NULL
-        connection.execute(
-            sa.text("""
-            ALTER TABLE users ALTER COLUMN employee_name SET NOT NULL
-        """)
-        )
+        # 5. Tornar employee_name NOT NULL (via batch_alter_table para SQLite)
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.alter_column("employee_name", existing_type=sa.String(200), nullable=False)
 
         # 6. Remover coluna username (depois de migrar dados) - só se existir
         # SQLite tem limitações com DROP COLUMN, então usamos try/except
@@ -138,17 +128,10 @@ def downgrade() -> None:
         """)
         )
 
-        # 3. Tornar username NOT NULL e UNIQUE
-        connection.execute(
-            sa.text("""
-            ALTER TABLE users ALTER COLUMN username SET NOT NULL
-        """)
-        )
-        connection.execute(
-            sa.text("""
-            CREATE UNIQUE INDEX ix_users_username ON users (username)
-        """)
-        )
+        # 3. Tornar username NOT NULL e UNIQUE (via batch_alter_table para SQLite)
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.alter_column("username", existing_type=sa.String(100), nullable=False)
+            batch_op.create_index("ix_users_username", ["username"], unique=True)
 
         # 4. Remover colunas novas
         connection.execute(sa.text("DROP INDEX IF EXISTS ix_users_user_number"))
