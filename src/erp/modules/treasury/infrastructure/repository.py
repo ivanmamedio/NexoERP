@@ -47,10 +47,24 @@ class SqlAlchemyFinancialEntryRepository(FinancialEntryRepository):
         self._session.flush()
         entry.id = model.id
 
-    def list_by_company(
-        self, company_id: int | None = None
-    ) -> list[FinancialEntry]:
+    def list_by_company(self, company_id: int | None = None) -> list[FinancialEntry]:
         stmt = select(FinancialEntryModel)
+        if company_id is not None:
+            stmt = stmt.where(FinancialEntryModel.company_id == company_id)
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
+    def list_by_period(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+    ) -> list[FinancialEntry]:
+        stmt = select(FinancialEntryModel).where(
+            FinancialEntryModel.date >= start_date,
+            FinancialEntryModel.date <= end_date,
+        )
         if company_id is not None:
             stmt = stmt.where(FinancialEntryModel.company_id == company_id)
         models = self._session.execute(stmt).scalars().all()
@@ -145,12 +159,17 @@ class SqlAlchemyPayableRepository(PayableRepository):
 
     def add(self, payable: Payable) -> None:
         model = self._to_model(payable)
+        # Add installments to the model's relationship
+        for inst in payable.installments:
+            inst_model = self._installment_to_model(inst)
+            model.installments.append(inst_model)
         self._session.add(model)
         self._session.flush()
         payable.id = model.id
-        # Update installments with payable_id
-        for inst in payable.installments:
-            inst.id = self._find_installment_id(inst, payable.id)
+        # Update domain installments with generated IDs
+        for i, inst_model in enumerate(model.installments):
+            if i < len(payable.installments):
+                payable.installments[i].id = inst_model.id
 
     def get_by_id(self, payable_id: int) -> Payable | None:
         model = self._session.get(PayableModel, payable_id)
@@ -169,6 +188,30 @@ class SqlAlchemyPayableRepository(PayableRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
+    ) -> list[Payable]:
+        """Lista contas a pagar com vencimento no intervalo (baseado nas parcelas)."""
+        stmt = (
+            select(PayableModel)
+            .join(PayableInstallmentModel, PayableModel.id == PayableInstallmentModel.payable_id)
+            .where(
+                PayableInstallmentModel.due_date >= start_date,
+                PayableInstallmentModel.due_date <= end_date,
+            )
+        )
+        if company_id is not None:
+            stmt = stmt.where(PayableModel.company_id == company_id)
+        if status is not None:
+            stmt = stmt.where(PayableModel.status == status)
+        models = self._session.execute(stmt).unique().scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
     def save(self, payable: Payable) -> None:
         model = self._session.get(PayableModel, payable.id)
         if model is None:
@@ -176,6 +219,8 @@ class SqlAlchemyPayableRepository(PayableRepository):
             return
         self._update_model(model, payable)
         self._session.flush()
+
+    # ... rest of the methods unchanged
 
     def _to_model(self, payable: Payable) -> PayableModel:
         model = PayableModel()
@@ -220,9 +265,7 @@ class SqlAlchemyPayableRepository(PayableRepository):
             source_id=model.source_id,
         )
         # Installments will be loaded via relationship
-        payable.installments = [
-            self._installment_to_domain(i) for i in model.installments
-        ]
+        payable.installments = [self._installment_to_domain(i) for i in model.installments]
         return payable
 
     def _installment_to_domain(self, model: PayableInstallmentModel) -> PayableInstallment:
@@ -236,6 +279,16 @@ class SqlAlchemyPayableRepository(PayableRepository):
             paid_at=model.paid_at,
             paid_amount_cents=model.paid_amount_cents,
         )
+
+    def _installment_to_model(self, installment: PayableInstallment) -> PayableInstallmentModel:
+        model = PayableInstallmentModel()
+        model.installment_number = installment.installment_number
+        model.due_date = installment.due_date
+        model.amount_cents = installment.amount_cents
+        model.status = installment.status
+        model.paid_at = installment.paid_at
+        model.paid_amount_cents = installment.paid_amount_cents
+        return model
 
 
 class SqlAlchemyReceivableRepository(ReceivableRepository):
@@ -272,6 +325,26 @@ class SqlAlchemyReceivableRepository(ReceivableRepository):
         self, company_id: int | None = None, status: str | None = None
     ) -> list[Receivable]:
         stmt = select(ReceivableModel)
+        if company_id is not None:
+            stmt = stmt.where(ReceivableModel.company_id == company_id)
+        if status is not None:
+            stmt = stmt.where(ReceivableModel.status == status)
+        models = self._session.execute(stmt).scalars().all()
+        return [self._model_to_domain(m) for m in models]
+
+    def list_by_due_date_range(
+        self,
+        *,
+        start_date: datetime,
+        end_date: datetime,
+        company_id: int | None = None,
+        status: str | None = None,
+    ) -> list[Receivable]:
+        """Lista contas a receber com vencimento no intervalo."""
+        stmt = select(ReceivableModel).where(
+            ReceivableModel.due_date >= start_date,
+            ReceivableModel.due_date <= end_date,
+        )
         if company_id is not None:
             stmt = stmt.where(ReceivableModel.company_id == company_id)
         if status is not None:

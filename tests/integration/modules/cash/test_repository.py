@@ -67,9 +67,7 @@ def test_session_crud(session: Session) -> None:
     assert open_sess.id == cash_session.id
 
     # Fecha a sessão
-    cash_session.close(
-        closing_amount_cents=10000, closed_by_user_id=1, closed_by_username="admin"
-    )
+    cash_session.close(closing_amount_cents=10000, closed_by_user_id=1, closed_by_username="admin")
     sess_repo.save(cash_session)
 
     open_after = sess_repo.get_open_by_register(register.id)

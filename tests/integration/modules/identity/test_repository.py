@@ -44,22 +44,24 @@ def test_user_crud(session: Session) -> None:
     repo = SqlAlchemyUserRepository(session)
 
     user = User(
-        username="joao",
+        user_number=0,
+        employee_name="João",
         password_hash="hash123",
         must_change_password=True,
         is_active=True,
     )
     repo.add(user)
 
-    saved = repo.get_by_username("joao")
+    saved = repo.get_by_user_number(0)
     assert saved is not None
-    assert saved.username == "joao"
+    assert saved.user_number == 0
+    assert saved.employee_name == "João"
     assert saved.must_change_password is True
 
     saved.password_hash = "novo_hash"
     repo.save(saved)
 
-    updated = repo.get_by_username("joao")
+    updated = repo.get_by_user_number(0)
     assert updated is not None
     assert updated.password_hash == "novo_hash"
 
@@ -149,18 +151,18 @@ def test_create_first_admin(session: Session) -> None:
     admin = create_first_admin(
         session=session,
         password_hasher=hasher,
-        username="admin",
+        employee_name="admin",
         password="senha_segura_123",
     )
     assert admin is not None
-    assert admin.username == "admin"
+    assert admin.employee_name == "admin"
     assert admin.must_change_password is True
 
-    # Segunda tentativa com mesmo username não sobrescreve
+    # Segunda tentativa com mesmo employee_name não sobrescreve
     admin2 = create_first_admin(
         session=session,
         password_hasher=hasher,
-        username="admin",
+        employee_name="admin",
         password="outra_senha",
     )
     assert admin2 is None  # Não recria
@@ -169,7 +171,8 @@ def test_create_first_admin(session: Session) -> None:
 def test_user_lockout_before_during_after(session: Session) -> None:
     """Bloqueio de login funciona antes, durante e depois do prazo."""
     user = User(
-        username="teste",
+        user_number=999,
+        employee_name="teste",
         password_hash="hash123",
         must_change_password=False,
         is_active=True,
@@ -195,14 +198,14 @@ def test_user_lockout_before_during_after(session: Session) -> None:
 def test_locked_until_roundtrip_is_timezone_aware(session: Session) -> None:
     """locked_until lido do banco deve ser aware, senão is_locked() levanta TypeError."""
     repo = SqlAlchemyUserRepository(session)
-    user = User(username="bloqueado", password_hash="hash123")
+    user = User(user_number=999, employee_name="bloqueado", password_hash="hash123")
     for _ in range(5):
         user.record_failed_login()
     repo.add(user)
     session.commit()
     session.expire_all()  # força a releitura do banco
 
-    loaded = repo.get_by_username("bloqueado")
+    loaded = repo.get_by_user_number(999)
     assert loaded is not None
     assert loaded.locked_until is not None
     assert loaded.locked_until.tzinfo is not None
@@ -231,7 +234,7 @@ def test_caixa_role_permissions_end_to_end(session: Session) -> None:
     caixa_role = role_repo.get_by_name("Caixa")
     assert caixa_role is not None
 
-    user = User(username="ops_caixa", password_hash="h", is_active=True)
+    user = User(user_number=999, employee_name="ops_caixa", password_hash="h", is_active=True)
     user_repo.add(user)
     user_repo.assign_role(user, caixa_role)
     session.commit()
@@ -242,9 +245,7 @@ def test_caixa_role_permissions_end_to_end(session: Session) -> None:
     )
     assert result.has_permission is False
 
-    result = check.execute(
-        CheckPermissionInput(user_id=user.id, permission_code="treasury.view")
-    )
+    result = check.execute(CheckPermissionInput(user_id=user.id, permission_code="treasury.view"))
     assert result.has_permission is False
 
 
@@ -256,7 +257,7 @@ def test_admin_role_has_all_permissions_end_to_end(session: Session) -> None:
     admin = create_first_admin(
         session=session,
         password_hasher=hasher,
-        username="admin",
+        employee_name="admin",
         password="senha_segura_123",
     )
     assert admin is not None
@@ -266,7 +267,5 @@ def test_admin_role_has_all_permissions_end_to_end(session: Session) -> None:
     check = CheckPermission(user_repo)
 
     for code in ("product.price.update", "treasury.view", "backup.manage"):
-        result = check.execute(
-            CheckPermissionInput(user_id=admin.id, permission_code=code)
-        )
+        result = check.execute(CheckPermissionInput(user_id=admin.id, permission_code=code))
         assert result.has_permission is True, f"admin deveria ter {code}"

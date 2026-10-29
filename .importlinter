@@ -17,32 +17,56 @@ source_modules =
     erp.modules.receipts
     erp.modules.reports
     erp.modules.sales
+    erp.modules.settings
     erp.modules.treasury
+    erp.modules.customers
+    erp.modules.import_csv
 forbidden_modules =
+    erp.modules.audit.domain
     erp.modules.audit.infrastructure
     erp.modules.audit.presentation
+    erp.modules.backup.domain
     erp.modules.backup.infrastructure
     erp.modules.backup.presentation
+    erp.modules.cash.domain
     erp.modules.cash.infrastructure
     erp.modules.cash.presentation
+    erp.modules.catalog.domain
     erp.modules.catalog.infrastructure
     erp.modules.catalog.presentation
+    erp.modules.companies.domain
     erp.modules.companies.infrastructure
     erp.modules.companies.presentation
+    erp.modules.fiscal.domain
     erp.modules.fiscal.infrastructure
     erp.modules.fiscal.presentation
+    erp.modules.identity.domain
     erp.modules.identity.infrastructure
     erp.modules.identity.presentation
+    erp.modules.pricing.domain
     erp.modules.pricing.infrastructure
     erp.modules.pricing.presentation
+    erp.modules.receipts.domain
     erp.modules.receipts.infrastructure
     erp.modules.receipts.presentation
+    erp.modules.reports.domain
     erp.modules.reports.infrastructure
     erp.modules.reports.presentation
+    erp.modules.sales.domain
     erp.modules.sales.infrastructure
     erp.modules.sales.presentation
+    erp.modules.settings.domain
+    erp.modules.settings.infrastructure
+    erp.modules.settings.presentation
+    erp.modules.treasury.domain
     erp.modules.treasury.infrastructure
     erp.modules.treasury.presentation
+    erp.modules.import_csv.domain
+    erp.modules.import_csv.infrastructure
+    erp.modules.import_csv.presentation
+    erp.modules.customers.domain
+    erp.modules.customers.infrastructure
+    erp.modules.customers.presentation
 
 [importlinter:contract:shared-domain-purity]
 name = Shared domain must not import application, infrastructure, or UI

@@ -10,18 +10,25 @@ SPEC_DIR = os.path.dirname(os.path.abspath(SPEC))
 ROOT_DIR = os.path.dirname(SPEC_DIR)
 SRC_DIR = os.path.join(ROOT_DIR, "src")
 DB_DIR = os.path.join(SRC_DIR, "erp", "shared", "infrastructure", "database")
+LOGO_PATH = os.path.join(SRC_DIR, "erp", "ui", "resources", "logo.png")
+
+# Falha clara se o logo não existir antes de iniciar o build.
+if not os.path.isfile(LOGO_PATH):
+    raise SystemExit(
+        f"Arquivo de logo não encontrado: {LOGO_PATH}. "
+        "Informe o caminho correto ou adicione o arquivo antes de buildar."
+    )
 
 a = Analysis(
     [os.path.join(SRC_DIR, "erp", "__main__.py")],
     pathex=[SRC_DIR],
     binaries=[],
-    # env.py e versions/*.py precisam existir como arquivos reais em runtime:
-    # o Alembic escaneia o diretório no filesystem (não importa do PYZ).
     datas=[
         (
             os.path.join(DB_DIR, "alembic"),
             "erp/shared/infrastructure/database/alembic",
         ),
+        (LOGO_PATH, "erp/ui/resources"),
     ],
     hiddenimports=collect_submodules("erp") + collect_submodules("sqlalchemy"),
     hookspath=[],
@@ -42,7 +49,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
@@ -59,8 +66,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name="ERP",
 )
-

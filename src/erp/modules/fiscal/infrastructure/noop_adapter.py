@@ -25,9 +25,7 @@ class NoOpFiscalAdapter(FiscalPort):
             xml_content=f"<xml>Simulated {document.document_type.value}</xml>",
         )
 
-    def cancel_document(
-        self, document_id: str, justification: str
-    ) -> FiscalOperationResult:
+    def cancel_document(self, document_id: str, justification: str) -> FiscalOperationResult:
         """Simulate successful document cancellation."""
         return FiscalOperationResult.success_result(
             document_id=document_id,

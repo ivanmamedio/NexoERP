@@ -1,0 +1,1 @@
+"""Purchases module package."""

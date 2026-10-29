@@ -90,11 +90,7 @@ class ReceiptFormatter:
         lines.append(f"Venda: {receipt.sale_id or '-'}")
         lines.append(f"Terminal: {receipt.terminal_code or '-'}")
         lines.append(f"Operador: {receipt.operator_name or '-'}")
-        opened_at_str = (
-            receipt.opened_at.strftime("%d/%m/%Y %H:%M")
-            if receipt.opened_at
-            else "-"
-        )
+        opened_at_str = receipt.opened_at.strftime("%d/%m/%Y %H:%M") if receipt.opened_at else "-"
         lines.append(f"Abertura: {opened_at_str}")
         if receipt.closed_at:
             closed_at_str = receipt.closed_at.strftime("%d/%m/%Y %H:%M")
@@ -168,7 +164,7 @@ class ReceiptFormatter:
             qty_str = qty_str[:-1]
 
         return self._format_line(
-            line.description[:self._item_w],
+            line.description[: self._item_w],
             qty_str.rjust(self._qtd_w),
             line.unit.center(self._un_w),
             line.unit_price.format_brl().rjust(self._price_w),

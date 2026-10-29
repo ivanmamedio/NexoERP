@@ -3,7 +3,6 @@
 from typing import Protocol, runtime_checkable
 
 from erp.modules.companies.domain.company import Company
-from erp.modules.identity.domain.user import User
 
 
 @runtime_checkable
@@ -27,4 +26,11 @@ class CompanyRepository(Protocol):
 class PermissionCheckerPort(Protocol):
     """Port for checking user permissions (implemented by identity module)."""
 
-    def has_permission(self, user: User, permission_code: str) -> bool: ...
+    def has_permission(self, user_id: int, permission_code: str) -> bool: ...
+
+
+@runtime_checkable
+class UserPermissionReader(Protocol):
+    """Port for reading permission codes of a user (implemented by identity)."""
+
+    def get_permission_codes(self, user_id: int) -> list[str]: ...

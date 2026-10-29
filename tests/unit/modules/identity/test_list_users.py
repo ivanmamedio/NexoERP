@@ -27,20 +27,20 @@ class FakeUserRepository(UserRepository):
                 return u
         return None
 
-    def get_by_username(self, username: str) -> User | None:
+    def get_by_user_number(self, user_number: int) -> User | None:
         for u in self._users:
-            if u.username == username:
+            if u.user_number == user_number:
                 return u
         return None
 
-    def list_all(self) -> list[User]:
+    def list_all(self, *, company_id: int | None = None) -> list[User]:
         return list(self._users)
 
     def get_roles(self, user: User) -> list[Role]:
         return self._role_map.get(user.id, [])
 
     def get_permissions(self, user: User) -> list[Permission]:
-        return [Permission(code=p) for p in self._perms.get(user.username, [])]
+        return []
 
     def assign_role(self, user: User, role, company_id=None) -> None:
         pass
@@ -59,10 +59,13 @@ class FakePermissionGate(PermissionGate):
             raise PermissionDenied(f"Permissão negada: '{permission_code}'.")
 
 
-def _user(uid: int, username: str, active: bool = True, must_change: bool = False) -> User:
+def _user(
+    uid: int, user_number: int, employee_name: str, active: bool = True, must_change: bool = False
+) -> User:
     return User(
         id=uid,
-        username=username,
+        user_number=user_number,
+        employee_name=employee_name,
         is_active=active,
         must_change_password=must_change,
     )
@@ -70,29 +73,30 @@ def _user(uid: int, username: str, active: bool = True, must_change: bool = Fals
 
 def test_list_users_success() -> None:
     users = [
-        _user(1, "ana", active=True),
-        _user(2, "bruno", active=False),
-        _user(3, "carla", active=True, must_change=True),
+        _user(1, 0, "Ana", active=True),
+        _user(2, 1, "Bruno", active=False),
+        _user(3, 2, "Carla", active=True, must_change=True),
     ]
     repo = FakeUserRepository(users)
-    repo._perms = {"admin": ["user.manage"]}  # type: ignore[attr-defined]
     gate = FakePermissionGate(allow=True)
     uc = ListUsers(repo, gate)
 
     output = uc.execute(ListUsersInput(actor_id=1))
 
     assert len(output.users) == 3
-    assert output.users[0].username == "ana"
+    assert output.users[0].employee_name == "Ana"
+    assert output.users[0].user_number == 0
     assert output.users[0].is_active is True
-    assert output.users[1].username == "bruno"
+    assert output.users[1].employee_name == "Bruno"
+    assert output.users[1].user_number == 1
     assert output.users[1].is_active is False
-    assert output.users[2].username == "carla"
+    assert output.users[2].employee_name == "Carla"
+    assert output.users[2].user_number == 2
     assert output.users[2].must_change_password is True
 
 
 def test_list_users_requires_user_manage() -> None:
     repo = FakeUserRepository()
-    repo._perms = {"admin": []}  # type: ignore[attr-defined]
     gate = FakePermissionGate(allow=False)
     uc = ListUsers(repo, gate)
 

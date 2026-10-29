@@ -47,9 +47,7 @@ class OpenCashSession:
 
         existing = self._session_repo.get_open_by_register(input.register_id)
         if existing is not None:
-            raise ValidationError(
-                f"Já existe uma sessão aberta no caixa {register.terminal_code}."
-            )
+            raise ValidationError(f"Já existe uma sessão aberta no caixa {register.terminal_code}.")
 
         if input.opening_amount_cents < 0:
             raise ValidationError("Valor de abertura não pode ser negativo.")

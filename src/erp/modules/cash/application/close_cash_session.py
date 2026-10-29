@@ -8,7 +8,9 @@ from erp.modules.cash.application.ports import (
 )
 from erp.modules.cash.domain.cash_movement import MovementType
 from erp.modules.cash.domain.cash_session import CashSession
+from erp.shared.application.events import EventBus
 from erp.shared.domain.errors import NotFound, ValidationError
+from erp.shared.domain.events import CashSessionClosed
 
 
 class CloseCashSessionInput:
@@ -53,9 +55,11 @@ class CloseCashSession:
         self,
         session_repo: CashSessionRepository,
         movement_repo: CashMovementRepository,
+        event_bus: EventBus,
     ) -> None:
         self._session_repo = session_repo
         self._movement_repo = movement_repo
+        self._event_bus = event_bus
 
     def execute(self, input: CloseCashSessionInput) -> CloseCashSessionOutput:
         session = self._session_repo.get_by_id(input.session_id)
@@ -91,6 +95,17 @@ class CloseCashSession:
             blind_close=input.blind_close,
         )
         self._session_repo.save(session)
+
+        # Publica evento de fechamento de caixa para backup automático
+        self._event_bus.publish(
+            CashSessionClosed(
+                session_id=session.id or 0,
+                company_id=session.company_id,
+                user_id=input.user_id,
+                username=input.username,
+                difference_cents=session.difference_cents,
+            )
+        )
 
         return CloseCashSessionOutput(
             session=session,

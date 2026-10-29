@@ -7,7 +7,6 @@ from types import SimpleNamespace
 import pytest
 
 from erp.modules.catalog.domain.product import Product
-from erp.modules.identity.application.authenticate import AuthenticateOutput
 from erp.modules.sales.application.get_sale_state import (
     GetSaleState,
     SaleItemView,
@@ -29,7 +28,9 @@ class FakeSaleRepository:
     def __init__(self, sale: object | None) -> None:
         self._sale = sale
 
-    def get_by_id(self, sale_id: int) -> object | None:
+    def get_by_id(self, sale_id: int, company_id: int | None = None) -> object | None:
+        if company_id is not None and self._sale.company_id != company_id:
+            return None
         return self._sale
 
 
@@ -80,7 +81,9 @@ class FakeSalesServices:
         self.items = []
         self.total_cents = 0
         self.discount_cents = 0
-        return SimpleNamespace(sale=SimpleNamespace(id=self.sale_id))
+        return SimpleNamespace(
+            sale=SimpleNamespace(id=self.sale_id, company_id=getattr(input_data, "company_id", 1))
+        )
 
     def add_item(self, input_data: object) -> object:
         query = input_data.query
@@ -140,7 +143,7 @@ class FakeSalesServices:
             change_cents=change,
         )
 
-    def get_sale_state(self, *, sale_id: int) -> SaleStateOutput:
+    def get_sale_state(self, *, sale_id: int, company_id: int | None = None) -> SaleStateOutput:
         return SaleStateOutput(
             sale_id=sale_id,
             status="draft",
@@ -186,19 +189,16 @@ class FakeSalesServices:
         self.total_cents = max(0, subtotal - self.discount_cents)
 
 
-class FakeIdentityServices:
+class FakeSupervisorAuth:
+    """Fake de SupervisorAuthPort para testes do presenter do PDV."""
+
     def __init__(self) -> None:
         self.supervisor_has_permission = True
 
-    def authenticate(self, username: str, password: str) -> AuthenticateOutput:
+    def authenticate(self, username: str, password: str):
         if username == "super" and password == "1234":
-            return AuthenticateOutput(
-                user_id=2,
-                username="super",
-                company_id=1,
-                must_change_password=False,
-            )
-        raise ValueError("Usuário ou senha inválidos")
+            return SimpleNamespace(user_id=2, username="super")
+        return None
 
     def check_permission(self, *, user_id: int, permission_code: str) -> bool:
         return (
@@ -271,18 +271,18 @@ class FakePosView:
 
 def _make_presenter(
     *, session: CurrentSession | None = None, session_id: int | None = 7
-) -> tuple[PosPresenter, FakePosView, FakeSalesServices, FakeIdentityServices]:
+) -> tuple[PosPresenter, FakePosView, FakeSalesServices, FakeSupervisorAuth]:
     view = FakePosView()
     sales = FakeSalesServices()
-    identity = FakeIdentityServices()
+    supervisor_auth = FakeSupervisorAuth()
     presenter = PosPresenter(
         view=view,
-        sales_services=sales,  # type: ignore[arg-type]
-        identity_services=identity,  # type: ignore[arg-type]
+        sales_services=sales,
+        supervisor_auth=supervisor_auth,
         session=session or CurrentSession(user_id=1, company_id=1, username="caixa"),
         session_id=session_id,
     )
-    return presenter, view, sales, identity
+    return presenter, view, sales, supervisor_auth
 
 
 # --- start ------------------------------------------------------------------
@@ -476,11 +476,11 @@ def test_discount_with_invalid_supervisor_shows_error() -> None:
 
 
 def test_discount_supervisor_without_permission_shows_error() -> None:
-    presenter, view, sales, identity = _make_presenter()
+    presenter, view, sales, supervisor_auth = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
-    identity.supervisor_has_permission = False
+    supervisor_auth.supervisor_has_permission = False
 
     view.discount_cents = 100
     view.credentials = ("super", "1234")

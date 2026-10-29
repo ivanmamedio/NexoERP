@@ -7,6 +7,7 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
@@ -16,8 +17,10 @@ from erp.config.logging_config import setup_logging
 from erp.modules.audit.application.event_subscriber import AuditEventSubscriber
 from erp.modules.audit.application.services import AuditService
 from erp.modules.audit.infrastructure.triggers import install_triggers
+from erp.modules.backup.application.cash_close_subscriber import (
+    CashCloseBackupSubscriber,
+)
 from erp.modules.backup.application.service import BackupService
-from erp.modules.backup.infrastructure.repository import SqlAlchemyBackupRepository
 from erp.modules.backup.infrastructure.scheduler import BackupScheduler
 from erp.modules.cash.application.sale_subscriber import CashSaleSubscriber
 from erp.modules.cash.application.services import CashServices
@@ -26,8 +29,11 @@ from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.catalog.infrastructure.price_updater import CatalogPriceUpdater
 from erp.modules.catalog.infrastructure.repository import SqlAlchemyProductRepository
 from erp.modules.catalog.infrastructure.unit_of_work import SqlAlchemyCatalogUnitOfWork
+from erp.modules.companies.application.ports import UserPermissionReader
 from erp.modules.companies.application.services import CompaniesServices
-from erp.modules.companies.infrastructure.permission_checker import SqlAlchemyPermissionChecker
+from erp.modules.companies.infrastructure.permission_checker import (
+    SqlAlchemyPermissionChecker,
+)
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyRoleRepository,
@@ -41,9 +47,15 @@ from erp.modules.reports.application.service import (
 )
 from erp.modules.reports.infrastructure.generator import SqlReportGenerator
 from erp.modules.reports.infrastructure.repository import SqlAlchemyReportRepository
-from erp.modules.sales.application.ports import CatalogUnitOfWork
+from erp.modules.sales.application.ports import (
+    CatalogUnitOfWork,
+    SupervisorAuthInfo,
+    SupervisorAuthPort,
+)
 from erp.modules.sales.application.services import SalesServices
+from erp.modules.settings.application.services import SettingsServices
 from erp.modules.treasury.application.cash_subscriber import TreasuryCashSubscriber
+from erp.modules.treasury.application.credit_subscriber import TreasuryCreditSubscriber
 from erp.modules.treasury.application.sale_subscriber import TreasurySaleSubscriber
 from erp.shared.application.events import EventBus
 from erp.shared.infrastructure.database.engine import build_engine
@@ -55,6 +67,7 @@ _logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class AppContext:
     """Container for the services constructed at startup."""
+
     engine: Engine
     data_dir: Path
     db_path: Path
@@ -64,6 +77,8 @@ class AppContext:
     pricing_services: PricingServices | None = None
     cash_services: CashServices | None = None
     sales_services: SalesServices | None = None
+    settings_services: SettingsServices | None = None
+    supervisor_auth: SupervisorAuthPort | None = None
     backup_service: BackupService | None = None
     backup_scheduler: BackupScheduler | None = None
     report_service: ReportService | None = None
@@ -77,13 +92,70 @@ def _catalog_uow_factory(engine: Engine) -> Callable[[], CatalogUnitOfWork]:
 
 def _product_repo_factory(engine: Engine) -> Callable[[], SqlAlchemyProductRepository]:
     """Factory for creating product repository within a catalog UoW."""
+
     def factory() -> SqlAlchemyProductRepository:
         uow = SqlAlchemyCatalogUnitOfWork(engine)
         uow.__enter__()
         products = uow.products
         assert products is not None
         return products
+
     return factory
+
+
+@dataclass(frozen=True, slots=True)
+class _SupervisorAuthInfo(SupervisorAuthInfo):
+    """Resultado mínimo de autenticação de supervisor (implementa SupervisorAuthInfo)."""
+
+    user_id: int
+    username: str
+
+
+class _IdentityPermissionReader(UserPermissionReader):
+    """Adapta o UserRepository do identity para o port UserPermissionReader de companies."""
+
+    def __init__(self, user_repo: Any) -> None:
+        self._user_repo = user_repo
+
+    def get_permission_codes(self, user_id: int) -> list[str]:
+        repo_user = self._user_repo.get_by_id(user_id)
+        if repo_user is None:
+            return []
+        permissions = self._user_repo.get_permissions(repo_user)
+        return [p.code for p in permissions]
+
+
+class _SqlSupervisorAuth(SupervisorAuthPort):
+    """Adapta o IdentityServices para o port SupervisorAuthPort de sales."""
+
+    def __init__(self, identity_services: Any) -> None:
+        self._identity = identity_services
+
+    def authenticate(self, username: str, password: str) -> SupervisorAuthInfo | None:
+        try:
+            output = self._identity.authenticate(username, password)
+        except Exception:
+            return None
+        return _SupervisorAuthInfo(user_id=output.user_id, username=output.username)
+
+    def check_permission(self, *, user_id: int, permission_code: str) -> bool:
+        result: Any = self._identity.check_permission(
+            user_id=user_id, permission_code=permission_code
+        )
+        return bool(result)
+
+
+def _ensure_first_backup_today(backup_service: BackupService, db_path: Path) -> None:
+    """Cria backup diário se ainda não existir um hoje."""
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).date()
+    all_backups = backup_service.list_recent(100)
+    for b in all_backups:
+        if b.rotation_tag == "daily" and b.started_at and b.started_at.date() == today:
+            return
+    _logger.info("Criando backup de primeiro uso do dia")
+    backup_service.create_backup("daily", str(db_path), "daily")
 
 
 def bootstrap(*, data_dir: Path | None = None) -> AppContext:
@@ -96,6 +168,29 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
     db_path = resolved_data_dir / "erp.db"
     engine = build_engine(db_path)
+
+    # Backup automático antes de qualquer migração (tabela backups pode não
+    # existir ainda em primeira execução)
+    try:
+        from sqlalchemy import inspect as sa_inspect
+
+        inspector = sa_inspect(engine)
+        if "backups" in inspector.get_table_names():
+            _logger.info("Running pre-migration backup")
+
+            def _temp_session_factory() -> Session:
+                return Session(engine)
+
+            temp_service = BackupService(
+                session_factory=_temp_session_factory,
+                backup_dir=resolved_data_dir / "backups",
+                secondary_dir=Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None,
+            )
+            temp_service.create_backup("pre_migration", str(db_path), "pre_migration")
+        else:
+            _logger.warning("Pre-migration backup skipped (backup table not ready yet)")
+    except Exception:
+        _logger.warning("Pre-migration backup skipped")
 
     # Migrations run synchronously at startup
     run_migrations(engine.url.render_as_string(hide_password=False))
@@ -110,23 +205,23 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         seed(session=session, password_hasher=hasher)
         admin_password = os.environ.get("NEXOERP_ADMIN_PASSWORD")
         if admin_password:
-            username = os.environ.get("NEXOERP_ADMIN_USERNAME", "admin")
+            employee_name = os.environ.get("NEXOERP_ADMIN_USERNAME", "admin")
             create_first_admin(
                 session=session,
                 password_hasher=hasher,
-                username=username,
+                employee_name=employee_name,
                 password=admin_password,
             )
-            _logger.info("Initial admin ensured for user %r", username)
+            _logger.info("Initial admin ensured for employee %r", employee_name)
             # Atribuir role Administrador ao admin recém-criado
             user_repo = SqlAlchemyUserRepository(session)
             role_repo = SqlAlchemyRoleRepository(session)
-            admin = user_repo.get_by_username(username)
+            admin = user_repo.get_by_user_number(0)  # admin é sempre user_number 0
             admin_role = role_repo.get_by_name("Administrador")
             if admin and admin_role:
                 user_repo.assign_role(admin, admin_role)
                 session.commit()
-                _logger.info("Role 'Administrador' atribuída ao admin %r", username)
+                _logger.info("Role 'Administrador' atribuída ao admin %r", employee_name)
 
     # Audit services + EventBus subscriber
     event_bus = EventBus()
@@ -140,6 +235,9 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
     # Subscriber que reage a eventos de caixa (sangria, suprimento, abertura, fechamento)
     TreasuryCashSubscriber(event_bus=event_bus, engine=engine)
+
+    # Subscriber que reage a vendas fiadas (crédito)
+    TreasuryCreditSubscriber(event_bus=event_bus, engine=engine)
 
     # Catalog services (permissions are checked per-use-case; no logged-in user yet)
     catalog_services = SqlAlchemyCatalogServices(
@@ -158,8 +256,10 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     # Companies services with permission gate
     with Session(engine) as session:
         user_repo = SqlAlchemyUserRepository(session)
-        permission_checker = SqlAlchemyPermissionChecker(user_repo)
+        permission_reader = _IdentityPermissionReader(user_repo)
+        permission_checker = SqlAlchemyPermissionChecker(permission_reader)
         from erp.modules.companies.application.permission_gate import CompanyPermissionGate
+
         permission_gate = CompanyPermissionGate(permission_checker)
     companies_services = CompaniesServices(engine=engine, permission_gate=permission_gate)
 
@@ -167,7 +267,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     pricing_services = PricingServices(engine=engine, price_updater=price_updater)
 
     # Cash services (permissions are checked per-use-case; no logged-in user yet)
-    cash_services = CashServices(engine=engine)
+    cash_services = CashServices(engine=engine, event_bus=event_bus)
 
     # Sales services (uses catalog UoW factory for dependency inversion)
     sales_services = SalesServices(
@@ -177,12 +277,17 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         user_permissions=set(),
     )
 
-    # Backup services
-    backup_repo = SqlAlchemyBackupRepository(Session(engine))
+    # Identity services + supervisor auth port (for sales presentation)
+    from erp.app.identity_services import SqlIdentityServices
+
+    identity_services = SqlIdentityServices(engine)
+    supervisor_auth = _SqlSupervisorAuth(identity_services)
+
+    # Backup services (criado após as migrações para que a tabela backups exista)
     backup_dir = resolved_data_dir / "backups"
     secondary_dir = Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None
     backup_service = BackupService(
-        repo=backup_repo,
+        session_factory=lambda: Session(engine),
         backup_dir=backup_dir,
         secondary_dir=Path(secondary_dir) if secondary_dir else None,
     )
@@ -200,11 +305,24 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     scheduler.schedule_monthly_backup(1, "03:00", _monthly_backup_callback)
     scheduler.start()
 
+    # Subscriber de backup automático no fechamento de caixa
+    CashCloseBackupSubscriber(
+        event_bus=event_bus,
+        backup_service=backup_service,
+        db_path=str(db_path),
+    )
+
+    # Gatilho: backup no primeiro uso do dia
+    _ensure_first_backup_today(backup_service, db_path)
+
     # Reports service
     reports_dir = resolved_data_dir / "reports"
     report_repo = SqlAlchemyReportRepository(Session(engine))
     report_generator = SqlReportGenerator(Session(engine))
     report_service = create_report_service(report_generator, report_repo, reports_dir)
+
+    # Settings services (company-scoped configuration)
+    settings_services = SettingsServices(engine=engine)
 
     return AppContext(
         engine=engine,
@@ -216,6 +334,8 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
         pricing_services=pricing_services,
         cash_services=cash_services,
         sales_services=sales_services,
+        settings_services=settings_services,
+        supervisor_auth=supervisor_auth,
         backup_service=backup_service,
         backup_scheduler=scheduler,
         report_service=report_service,

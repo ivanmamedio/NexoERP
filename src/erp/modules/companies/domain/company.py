@@ -27,4 +27,3 @@ class Company(Entity):
             self.name = self.name.strip()
         if not self.trade_name:
             self.trade_name = self.name
-

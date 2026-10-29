@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from erp.shared.infrastructure.database import Base
-from erp.shared.infrastructure.database.types import UTCDateTime
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+from erp.shared.infrastructure.database.types import UTCDateTime, _utcnow
 
 
 class ReportModel(Base):
@@ -28,9 +24,7 @@ class ReportModel(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     file_format: Mapped[str] = mapped_column(String(10), nullable=False, default="")
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    generated_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
+    generated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
     generated_by_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     error_message: Mapped[str] = mapped_column(String, nullable=False, default="")

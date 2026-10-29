@@ -105,6 +105,4 @@ class AuditLogWidget(QWidget):
 
     def set_entries(self, entries: list[AuditLog]) -> None:
         self._table.setModel(AuditLogTableModel(entries))
-        self._table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
-        )
+        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)

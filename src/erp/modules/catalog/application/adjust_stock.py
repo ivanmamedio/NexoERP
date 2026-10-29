@@ -51,7 +51,7 @@ class AdjustStock:
         new_qty = product.stock_qty + input.quantity_thousandths
         if new_qty < 0:
             raise ValidationError(
-                f"Ajuste deixaria estoque negativo ({new_qty/1000:.3f} {product.unit})."
+                f"Ajuste deixaria estoque negativo ({new_qty / 1000:.3f} {product.unit})."
             )
 
         product.stock_qty = new_qty

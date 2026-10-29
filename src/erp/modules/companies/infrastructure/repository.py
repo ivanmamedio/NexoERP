@@ -115,4 +115,3 @@ class SqlAlchemyCompanyRepository(CompanyRepository):
             active=model.active,
             created_at=model.created_at.isoformat() if model.created_at else None,
         )
-

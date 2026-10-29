@@ -6,7 +6,9 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QSplashScreen
+from PySide6.QtWidgets import QApplication, QSplashScreen, QWidget
+
+from erp.ui.resource_paths import resource_path
 
 
 class NexoERPSplashScreen(QSplashScreen):
@@ -14,7 +16,7 @@ class NexoERPSplashScreen(QSplashScreen):
 
     def __init__(self, logo_path: Path | None = None) -> None:
         if logo_path is None:
-            logo_path = Path(__file__).parent.parent / "resources" / "logo.png"
+            logo_path = resource_path("erp", "ui", "resources", "logo.png")
 
         pixmap = QPixmap(str(logo_path))
         if pixmap.isNull():
@@ -24,9 +26,7 @@ class NexoERPSplashScreen(QSplashScreen):
 
         # Escala mantendo proporção (max 500px largura)
         if pixmap.width() > 500:
-            pixmap = pixmap.scaledToWidth(
-                500, Qt.TransformationMode.SmoothTransformation
-            )
+            pixmap = pixmap.scaledToWidth(500, Qt.TransformationMode.SmoothTransformation)
 
         super().__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
@@ -51,14 +51,14 @@ class NexoERPSplashScreen(QSplashScreen):
         self.showMessage(message, alignment, color)
         QApplication.processEvents()
 
-    def finish_loading(self, main_window) -> None:
+    def finish_loading(self, main_window: QWidget) -> None:
         """Finaliza splash e mostra janela principal."""
         self.finish(main_window)
 
 
 def show_splash_screen(
-        logo_path: Path | None = None, duration_ms: int = 1500
-    ) -> NexoERPSplashScreen:
+    logo_path: Path | None = None, duration_ms: int = 1500
+) -> NexoERPSplashScreen:
     """Cria e mostra splash screen por tempo determinado.
 
     Args:

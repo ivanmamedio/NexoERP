@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.sales.application.ports import (
+    ProductCatalogPort,
     SaleItemRepository,
     SaleRepository,
 )
@@ -35,11 +35,13 @@ class CancelItemInput:
         reason: str,
         user_id: int | None,
         username: str,
+        company_id: int | None = None,
     ) -> None:
         self.item_id = item_id
         self.reason = reason
         self.user_id = user_id
         self.username = username
+        self.company_id = company_id
 
 
 class CancelSale:
@@ -49,7 +51,7 @@ class CancelSale:
         self,
         sale_repo: SaleRepository,
         item_repo: SaleItemRepository,
-        product_repo: ProductRepository,
+        product_repo: ProductCatalogPort,
         user_permissions: set[str],
     ) -> None:
         self._sale_repo = sale_repo
@@ -59,10 +61,8 @@ class CancelSale:
 
     def execute(self, input: CancelSaleInput) -> None:
         if "sale.cancel" not in self._user_permissions:
-            raise PermissionDenied(
-                "Usuário não tem permissão para cancelar vendas (sale.cancel)."
-            )
-        sale = self._sale_repo.get_by_id(input.sale_id)
+            raise PermissionDenied("Usuário não tem permissão para cancelar vendas (sale.cancel).")
+        sale = self._sale_repo.get_by_id(input.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
         if sale.is_cancelled():
@@ -99,14 +99,12 @@ class CancelItem:
 
     def execute(self, input: CancelItemInput) -> None:
         if "sale.cancel" not in self._user_permissions:
-            raise PermissionDenied(
-                "Usuário não tem permissão para cancelar itens (sale.cancel)."
-            )
+            raise PermissionDenied("Usuário não tem permissão para cancelar itens (sale.cancel).")
         item = self._item_repo.get_by_id(input.item_id)
         if item is None:
             raise NotFound(f"Item {input.item_id} não encontrado.")
 
-        sale = self._sale_repo.get_by_id(item.sale_id)
+        sale = self._sale_repo.get_by_id(item.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {item.sale_id} não encontrada.")
         if not sale.is_draft():

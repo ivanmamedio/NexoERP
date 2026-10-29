@@ -10,11 +10,13 @@ from erp.modules.companies.domain.company import Company
 class FakeCompanyRepository(CompanyRepository):
     def __init__(self) -> None:
         self._companies = [
+            Company(id=1, company_id=10, name="Ativa", trade_name="Ativa", tax_id="1"),
             Company(
-                id=1, company_id=10, name="Ativa", trade_name="Ativa", tax_id="1"
-            ),
-            Company(
-                id=2, company_id=10, name="Inativa", trade_name="Inativa", tax_id="2",
+                id=2,
+                company_id=10,
+                name="Inativa",
+                trade_name="Inativa",
+                tax_id="2",
                 active=False,
             ),
         ]

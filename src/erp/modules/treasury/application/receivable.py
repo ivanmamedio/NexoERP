@@ -138,7 +138,7 @@ class ReceivableView:
 
 @dataclass(slots=True, frozen=True)
 class ListReceivablesOutput:
-    receivables: tuple
+    receivables: tuple[ReceivableView, ...]
 
 
 class ListReceivables:

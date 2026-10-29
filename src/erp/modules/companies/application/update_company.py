@@ -60,4 +60,3 @@ class UpdateCompany:
 
         self._repository.save(company)
         return UpdateCompanyOutput(company=company)
-

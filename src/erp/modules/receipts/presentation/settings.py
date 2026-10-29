@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -28,7 +30,7 @@ class PrinterSettingsDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self._settings = current_settings.copy()
+        self._settings: dict[str, object] = current_settings.copy()
 
         self.setWindowTitle("Configurações de Impressora")
         self.setModal(True)
@@ -109,13 +111,15 @@ class PrinterSettingsDialog(QDialog):
         self._win_printer.setEnabled(is_win)
 
     def _load_settings(self) -> None:
-        self._type_combo.setCurrentText(self._settings.get("printer_type", "preview"))
-        self._device_path.setText(self._settings.get("device_path", "/dev/usb/lp0"))
-        self._profile.setText(self._settings.get("profile", "default"))
-        self._cups_printer.setText(self._settings.get("cups_printer", ""))
-        self._win_printer.setText(self._settings.get("win_printer", ""))
-        self._width_spin.setValue(self._settings.get("width", 48))
-        self._on_type_changed(self._settings.get("printer_type", "preview"))
+        self._type_combo.setCurrentText(str(self._settings.get("printer_type", "preview")))
+        self._device_path.setText(str(self._settings.get("device_path", "/dev/usb/lp0")))
+        self._profile.setText(str(self._settings.get("profile", "default")))
+        self._cups_printer.setText(str(self._settings.get("cups_printer", "")))
+        self._win_printer.setText(str(self._settings.get("win_printer", "")))
+        width_val = self._settings.get("width", 48)
+        width_int = int(width_val) if isinstance(width_val, (int, float, str)) else 48
+        self._width_spin.setValue(width_int)
+        self._on_type_changed(str(self._settings.get("printer_type", "preview")))
 
     def _on_test(self) -> None:
         # Create a test receipt
@@ -137,6 +141,7 @@ class PrinterSettingsDialog(QDialog):
             printer_type = self._type_combo.currentText()
             settings = self._get_current_settings()
             from erp.modules.receipts.infrastructure.printer_factory import PrinterFactory
+
             factory = PrinterFactory()
             printer = factory.create_printer(printer_type, settings)
             printer.print_receipt(test_receipt)
@@ -144,7 +149,7 @@ class PrinterSettingsDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Erro no Teste", f"Falha na impressão de teste:\n{e}")
 
-    def _get_current_settings(self) -> dict[str, object]:
+    def _get_current_settings(self) -> dict[str, Any]:
         return {
             "printer_type": self._type_combo.currentText(),
             "device_path": self._device_path.text(),

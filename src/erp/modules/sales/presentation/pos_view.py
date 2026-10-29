@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from erp.modules.identity.application.services import IdentityServices
+from erp.modules.sales.application.ports import SupervisorAuthPort
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.sales.presentation.payment_dialog import PaymentDialog
 from erp.modules.sales.presentation.pin_dialog import PinDialog
@@ -320,7 +320,7 @@ class PosDialog(QDialog):
 def create_pos_dialog(
     *,
     sales_services: SalesServices,
-    identity_services: IdentityServices,
+    supervisor_auth: SupervisorAuthPort,
     session: CurrentSession,
     session_id: int | None = None,
     parent: QWidget | None = None,
@@ -330,7 +330,7 @@ def create_pos_dialog(
     presenter = PosPresenter(
         view=dialog,
         sales_services=sales_services,
-        identity_services=identity_services,
+        supervisor_auth=supervisor_auth,
         session=session,
         session_id=session_id,
     )

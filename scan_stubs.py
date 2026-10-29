@@ -3,6 +3,7 @@
 Uso (na raiz do repositorio): uv run python scan_stubs.py
 Somente leitura: nao altera nenhum arquivo.
 """
+
 from __future__ import annotations
 
 import ast
@@ -11,8 +12,17 @@ from collections import defaultdict
 from pathlib import Path
 
 TEXT_EXT = {
-    ".py", ".toml", ".ini", ".cfg", ".spec", ".iss",
-    ".yml", ".yaml", ".md", ".importlinter", ".txt",
+    ".py",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".spec",
+    ".iss",
+    ".yml",
+    ".yaml",
+    ".md",
+    ".importlinter",
+    ".txt",
 }
 
 

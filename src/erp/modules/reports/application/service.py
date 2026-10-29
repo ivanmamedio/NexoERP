@@ -62,7 +62,6 @@ class ReportService(ReportServicePort):
             generated_by_user_id=user_id,
             status="pending",
         )
-        self._repository.add(report)
 
         try:
             rows = self._generate_rows(report_type, filter_)
@@ -84,12 +83,10 @@ class ReportService(ReportServicePort):
             report.mark_failed(str(exc))
             raise
 
-        self._repository.add(report)  # Update with completed info
+        self._repository.add(report)
         return report
 
-    def _generate_rows(
-        self, report_type: str, filter_: ReportFilter
-    ) -> list[object]:
+    def _generate_rows(self, report_type: str, filter_: ReportFilter) -> list[object]:
         if report_type == ReportType.SALES_BY_PERIOD:
             return list(self._generator.generate_sales_by_period(filter_))
         elif report_type == ReportType.SALES_BY_PRODUCT:

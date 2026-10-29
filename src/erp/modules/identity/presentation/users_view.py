@@ -31,9 +31,7 @@ class UsersWidget(QWidget):
         self._users: list[UserListItem] = []
 
         self._table = QTableWidget(0, 5, self)
-        self._table.setHorizontalHeaderLabels(
-            ["ID", "Usuário", "Papéis", "Ativo", "Status"]
-        )
+        self._table.setHorizontalHeaderLabels(["ID", "Usuário", "Papéis", "Ativo", "Status"])
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -87,7 +85,7 @@ class UsersWidget(QWidget):
         self._table.setRowCount(len(users))
         for row, user in enumerate(users):
             self._table.setItem(row, 0, QTableWidgetItem(str(user.user_id)))
-            self._table.setItem(row, 1, QTableWidgetItem(user.username))
+            self._table.setItem(row, 1, QTableWidgetItem(user.employee_name))
             self._table.setItem(row, 2, QTableWidgetItem(", ".join(user.role_names)))
             self._table.setItem(row, 3, QTableWidgetItem("Sim" if user.is_active else "Não"))
             self._table.setItem(row, 4, QTableWidgetItem(self._status_text(user)))

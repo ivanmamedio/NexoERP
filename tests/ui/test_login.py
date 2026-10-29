@@ -6,6 +6,7 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from erp.modules.identity.application.authenticate import AuthenticateOutput
 from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.presentation.login_presenter import LoginPresenter
 from erp.modules.identity.presentation.login_view import LoginDialog
@@ -17,14 +18,17 @@ class FakeIdentityServices(IdentityServices):
         self.calls = 0
         self.fail = False
 
-    def authenticate(self, username: str, password: str):  # type: ignore[override]
+    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
         self.calls += 1
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
-        from erp.modules.identity.application.authenticate import AuthenticateOutput
 
         return AuthenticateOutput(
-            user_id=1, username="joao", company_id=None, must_change_password=False
+            user_id=1,
+            user_number=0,
+            employee_name="João",
+            company_id=1,
+            must_change_password=False,
         )
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
@@ -36,7 +40,9 @@ class FakeIdentityServices(IdentityServices):
     def list_roles(self, *, actor_id):  # type: ignore[override]
         raise NotImplementedError
 
-    def create_user(self, *, username, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(
+        self, *, employee_name, password, role_name, actor_id, must_change_password=False
+    ):  # type: ignore[override]
         raise NotImplementedError
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
@@ -46,6 +52,9 @@ class FakeIdentityServices(IdentityServices):
         raise NotImplementedError
 
     def check_permission(self, *, user_id, permission_code):  # type: ignore[override]
+        raise NotImplementedError
+
+    def reset_password_by_admin(self, *, actor_id, target_user_id):  # type: ignore[override]
         raise NotImplementedError
 
 
@@ -60,13 +69,15 @@ def test_login_dialog_authenticates(qtbot):
     qtbot.addWidget(dialog)
     dialog.show()
 
-    dialog._username.setText("joao")
+    dialog._user_number.setText("0")
     dialog._password.setText("senha123")
     dialog._on_submit()
 
     assert services.calls == 1
     assert session.user_id == 1
-    assert session.username == "joao"
+    assert session.user_number == 0
+    assert session.username == "João"
+    assert session.company_id == 1
     assert dialog.isVisible() is False  # accept() fecha o diálogo
 
 
@@ -82,7 +93,7 @@ def test_login_dialog_shows_error_on_invalid(qtbot):
     qtbot.addWidget(dialog)
     dialog.show()
 
-    dialog._username.setText("joao")
+    dialog._user_number.setText("0")
     dialog._password.setText("senha_errada")
     dialog._on_submit()
 

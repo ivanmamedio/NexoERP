@@ -168,15 +168,15 @@ class SqlReportGenerator(ReportGeneratorPort):
                 p.name as product_name,
                 p.sku,
                 COALESCE(i.quantity, 0) as current_stock,
-                p.min_stock,
+                p.min_stock_qty as min_stock,
                 c.name as category_name
             FROM products p
             LEFT JOIN inventory i ON p.id = i.product_id AND i.company_id = :company_id
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.company_id = :company_id
             AND p.active = 1
-            AND p.min_stock > 0
-            AND COALESCE(i.quantity, 0) <= p.min_stock
+            AND p.min_stock_qty > 0
+            AND COALESCE(i.quantity, 0) <= p.min_stock_qty
         """
         params: dict[str, object] = {"company_id": filter_.company_id}
 
@@ -210,11 +210,11 @@ class SqlReportGenerator(ReportGeneratorPort):
                 p.id as product_id,
                 p.name as product_name,
                 p.sku,
-                p.cost_price,
-                p.sale_price,
-                (p.sale_price - p.cost_price) as margin_amount,
-                CASE WHEN p.sale_price > 0
-                    THEN ((p.sale_price - p.cost_price) / p.sale_price) * 100
+                p.cost_cents,
+                p.price_cents as sale_price_cents,
+                (p.price_cents - p.cost_cents) as margin_cents,
+                CASE WHEN p.price_cents > 0
+                    THEN ((p.price_cents - p.cost_cents) * 100.0 / p.price_cents)
                     ELSE 0 END as margin_percent
             FROM products p
             WHERE p.company_id = :company_id
@@ -234,14 +234,17 @@ class SqlReportGenerator(ReportGeneratorPort):
         result = self._session.execute(text(sql), params)
         rows = []
         for row in result:
+            cost_cents = int(row.cost_cents or 0)
+            sale_cents = int(row.sale_price_cents or 0)
+            margin_cents = int(row.margin_cents or 0)
             rows.append(
                 ProfitMarginRow(
                     product_id=row.product_id,
                     product_name=row.product_name,
                     sku=row.sku,
-                    cost_price=Decimal(str(row.cost_price or 0)),
-                    sale_price=Decimal(str(row.sale_price or 0)),
-                    margin_amount=Decimal(str(row.margin_amount or 0)),
+                    cost_price=Decimal(cost_cents) / Decimal(100),
+                    sale_price=Decimal(sale_cents) / Decimal(100),
+                    margin_amount=Decimal(margin_cents) / Decimal(100),
                     margin_percent=Decimal(str(row.margin_percent or 0)),
                 )
             )

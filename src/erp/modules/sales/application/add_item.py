@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from erp.modules.catalog.application.ports import ProductRepository
-from erp.modules.sales.application.ports import SaleItemRepository, SaleRepository
+from erp.modules.sales.application.ports import (
+    ProductCatalogPort,
+    SaleItemRepository,
+    SaleRepository,
+)
 from erp.modules.sales.domain.sale_item import SaleItem
 from erp.shared.domain.errors import NotFound, ValidationError
 
@@ -36,14 +39,14 @@ class AddItem:
         self,
         sale_repo: SaleRepository,
         item_repo: SaleItemRepository,
-        product_repo: ProductRepository,
+        product_repo: ProductCatalogPort,
     ) -> None:
         self._sale_repo = sale_repo
         self._item_repo = item_repo
         self._product_repo = product_repo
 
     def execute(self, input: AddItemInput) -> AddItemOutput:
-        sale = self._sale_repo.get_by_id(input.sale_id)
+        sale = self._sale_repo.get_by_id(input.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
         if not sale.is_draft():

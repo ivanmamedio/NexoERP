@@ -35,9 +35,7 @@ class FiscalService:
             )
         return self._adapter.emit_document(document)
 
-    def cancel_document(
-        self, document_id: str, justification: str
-    ) -> FiscalOperationResult:
+    def cancel_document(self, document_id: str, justification: str) -> FiscalOperationResult:
         if self._adapter is None:
             return FiscalOperationResult.error_result(
                 error_code="NO_ADAPTER",

@@ -54,15 +54,15 @@ class UsersPresenter:
         self._view.render_users(list(users.users))
         self._view.render_roles(list(roles.roles))
 
-    def create_user(self, username: str, password: str, role_name: str) -> None:
+    def create_user(self, employee_name: str, password: str, role_name: str) -> None:
         """Cria um usuário com troca de senha obrigatória no primeiro acesso."""
         actor_id = self._require_actor()
         if actor_id is None:
             return
 
-        username = username.strip()
-        if not username:
-            self._view.show_error("Informe o nome de usuário.")
+        employee_name = employee_name.strip()
+        if not employee_name:
+            self._view.show_error("Informe o nome do funcionário.")
             return
         if not password:
             self._view.show_error("Informe a senha inicial.")
@@ -73,7 +73,7 @@ class UsersPresenter:
 
         try:
             output = self._services.create_user(
-                username=username,
+                employee_name=employee_name,
                 password=password,
                 role_name=role_name,
                 actor_id=actor_id,
@@ -83,7 +83,9 @@ class UsersPresenter:
             self._view.show_error(str(exc))
             return
 
-        self._view.show_info(f"Usuário '{output.username}' criado com papel '{output.role_name}'.")
+        self._view.show_info(
+            f"Usuário '{output.employee_name}' criado com papel '{output.role_name}'."
+        )
         self._view.clear_user_form()
         self.load()
 
@@ -124,9 +126,7 @@ class UsersPresenter:
             return
 
         try:
-            self._services.set_user_active(
-                user_id=user_id, is_active=is_active, actor_id=actor_id
-            )
+            self._services.set_user_active(user_id=user_id, is_active=is_active, actor_id=actor_id)
         except (ValueError, DomainError) as exc:
             self._view.show_error(str(exc))
             return

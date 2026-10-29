@@ -2,6 +2,9 @@
 
 ERP desktop offline-first para pequenos comércios.
 
+[![Contribuidor do XERJ Corpus Hub](https://hub.xerj.org/contributors/ivanmamedio/badge.svg)](https://hub.xerj.org/contributors/ivanmamedio)
+[![XERJ Corpus Hub Contributor](https://hub.xerj.org/contributors/ivanmamedio/badge.svg)](https://hub.xerj.org/contributors/ivanmamedio)
+
 ## Stack alvo
 
 - Python 3.12+
@@ -36,7 +39,10 @@ source .venv/bin/activate
 ## Execução
 
 ```bash
-# Executar a aplicação
+# Executar a aplicação (Linux/macOS)
+uv run python -m erp
+
+# Executar a aplicação (Windows PowerShell)
 uv run python -m erp
 
 # Em ambiente headless (sem DISPLAY), o bootstrap roda e a UI não inicia
@@ -61,6 +67,9 @@ uv run pytest tests/integration/test_bootstrap.py
 ```bash
 # Lint
 uv run ruff check .
+
+# Formatação
+uv run ruff format --check .
 
 # Type checking
 uv run mypy
@@ -139,18 +148,25 @@ chmod +x AppDir/AppRun
 
 | Módulo | Status |
 |--------|--------|
-| Identity (usuários, papéis, permissões, login, troca de senha) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
-| Companies (CRUD empresas, permissão company.manage) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
-| Bootstrap (inicialização, banco, migrations, seed) | Implementado |
+| Identity (usuários, papéis, permissões, login, troca de senha, primeiro uso) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Companies (CRUD empresas, permissão company.manage, seleção empresa ativa) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Settings (configurações por empresa: header/footer cupom, timeout sessão, impressora) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Bootstrap (inicialização, banco, migrations, seed, auditoria) | Implementado |
 | Banco de dados (SQLite WAL, PRAGMAs, FKs) | Implementado |
 | Migrações Alembic | Implementado (migrações versionadas em `src/erp/shared/infrastructure/database/alembic/versions/`) |
-| Empacotamento (PyInstaller, .deb, Inno Setup) | Configurado |
+| Empacotamento (PyInstaller onedir, .deb, Inno Setup, AppImage) | Configurado (build local validado) |
 | Catálogo (produtos, categorias, fornecedores, estoque, histórico de preços) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
-| Caixa (sessões, sangria, suprimento, fechamento, relatório) | Implementado (domínio, aplicação, infraestrutura) |
+| Compras/Inventário (entrada mercadoria, contagem física) | Implementado (domínio, aplicação, infraestrutura) |
+| Importação CSV (produtos, preview, validação, transação única, auditoria) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Caixa (sessões, sangria, suprimento, fechamento, relatório, modo cego) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
 | Vendas (itens, pagamentos mistos, desconto, cancelamento, finalização atômica) | Implementado (domínio, aplicação, infraestrutura) |
-| PDV (tela operável por teclado, multiplicador `3*código`, pagamento misto, desconto com PIN do supervisor) | Implementado (presenter testado sem UI + tela pytest-qt + índices de busca por nome/SKU) |
-| Tesouraria (lançamentos financeiros, subscriber SaleCompleted) | Implementado (domínio, aplicação, infraestrutura) |
+| PDV (tela operável por teclado, multiplicador `3*código`, pagamento misto, desconto com PIN supervisor) | Implementado (presenter testado sem UI + tela pytest-qt + índices de busca) |
+| Tesouraria (payables, receivables, financial_entries, subscribers, fluxo de caixa) | Implementado (domínio, aplicação, infraestrutura) — UI fluxo de caixa parcial |
 | Precificação (calculadora margem/taxa/imposto, aplicar ao produto) | Implementado (domínio, aplicação, apresentação) |
 | Auditoria (logs encadeados, triggers anti-tamper, subscriber, tela consulta) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
-| Backup, Relatórios, Recibos, Fiscal | **Backup e Relatórios implementados**, Fiscal como interface (Protocol) |
-| Interface gráfica (PySide6) | Login, gestão usuários/papéis, empresas, catálogo, precificação, auditoria, PDV |
+| Backup (sqlite3.backup, rotação 30d/12m, checksum, triggers, restore guiado) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Relatórios (vendas/estoque/margem/DRE/fechamento, CSV/PDF, SQL direto) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Recibos (gerador neutro, preview, ESC/POS, Windows spooler, CUPS, settings) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Fiscal | Apenas `FiscalPort` (Protocol) — sem emissão real |
+| Clientes/Fiado (opcional) | Implementado (domínio, aplicação, infraestrutura, apresentação) |
+| Interface gráfica (PySide6) | Login, usuários/papéis, empresas, settings, catálogo, compras, importação, precificação, auditoria, caixa, PDV, clientes |

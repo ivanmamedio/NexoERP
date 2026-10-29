@@ -17,7 +17,8 @@ class ListUsersInput:
 @dataclass(slots=True, frozen=True)
 class UserListItem:
     user_id: int
-    username: str
+    user_number: int
+    employee_name: str
     is_active: bool
     must_change_password: bool
     is_locked: bool
@@ -40,12 +41,13 @@ class ListUsers:
         self._gate.require(data.actor_id, PERMISSION_USER_MANAGE.code)
 
         items: list[UserListItem] = []
-        for user in sorted(self._user_repo.list_all(), key=lambda u: u.username.lower()):
+        for user in sorted(self._user_repo.list_all(), key=lambda u: u.user_number):
             roles = self._user_repo.get_roles(user)
             items.append(
                 UserListItem(
                     user_id=user.id or 0,
-                    username=user.username,
+                    user_number=user.user_number,
+                    employee_name=user.employee_name,
                     is_active=user.is_active,
                     must_change_password=user.must_change_password,
                     is_locked=user.is_locked(),

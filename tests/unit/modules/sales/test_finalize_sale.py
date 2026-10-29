@@ -29,8 +29,13 @@ class FakeSaleRepository:
     def save(self, sale: Sale) -> None:
         self._sales[sale.id] = sale  # type: ignore[index]
 
-    def get_by_id(self, sale_id: int) -> Sale | None:
-        return self._sales.get(sale_id)
+    def get_by_id(self, sale_id: int, company_id: int | None = None) -> Sale | None:
+        sale = self._sales.get(sale_id)
+        if sale is None:
+            return None
+        if company_id is not None and sale.company_id != company_id:
+            return None
+        return sale
 
     def list_open(self, company_id: int | None = None) -> list[Sale]:
         return [s for s in self._sales.values() if s.is_draft()]
@@ -94,13 +99,9 @@ class FakeProductRepository:
     def list_all(self, company_id: int | None = None) -> list[Product]:
         return list(self._products.values())
 
-    def search(
-        self, query: str, company_id: int | None = None, limit: int = 20
-    ) -> list[Product]:
+    def search(self, query: str, company_id: int | None = None, limit: int = 20) -> list[Product]:
         term = query.lower()
-        return [
-            p for p in self._products.values() if term in p.name.lower()
-        ][:limit]
+        return [p for p in self._products.values() if term in p.name.lower()][:limit]
 
     def add(self, product: Product) -> None:
         assert product.id is not None
@@ -115,9 +116,9 @@ def _make_setup(*, stock_qty: int = 100000) -> tuple:
     item_repo = FakeItemRepository()
     payment_repo = FakePaymentRepository()
     prod_repo = FakeProductRepository(stock_qty=stock_qty)
-    sale = StartSale(sale_repo).execute(
-        StartSaleInput(user_id=1, username="caixa", company_id=1)
-    ).sale
+    sale = (
+        StartSale(sale_repo).execute(StartSaleInput(user_id=1, username="caixa", company_id=1)).sale
+    )
     item = SaleItem(
         sale_id=sale.id or 0,
         company_id=1,

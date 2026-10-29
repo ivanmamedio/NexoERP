@@ -67,9 +67,7 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_cash_sessions_company_id"), "cash_sessions", ["company_id"], unique=False
     )
-    op.create_index(
-        op.f("ix_cash_sessions_status"), "cash_sessions", ["status"], unique=False
-    )
+    op.create_index(op.f("ix_cash_sessions_status"), "cash_sessions", ["status"], unique=False)
 
     op.create_table(
         "cash_movements",

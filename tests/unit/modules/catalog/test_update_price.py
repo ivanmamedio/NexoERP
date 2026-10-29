@@ -48,9 +48,7 @@ class FakeEventBus(EventBus):
 
 def test_update_price_requires_permission() -> None:
     repo = FakeProductRepository()
-    product = Product(
-        id=1, sku="P001", name="Produto", unit="un", price_cents=1000, company_id=1
-    )
+    product = Product(id=1, sku="P001", name="Produto", unit="un", price_cents=1000, company_id=1)
     repo.add(product)
 
     bus = FakeEventBus()
@@ -71,9 +69,7 @@ def test_update_price_requires_permission() -> None:
 
 def test_update_price_success_emits_event() -> None:
     repo = FakeProductRepository()
-    product = Product(
-        id=1, sku="P001", name="Produto", unit="un", price_cents=1000, company_id=1
-    )
+    product = Product(id=1, sku="P001", name="Produto", unit="un", price_cents=1000, company_id=1)
     repo.add(product)
 
     bus = FakeEventBus()

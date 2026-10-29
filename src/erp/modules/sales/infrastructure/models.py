@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from erp.shared.infrastructure.database import Base
-from erp.shared.infrastructure.database.types import UTCDateTime
-
-
-def _utcnow() -> datetime:
-    """Evaluated on every INSERT (never once at import time)."""
-    return datetime.now(UTC)
+from erp.shared.infrastructure.database.types import UTCDateTime, _utcnow
 
 
 class SaleModel(Base):
@@ -37,9 +32,7 @@ class SaleModel(Base):
     cancelled_by_username: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     authorized_by_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     authorized_by_username: Mapped[str] = mapped_column(String(100), nullable=False, default="")
-    created_at: Mapped[datetime] = mapped_column(
-        UTCDateTime, default=_utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
     finalized_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 

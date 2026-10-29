@@ -45,6 +45,11 @@ from erp.modules.identity.application.list_users import (
 )
 from erp.modules.identity.application.permission_gate import PermissionGate
 from erp.modules.identity.application.ports import RoleRepository
+from erp.modules.identity.application.reset_password_by_admin import (
+    ResetPasswordByAdmin,
+    ResetPasswordByAdminInput,
+    ResetPasswordByAdminOutput,
+)
 from erp.modules.identity.application.set_user_active import (
     SetUserActive,
     SetUserActiveInput,
@@ -62,11 +67,11 @@ class SqlIdentityServices:
         self._engine = engine
         self._hasher = BcryptHasher()
 
-    def authenticate(self, username: str, password: str) -> AuthenticateOutput:
+    def authenticate(self, user_number: int, password: str) -> AuthenticateOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
             result = Authenticate(uow.users, self._hasher).execute(
-                AuthenticateInput(username=username, password=password)
+                AuthenticateInput(user_number=user_number, password=password)
             )
             uow.commit()
             return result
@@ -81,9 +86,7 @@ class SqlIdentityServices:
     ) -> ChangePasswordOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
-            result = ChangePassword(
-                uow.users, self._hasher, PermissionGate(uow.users)
-            ).execute(
+            result = ChangePassword(uow.users, self._hasher, PermissionGate(uow.users)).execute(
                 ChangePasswordInput(
                     actor_id=actor_id,
                     user_id=user_id,
@@ -115,7 +118,7 @@ class SqlIdentityServices:
     def create_user(
         self,
         *,
-        username: str,
+        employee_name: str,
         password: str,
         role_name: str,
         actor_id: int,
@@ -124,12 +127,10 @@ class SqlIdentityServices:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None and uow.roles is not None
             role = self._require_role(uow.roles, role_name)
-            result = CreateUser(
-                uow.users, self._hasher, PermissionGate(uow.users)
-            ).execute(
+            result = CreateUser(uow.users, self._hasher, PermissionGate(uow.users)).execute(
                 CreateUserInput(
                     actor_id=actor_id,
-                    username=username,
+                    employee_name=employee_name,
                     password=password,
                     role_name=role_name,
                     must_change_password=must_change_password,
@@ -139,14 +140,10 @@ class SqlIdentityServices:
             uow.commit()
             return result
 
-    def assign_role(
-        self, *, user_id: int, role_name: str, actor_id: int
-    ) -> AssignRoleOutput:
+    def assign_role(self, *, user_id: int, role_name: str, actor_id: int) -> AssignRoleOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None and uow.roles is not None
-            result = AssignRole(
-                uow.users, uow.roles, PermissionGate(uow.users)
-            ).execute(
+            result = AssignRole(uow.users, uow.roles, PermissionGate(uow.users)).execute(
                 AssignRoleInput(actor_id=actor_id, user_id=user_id, role_name=role_name)
             )
             uow.commit()
@@ -160,6 +157,20 @@ class SqlIdentityServices:
             result = SetUserActive(uow.users, PermissionGate(uow.users)).execute(
                 SetUserActiveInput(actor_id=actor_id, user_id=user_id, is_active=is_active)
             )
+            uow.commit()
+            return result
+
+    def reset_password_by_admin(
+        self,
+        *,
+        actor_id: int,
+        target_user_id: int,
+    ) -> ResetPasswordByAdminOutput:
+        with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
+            assert uow.users is not None
+            result = ResetPasswordByAdmin(
+                uow.users, self._hasher, PermissionGate(uow.users)
+            ).execute(ResetPasswordByAdminInput(actor_id=actor_id, target_user_id=target_user_id))
             uow.commit()
             return result
 

@@ -44,8 +44,8 @@ class GetSaleState:
         self._sale_repo = sale_repo
         self._item_repo = item_repo
 
-    def execute(self, sale_id: int) -> SaleStateOutput:
-        sale = self._sale_repo.get_by_id(sale_id)
+    def execute(self, sale_id: int, company_id: int | None = None) -> SaleStateOutput:
+        sale = self._sale_repo.get_by_id(sale_id, company_id=company_id)
         if sale is None:
             raise NotFound(f"Venda {sale_id} não encontrada.")
         items = self._item_repo.list_by_sale(sale_id)

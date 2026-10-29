@@ -1,5 +1,7 @@
 # ERP Desktop Open Source para Pequenos Comércios
 
+> **Nota de decisões reais (20/10/2026):** o projeto adota **PySide6 (Qt 6 Widgets, sem QML)**, **Python 3.12+** e suporta **Windows 10+ e Linux** (baseado em Debian/Ubuntu). Windows 7 está fora de escopo. O Roadmap abaixo mantém o planejamento original de compatibilidade legada como referência histórica, mas as decisões de implementação seguem a stack acima.
+
 ## Arquitetura, compatibilidade legada e roadmap de desenvolvimento
 
 **Objetivo:** desenvolver um sistema de gestão comercial desktop,

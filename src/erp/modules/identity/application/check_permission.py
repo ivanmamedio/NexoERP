@@ -35,9 +35,7 @@ class CheckPermission:
             raise ValueError("Usuário não encontrado")
 
         permissions = self._user_repo.get_permissions(user)
-        has_permission = any(
-            p.code == data.permission_code for p in permissions
-        )
+        has_permission = any(p.code == data.permission_code for p in permissions)
 
         return CheckPermissionOutput(
             user_id=user.id or 0,

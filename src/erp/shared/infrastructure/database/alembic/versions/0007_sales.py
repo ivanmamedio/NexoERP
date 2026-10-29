@@ -66,9 +66,7 @@ def upgrade() -> None:
         sa.Column("amount_cents", sa.Integer(), nullable=False),
         sa.Column("change_cents", sa.Integer(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["sale_id"], ["sales.id"], name="fk_sale_payments_sale_id"
-        ),
+        sa.ForeignKeyConstraint(["sale_id"], ["sales.id"], name="fk_sale_payments_sale_id"),
     )
     op.create_index("ix_sale_payments_sale_id", "sale_payments", ["sale_id"], unique=False)
 

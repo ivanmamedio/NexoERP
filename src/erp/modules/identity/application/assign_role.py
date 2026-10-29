@@ -48,9 +48,7 @@ class AssignRole:
             raise ValueError(f"Papel '{data.role_name}' não encontrado")
 
         # Persiste o vínculo user-role (gravação real no repositório)
-        self._user_repo.assign_role(
-            user, role, company_id=data.company_id or user.company_id
-        )
+        self._user_repo.assign_role(user, role, company_id=data.company_id or user.company_id)
         self._user_repo.save(user)
 
         return AssignRoleOutput(

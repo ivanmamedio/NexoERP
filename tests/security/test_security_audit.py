@@ -210,12 +210,13 @@ class TestSecurityAudit:
                         "datetime('now'), datetime('now'))"
                     )
                 )
+                # Version 0012 has both username AND user_number/employee_name as NOT NULL
                 conn.execute(
                     text(
-                        "INSERT INTO users (username, password_hash, "
+                        "INSERT INTO users (username, user_number, employee_name, password_hash, "
                         "must_change_password, failed_login_attempts, is_active, "
                         "company_id, created_at, updated_at) "
-                        "VALUES ('teste', '$2b$12$test', 0, 0, 1, 1, "
+                        "VALUES ('teste', 0, 'teste', '\$2b\$12\$test', 0, 0, 1, 1, "
                         "datetime('now'), datetime('now'))"
                     )
                 )
@@ -230,17 +231,31 @@ class TestSecurityAudit:
                 table_names_n = {t[0] for t in tables_n}
                 print(f"\n=== Tables at N ({head_rev}): {sorted(table_names_n)} ===")
 
-                company = conn.execute(
-                    text("SELECT name FROM companies WHERE id = 1")
-                ).fetchone()
+                company = conn.execute(text("SELECT name FROM companies WHERE id = 1")).fetchone()
                 assert company is not None
                 assert company[0] == "Teste"
 
-                user = conn.execute(
-                    text("SELECT username FROM users WHERE id = 1")
-                ).fetchone()
-                assert user is not None
-                assert user[0] == "teste"
+                # After migration 8706cf5235a7, users table has user_number and
+                # employee_name instead of username
+                # Check which columns exist
+                columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+                column_names = {col[1] for col in columns}
+                print(f"Users table columns: {column_names}")
+
+                if "username" in column_names:
+                    # Old schema (before 8706cf5235a7)
+                    user = conn.execute(text("SELECT username FROM users WHERE id = 1")).fetchone()
+                    assert user is not None
+                    assert user[0] == "teste"
+                elif "user_number" in column_names and "employee_name" in column_names:
+                    # New schema (after 8706cf5235a7)
+                    user = conn.execute(
+                        text("SELECT employee_name FROM users WHERE id = 1")
+                    ).fetchone()
+                    assert user is not None
+                    assert user[0] == "teste"
+                else:
+                    raise AssertionError(f"Unexpected users table schema: {column_names}")
 
             print("\n✓ Migration N-1 to N successful with data preserved")
 

@@ -1,4 +1,5 @@
 """SQLite engine factory with the PRAGMAs required by the project."""
+
 from __future__ import annotations
 
 from pathlib import Path

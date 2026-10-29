@@ -45,6 +45,22 @@ class MainWindow(QMainWindow):
     change_password_requested = Signal()
     #: Emitido pelo menu "Gerenciar usuários...".
     users_requested = Signal()
+    #: Emitido pelo menu "Empresas".
+    companies_requested = Signal()
+    #: Emitido pelo menu "Catálogo / Produtos".
+    catalog_requested = Signal()
+    #: Emitido pelo menu "PDV / Vendas".
+    pos_requested = Signal()
+    #: Emitido pelo menu "Caixa".
+    cash_requested = Signal()
+    #: Emitido pelo menu "Tesouraria / Fluxo de Caixa".
+    treasury_requested = Signal()
+    #: Emitido pelo menu "Relatórios".
+    reports_requested = Signal()
+    #: Emitido pelo menu "Configurações".
+    settings_requested = Signal()
+    #: Emitido pelo menu "Auditoria".
+    audit_requested = Signal()
     #: Emitido quando a sessão expira por ociosidade (deve voltar ao login).
     session_expired = Signal()
 
@@ -106,6 +122,7 @@ class MainWindow(QMainWindow):
     def _build_menus(self) -> None:
         menubar = self.menuBar()
 
+        # Sistema
         sistema = menubar.addMenu("&Sistema")
         action_change_password = sistema.addAction("Alterar &senha...")
         action_change_password.triggered.connect(self.change_password_requested)
@@ -113,31 +130,62 @@ class MainWindow(QMainWindow):
         action_quit = sistema.addAction("&Sair")
         action_quit.triggered.connect(self.close)
 
-        # Menu Usuários: apenas para quem tem user.manage
+        # Cadastros
+        if self._has_permission("company.view") or self._has_permission("company.manage"):
+            cadastros = menubar.addMenu("&Cadastros")
+            if self._has_permission("company.view"):
+                action_companies = cadastros.addAction("&Empresas...")
+                action_companies.triggered.connect(self.companies_requested)
+            if self._has_permission("product.view") or self._has_permission("product.manage"):
+                action_catalog = cadastros.addAction("&Produtos / Catálogo...")
+                action_catalog.triggered.connect(self.catalog_requested)
+
+        # Vendas / PDV
+        if self._has_permission("sale.view") or self._has_permission("sale.create"):
+            vendas = menubar.addMenu("&Vendas")
+            action_pos = vendas.addAction("&PDV / Ponto de Venda...")
+            action_pos.triggered.connect(self.pos_requested)
+
+        # Caixa
+        if self._has_permission("cash.view") or self._has_permission("cash.open_close"):
+            caixa = menubar.addMenu("Cai&xa")
+            action_cash = caixa.addAction("&Caixa / Sessões...")
+            action_cash.triggered.connect(self.cash_requested)
+
+        # Tesouraria
+        if self._has_permission("treasury.view"):
+            tesouraria = menubar.addMenu("&Tesouraria")
+            action_treasury = tesouraria.addAction("&Fluxo de Caixa...")
+            action_treasury.triggered.connect(self.treasury_requested)
+
+        # Relatórios
+        if self._has_permission("reports.view"):
+            relatorios = menubar.addMenu("&Relatórios")
+            action_reports = relatorios.addAction("&Gerar Relatório...")
+            action_reports.triggered.connect(self.reports_requested)
+
+        # Configurações
+        if self._has_permission("settings.update"):
+            configuracoes = menubar.addMenu("Con&figurações")
+            action_settings = configuracoes.addAction("&Configurações...")
+            action_settings.triggered.connect(self.settings_requested)
+
+        # Auditoria
+        if self._has_permission("audit.view"):
+            auditoria = menubar.addMenu("&Auditoria")
+            action_audit = auditoria.addAction("&Log de Auditoria...")
+            action_audit.triggered.connect(self.audit_requested)
+
+        # Usuários (apenas para quem tem user.manage)
         if self._has_permission("user.manage"):
             usuarios = menubar.addMenu("&Usuários")
             action_manage = usuarios.addAction("&Gerenciar usuários...")
             action_manage.triggered.connect(self.users_requested)
 
-        # Placeholder para os módulos das próximas fases: mostra apenas os
-        # menus cuja permissão o usuário possui (nada de botão órfão).
-        self._build_future_module_menus(menubar)
-
-    def _build_future_module_menus(self, menubar: object) -> None:
-        """Pré-configura menus de módulos futuros já filtrando por permissão.
-
-        Eles só aparecem quando o módulo correspondente existir; por ora,
-        apenas registra quais permissões cada módulo exigirá.
-        """
-        # Mantido vazio de propósito: os módulos (vendas, estoque, caixa...)
-        # serão adicionados nas fases seguintes com seus próprios presenters.
-
     def _has_permission(self, code: str) -> bool:
         if self._session.user_id is None:
             return False
-        return self._services.check_permission(
-            user_id=self._session.user_id, permission_code=code
-        )
+        return self._services.check_permission(user_id=self._session.user_id, permission_code=code)
 
     # --- idle ---------------------------------------------------------------
 

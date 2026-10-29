@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from erp.modules.receipts.infrastructure.cups_printer import CupsPrinter
 from erp.modules.receipts.infrastructure.escpos_printer import EscposPrinter
@@ -44,30 +44,30 @@ class PrinterFactory:
     """Factory for creating printer instances based on configuration."""
 
     def __init__(self) -> None:
-        self._printer = None
+        self._printer: Any = None
 
     def create_printer(
         self,
         printer_type: str,
-        config: dict[str, object],
+        config: dict[str, Any],
         width: int = 48,
-    ) -> object:
+    ) -> Any:
         """Creates a printer instance based on type and configuration."""
         if printer_type == "preview":
-            return PreviewPrinter(width=config.get("width", 48))  # type: ignore[arg-type]
+            return PreviewPrinter(width=config.get("width", width))
         if printer_type == "escpos":
             return EscposPrinter(
                 device_path=config.get("device_path", "/dev/usb/lp0"),
-                width=config.get("width", 48),
+                width=config.get("width", width),
                 profile=config.get("profile", "default"),
-            )  # type: ignore[arg-type]
+            )
         if printer_type == "cups":
             if sys.platform == "win32":
                 raise RuntimeError("CUPS printer not available on Windows")
             return CupsPrinter(
                 printer_name=config.get("printer_name", "default"),
-                width=config.get("width", 48),
-            )  # type: ignore[arg-type]
+                width=config.get("width", width),
+            )
         if printer_type == "windows_spooler":
             if sys.platform != "win32":
                 raise RuntimeError("Windows spooler only available on Windows")
@@ -79,11 +79,11 @@ class PrinterFactory:
                 raise RuntimeError("win32print not available") from exc
             return WindowsSpoolerPrinter(
                 printer_name=config.get("printer_name", ""),
-                width=config.get("width", 48),
-            )  # type: ignore[arg-type]
+                width=config.get("width", width),
+            )
         raise ValueError(f"Unknown printer type: {printer_type}")
 
-    def create_from_settings(self, settings: dict[str, object]) -> object:
+    def create_from_settings(self, settings: dict[str, Any]) -> Any:
         """Creates printer from settings dict."""
         printer_type = settings.get("printer_type", "preview")
-        return self.create_printer(printer_type, settings)  # type: ignore[arg-type]
+        return self.create_printer(printer_type, settings)

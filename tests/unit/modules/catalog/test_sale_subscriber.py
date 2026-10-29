@@ -180,10 +180,6 @@ def test_catalog_sale_subscriber_skips_cancelled_items(engine) -> None:
     event_bus.publish(event)
 
     with Session(engine) as session:
-        movements = (
-            session.query(StockMovementModel)
-            .filter_by(reference_id=sale_id)
-            .all()
-        )
+        movements = session.query(StockMovementModel).filter_by(reference_id=sale_id).all()
         assert len(movements) == 1  # Only the non-cancelled item
         assert movements[0].quantity_thousandths == -2000

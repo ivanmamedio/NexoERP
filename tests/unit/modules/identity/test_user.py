@@ -7,12 +7,14 @@ from erp.modules.identity.domain.user import User
 
 def test_user_creation() -> None:
     user = User(
-        username="joao",
+        user_number=1,
+        employee_name="João",
         password_hash="hash123",
         must_change_password=True,
         is_active=True,
     )
-    assert user.username == "joao"
+    assert user.user_number == 1
+    assert user.employee_name == "João"
     assert user.must_change_password is True
     assert user.is_active is True
     assert user.failed_login_attempts == 0
@@ -20,7 +22,7 @@ def test_user_creation() -> None:
 
 def test_user_record_failed_login_blocks_after_5() -> None:
     """Bloqueia após 5 tentativas falhas."""
-    user = User(username="joao", password_hash="hash123", is_active=True)
+    user = User(user_number=1, employee_name="João", password_hash="hash123", is_active=True)
     for _ in range(4):
         user.record_failed_login()
     assert user.failed_login_attempts == 4
@@ -32,7 +34,7 @@ def test_user_record_failed_login_blocks_after_5() -> None:
 
 
 def test_user_reset_failed_logins() -> None:
-    user = User(username="joao", password_hash="hash123", is_active=True)
+    user = User(user_number=1, employee_name="João", password_hash="hash123", is_active=True)
     user.record_failed_login()
     user.record_failed_login()
     assert user.failed_login_attempts == 2

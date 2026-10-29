@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from erp.modules.catalog.application.ports import ProductRepository
 from erp.modules.sales.application.ports import (
+    ProductCatalogPort,
     SaleItemRepository,
     SalePaymentRepository,
     SaleRepository,
@@ -52,7 +52,7 @@ class FinalizeSale:
         sale_repo: SaleRepository,
         item_repo: SaleItemRepository,
         payment_repo: SalePaymentRepository,
-        product_repo: ProductRepository,
+        product_repo: ProductCatalogPort,
     ) -> None:
         self._sale_repo = sale_repo
         self._item_repo = item_repo
@@ -60,7 +60,7 @@ class FinalizeSale:
         self._product_repo = product_repo
 
     def execute(self, input: FinalizeSaleInput) -> FinalizeSaleOutput:
-        sale = self._sale_repo.get_by_id(input.sale_id)
+        sale = self._sale_repo.get_by_id(input.sale_id, company_id=input.company_id)
         if sale is None:
             raise NotFound(f"Venda {input.sale_id} não encontrada.")
         if not sale.is_draft():
@@ -76,7 +76,12 @@ class FinalizeSale:
         for p in input.payments:
             if p.amount_cents <= 0:
                 raise ValidationError("Valor de pagamento deve ser positivo.")
-            if p.method not in (PaymentMethod.CASH, PaymentMethod.PIX, PaymentMethod.CARD):
+            if p.method not in (
+                PaymentMethod.CASH,
+                PaymentMethod.PIX,
+                PaymentMethod.CARD,
+                PaymentMethod.CREDIT,
+            ):
                 raise ValidationError(f"Meio de pagamento '{p.method}' inválido.")
             total_paid += p.amount_cents
             if p.method == PaymentMethod.CASH:
@@ -84,15 +89,14 @@ class FinalizeSale:
 
         if total_paid < sale.total_cents:
             raise ValidationError(
-                f"Pagamento insuficiente: R$ {total_paid/100:.2f} < R$ {sale.total_cents/100:.2f}."
+                f"Pagamento insuficiente: R$ {total_paid / 100:.2f} "
+                f"< R$ {sale.total_cents / 100:.2f}."
             )
 
         change = total_paid - sale.total_cents
         # Troco só vem de pagamento em dinheiro
         if change > 0 and cash_paid < change:
-            raise ValidationError(
-                "Troco disponível apenas de pagamento em dinheiro."
-            )
+            raise ValidationError("Troco disponível apenas de pagamento em dinheiro.")
 
         # Baixa estoque (atômico: falha aqui desfaz tudo via UoW)
         for item in items:
@@ -103,9 +107,7 @@ class FinalizeSale:
                 raise NotFound(f"Produto {item.product_id} não encontrado.")
             new_qty = product.stock_qty - item.quantity_thousandths
             if new_qty < 0:
-                raise ValidationError(
-                    f"Estoque insuficiente de '{product.name}' no fechamento."
-                )
+                raise ValidationError(f"Estoque insuficiente de '{product.name}' no fechamento.")
             product.stock_qty = new_qty
             self._product_repo.save(product)
 

@@ -24,9 +24,7 @@ def _create_tables(session: Session) -> None:
     Base.metadata.create_all(session.get_bind())
 
 
-def _insert_cash_session(
-    session: Session, session_id: int, status: str = "open"
-) -> None:
+def _insert_cash_session(session: Session, session_id: int, status: str = "open") -> None:
     session.execute(
         CashSessionModel.__table__.insert(),
         [

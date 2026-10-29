@@ -29,18 +29,21 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
     def _to_domain(self, model: UserModel) -> User:
         return User(
             id=model.id,
-            username=model.username,
+            user_number=model.user_number,
+            employee_name=model.employee_name,
             password_hash=model.password_hash,
             must_change_password=model.must_change_password,
             failed_login_attempts=model.failed_login_attempts,
             locked_until=model.locked_until,
             is_active=model.is_active,
             company_id=model.company_id,
+            roles=[r.name for r in model.roles if r.is_active],
         )
 
     def _to_model(self, domain: User) -> UserModel:
         model = UserModel()
-        model.username = domain.username
+        model.user_number = domain.user_number
+        model.employee_name = domain.employee_name
         model.password_hash = domain.password_hash
         model.must_change_password = domain.must_change_password
         model.failed_login_attempts = domain.failed_login_attempts
@@ -49,13 +52,22 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
         model.company_id = domain.company_id
         return model
 
+    def _copy_domain_to_model(self, domain: User, model: UserModel) -> None:
+        """Override para pular o campo 'roles' (gerenciado via tabela de associação)."""
+        for key in domain.__dataclass_fields__:
+            if key in ("id", "roles"):  # id não atualiza, roles gerenciado via tabela associação
+                continue
+            value = getattr(domain, key)
+            if hasattr(model, key):
+                setattr(model, key, value)
+
     def list_all(self, *, company_id: int | None = None) -> list[User]:
         return cast(list[User], super().list_all(company_id=company_id))
 
     # ---- Custom queries beyond generic CRUD ----
 
-    def get_by_username(self, username: str) -> User | None:
-        stmt = select(UserModel).where(UserModel.username == username)
+    def get_by_user_number(self, user_number: int) -> User | None:
+        stmt = select(UserModel).where(UserModel.user_number == user_number)
         stmt = self._apply_company_filter(stmt)
         model = self._session.execute(stmt).scalar_one_or_none()
         return self._to_domain(model) if model else None
@@ -95,9 +107,7 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
                 permissions.append(Permission(code=perm.code))
         return permissions
 
-    def assign_role(
-        self, user: User, role: Role, company_id: int | None = None
-    ) -> None:
+    def assign_role(self, user: User, role: Role, company_id: int | None = None) -> None:
         if user.id is None:
             raise ValueError("User must be persisted before assigning a role")
         if role.id is None:

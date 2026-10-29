@@ -21,7 +21,7 @@ class FakeIdentityServices(IdentityServices):
         self.users_output = None
         self.roles_output = None
 
-    def authenticate(self, username, password):  # type: ignore[override]
+    def authenticate(self, user_number, password):  # type: ignore[override]
         raise NotImplementedError
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
@@ -43,14 +43,16 @@ class FakeIdentityServices(IdentityServices):
 
         return self.roles_output or ListRolesOutput(roles=())
 
-    def create_user(self, *, username, password, role_name, actor_id, must_change_password=False):  # type: ignore[override]
+    def create_user(
+        self, *, employee_name, password, role_name, actor_id, must_change_password=False
+    ):  # type: ignore[override]
         self.create_calls += 1
         if self.should_fail:
             raise ValueError(self.fail_message)
         from erp.modules.identity.application.create_user import CreateUserOutput
 
         return CreateUserOutput(
-            user_id=1, username=username, role_name=role_name
+            user_id=1, user_number=0, employee_name=employee_name, role_name=role_name
         )
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
@@ -70,6 +72,9 @@ class FakeIdentityServices(IdentityServices):
         return SetUserActiveOutput(user_id=user_id, is_active=is_active)
 
     def check_permission(self, *, user_id, permission_code):  # type: ignore[override]
+        raise NotImplementedError
+
+    def reset_password_by_admin(self, *, actor_id, target_user_id):  # type: ignore[override]
         raise NotImplementedError
 
 
@@ -103,7 +108,7 @@ class FakeUsersView:
 
 def test_users_presenter_load() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     ListUsersOutput = __import__(
         "erp.modules.identity.application.list_users", fromlist=["ListUsersOutput"]
@@ -115,7 +120,8 @@ def test_users_presenter_load() -> None:
         users=(
             UserListItem(
                 user_id=1,
-                username="ana",
+                user_number=0,
+                employee_name="Ana",
                 is_active=True,
                 must_change_password=False,
                 is_locked=False,
@@ -135,45 +141,47 @@ def test_users_presenter_load() -> None:
     assert services.list_users_calls == 1
     assert services.list_roles_calls == 1
     assert len(view.rendered_users) == 1
-    assert view.rendered_users[0].username == "ana"
+    assert view.rendered_users[0].employee_name == "Ana"
+    assert view.rendered_users[0].user_number == 0
     assert len(view.rendered_roles) == 1
     assert view.rendered_roles[0].name == "Caixa"
 
+
 def test_users_presenter_create_user_success() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     presenter = UsersPresenter(view, services, session)
 
-    presenter.create_user("joao", "senha1234", "Caixa")
+    presenter.create_user("João", "senha1234", "Caixa")
 
     assert services.create_calls == 1
     assert view.cleared is True
-    assert view.infos == ["Usuário 'joao' criado com papel 'Caixa'."]
+    assert view.infos == ["Usuário 'João' criado com papel 'Caixa'."]
     assert services.list_users_calls == 1  # recarrega após criar
 
 
 def test_users_presenter_create_user_validation() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     presenter = UsersPresenter(view, services, session)
 
     presenter.create_user("", "senha1234", "Caixa")
 
     assert services.create_calls == 0
-    assert view.errors == ["Informe o nome de usuário."]
+    assert view.errors == ["Informe o nome do funcionário."]
 
 
 def test_users_presenter_create_user_requires_user_manage() -> None:
     services = FakeIdentityServices()
     services.should_fail = True
     services.fail_message = "Permissão negada: 'user.manage'."
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     presenter = UsersPresenter(view, services, session)
 
-    presenter.create_user("joao", "senha1234", "Caixa")
+    presenter.create_user("João", "senha1234", "Caixa")
 
     assert services.create_calls == 1
     assert view.errors == ["Permissão negada: 'user.manage'."]
@@ -181,7 +189,7 @@ def test_users_presenter_create_user_requires_user_manage() -> None:
 
 def test_users_presenter_assign_role() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     view.selected_id = 5
     presenter = UsersPresenter(view, services, session)
@@ -195,7 +203,7 @@ def test_users_presenter_assign_role() -> None:
 
 def test_users_presenter_set_active() -> None:
     services = FakeIdentityServices()
-    session = CurrentSession(user_id=1, username="admin")
+    session = CurrentSession(user_id=1, user_number=0, username="admin")
     view = FakeUsersView()
     view.selected_id = 3
     presenter = UsersPresenter(view, services, session)

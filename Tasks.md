@@ -11,19 +11,33 @@ Modelos de código funcionam melhor com **contexto fixo + tarefas pequenas + cri
 
 ## Status atual
 
-Baseado na auditoria de 18/10/2026 e na varredura de arquivos vazios. Confirme cada item rodando o critério de pronto antes de marcá-lo como concluído de verdade.
+Baseado na auditoria de 18/10/2026 e na varredura de arquivos vazios, atualizado em 20/10/2026 com o diagnóstico da tela de login e do build no Fedora. **Atualizado em 23/10/2026 após correções da Fase C e auditoria completa.** Confirme cada item rodando o critério de pronto antes de marcá-lo como concluído de verdade.
 
 | Tarefa | Status |
 |---|---|
-| 0.1 a 0.3 Fundação, núcleo, Alembic/bootstrap | Implementadas. O bootstrap está **quebrado** por um bug no audit (ver Fase C) |
-| 0.4 Empacotamento no CI | Configurado. Build real em Windows e Linux **ainda não verificado** |
-| 1.1 a 1.6 Identity, Companies, Audit, Catalog, Pricing | Implementadas, com pendências da Fase C |
-| 2.1 Cash (domínio e casos de uso) | Implementada, **sem telas** (ver 2.2.1) |
-| 2.2 Sales (domínio e casos de uso) | **Em andamento/correção** |
-| 3.1 Treasury | Parcial (livro-razão e subscribers). Verificar contas a pagar/receber |
-| 2.3, 2.4, 3.2, 4.x, 5.x | Não iniciadas |
+| 0.1 a 0.3 Fundação, núcleo, Alembic/bootstrap | ✅ Implementadas. Bootstrap corrigido (migração 0009 com bypass de auditoria) |
+| 0.4 Empacotamento no CI | ✅ Configurado. Build PyInstaller onedir validado localmente (logo incluído). Build real em VM Windows/Linux **pendente** |
+| 1.1 a 1.6 Identity, Companies, Audit, Catalog, Pricing | ✅ Implementadas (domínio, aplicação, infraestrutura, apresentação) |
+| 1.2 Identity (telas) | ✅ Corrigidos: logo carrega no build, sem FramelessWindowHint/WA_TranslucentBackground, sem artefato duplicado. `admin/admin` não existe (seed exige NEXOERP_ADMIN_PASSWORD, migração 0009 força troca) |
+| 1.7 Configurações (NOVA) | ✅ Implementada (`settings` module: company_id, receipt header/footer, session timeout, printer settings) |
+| 2.1 Cash (domínio, casos de uso) | ✅ Implementada |
+| 2.2.1 Telas do Caixa (NOVA) | ✅ Implementada (`cash/presentation`: abertura, sangria, suprimento, fechamento, relatório) |
+| 2.2 Sales (domínio, casos de uso) | ✅ Implementada (atômica, pagamentos mistos, desconto com PIN, cancelamento/estorno) |
+| 2.3 Tela PDV (NOVA) | ✅ Implementada (`pos_view.py`, `pos_presenter.py`: teclado, multiplicador `3*código`, pagamento misto, desconto supervisor) |
+| 2.4 Receipts (NOVA) | ✅ Implementada (gerador, preview, ESC/POS, Windows spooler, CUPS, settings dialog) — mypy zerado |
+| 2.5 Compras/Inventário (NOVA) | ✅ Implementada (`purchases` module: RegisterPurchase, CountInventory) |
+| 3.1 Treasury | ✅ Implementada (domínio, app, infra: payables, receivables, financial_entries, subscribers) |
+| 3.2 Fluxo de Caixa UI (NOVA) | ⚠️ Parcial (`treasury/presentation` só tem `cash_flow_presenter.py` básico) |
+| 3.3 Clientes/Fiado (NOVA, opcional) | ✅ Implementada (`customers` module) |
+| 4.1 Backup | ✅ Implementada (sqlite3.backup, rotação, checksum, triggers, restore guiado) |
+| 4.2 Reports | ✅ Implementada (vendas/estoque/margem/DRE/fechamento, CSV/PDF, SQL direto) |
+| 4.3 FiscalPort | ✅ Implementada (apenas Protocol, sem emissão real) |
+| 4.4 Import CSV (NOVA) | ✅ Implementada (`import_csv` module: preview, validação, transação única, auditoria) |
+| 5.x Endurecimento | ❌ Não iniciado |
 
-**Antes de avançar para a 2.3, conclua a Fase C (correções).**
+**Fase C (C.1 a C.8): ✅ CONCLUÍDA** — Todos os itens resolvidos ou verificados como não aplicáveis/inexistentes.
+
+**Próxima prioridade real:** Completar `treasury/presentation` (Tarefa 3.2) → Tarefa 5.x (Endurecimento: carga 50k/100k, exceções, build real em VM, docs usuário).
 
 ---
 
@@ -98,6 +112,16 @@ Regras de dependência (INVIOLÁVEIS):
 - O README (tabela de status e comandos) é atualizado ao fim de cada tarefa, dizendo só o que está
   implementado e testado.
 
+# UI (Qt)
+- Janelas normais do sistema (com borda). Proibido Qt.FramelessWindowHint e WA_TranslucentBackground:
+  são instáveis no Wayland e causam artefatos (quadrado branco). Se for realmente necessário, pergunte antes.
+- Proibido QGraphicsEffect (sombra, blur) em widget que contém filhos. Sombra só em um QFrame vazio
+  posicionado atrás do card.
+- Estilo em QSS por objectName, definido em um único lugar. Nada de setStyleSheet repetido em cada widget.
+- Recursos (imagens, ícones): sempre via shared/ui/resources.py (resource_path), que funciona em dev e no
+  PyInstaller (sys._MEIPASS). Todo recurso novo entra em datas do pyinstaller.spec na mesma tarefa.
+- Testar no Linux em Wayland e em X11 (QT_QPA_PLATFORM=wayland e =xcb). Em testes automáticos, usar offscreen.
+
 # CRITÉRIO DE PRONTO (toda tarefa)
 Rodar e mostrar as saídas REAIS, separando passou / falhou / não executado:
 uv run pytest
@@ -117,6 +141,7 @@ Preservar alterações não commitadas do usuário. Quem faz o commit é o usuá
 - Faça SOMENTE a tarefa pedida. Não antecipe fases futuras.
 - Antes de codar, liste em 3 a 6 linhas os arquivos que vai criar/alterar/remover.
 - Entregue o código completo de cada arquivo (sem "..." nem trechos omitidos), indicando o caminho.
+- Entregue cada arquivo UMA vez. Se notar blocos repetidos ou o arquivo ficando enorme, pare, descarte e reescreva curto.
 - Ao final, informe: comandos para rodar os testes, resultado real do critério de pronto e o que ficou pendente.
 - Se algo estiver ambíguo, escolha a opção mais simples, declare a suposição em uma linha e siga.
   Se a decisão for arquitetural, destrutiva (dados, migração, remoção) ou mudar SO suportado, PARE e pergunte.
@@ -228,6 +253,16 @@ via application/ público do catalog, sem importar domain nem infrastructure del
 Teste: custo 10,00 / imposto 6% / cartão 3% / margem 30% = R$ 16,39.
 ```
 
+**Tarefa 1.7: Configurações** *(nova: a 1.2 fala em timeout configurável e a 2.4 em impressora "nas settings", mas nenhuma tarefa criava essa tela)*
+```
+Tarefa 1.7: Configurações por empresa. Tabela settings (company_id, chave, valor tipado), casos de uso GetSetting e
+UpdateSetting com permissão settings.update e auditoria do before/after. Tela de Configurações (View + Presenter) com:
+dados da empresa para o cabeçalho/rodapé do cupom (nome, CNPJ opcional, endereço, mensagem) e timeout de sessão ociosa.
+A seção de impressora entra na 2.4; não crie campos ou placeholders dela agora. Seed da permissão settings.update para
+Administrador e Gerente. Crie pasta de módulo nova somente se houver código real nela.
+Testes: duas empresas com valores diferentes; Caixa bloqueado no caso de uso; alteração gera auditoria.
+```
+
 ### Fase 2: Caixa e PDV
 
 **Tarefa 2.1: Cash**
@@ -278,6 +313,16 @@ Autorizado a adicionar python-escpos ao projeto. Atualize o .importlinter.
 Teste do gerador com snapshots de texto para 58mm e 80mm.
 ```
 
+**Tarefa 2.5: Compras e inventário** *(nova: o catálogo tem Supplier e AdjustStock, mas não existe entrada de mercadoria nem contagem de estoque)*
+```
+Tarefa 2.5: Entrada de mercadoria e inventário. Casos de uso: RegisterPurchase (fornecedor, itens, quantidade, custo, data;
+gera stock_movements de entrada, atualiza o custo do produto exigindo permissão catalog.cost.update e emite evento de auditoria)
+e CountInventory (contagem física; a diferença vira movimento de ajuste com motivo obrigatório). O acesso ao catalog é só por
+ports/application público. A geração de conta a pagar a partir da compra fica para a 3.1; não antecipe.
+Telas de entrada de mercadoria e de contagem. Testes: entrada aumenta estoque e atualiza custo; contagem gera movimento;
+Caixa bloqueado; duas empresas.
+```
+
 ### Fase 3: Tesouraria
 
 ```
@@ -290,6 +335,15 @@ Se parte já existe (financial_entries e subscribers), implemente apenas o que f
 Tarefa 3.2: Fluxo de caixa diário/mensal, controle de despesas por categoria e alertas de vencimento
 (contas a vencer em N dias). Telas com filtros por período (cria treasury/presentation somente agora).
 Teste de reconciliação: total do fluxo = vendas + recebimentos - pagamentos - sangrias no período.
+```
+
+**Tarefa 3.3: Clientes e venda a prazo (fiado)** *(nova e opcional; a 3.1 tem contas a receber, mas sem cliente não há quem deva. Faça só depois da 3.1 e se o lojista vende fiado)*
+```
+Tarefa 3.3: Módulo customers (pasta nova): Customer (nome, telefone, documento opcional, limite de crédito), casos de uso
+CreateCustomer, UpdateCustomer e consulta por nome/telefone, com permissões customer.*. Forma de pagamento "Fiado" no sales,
+que gera uma receivable no treasury via evento SaleCompleted, com adaptador ligado no bootstrap (sem import direto entre módulos).
+Guarde só os dados necessários (LGPD). Atualize o .importlinter.
+Testes: duas empresas; venda fiada acima do limite é recusada; recebimento baixa a receivable.
 ```
 
 ### Fase 4: Relatórios, Backup e Fiscal
@@ -310,6 +364,14 @@ e um teste provando que o fluxo de venda não depende de nenhum adaptador fiscal
 Atualize o README para dizer exatamente isso.
 ```
 
+**Tarefa 4.4: Importação de produtos por CSV** *(nova: facilita a migração de quem já tem planilha)*
+```
+Tarefa 4.4: Importação de produtos por CSV. Tela com pré-visualização e validação linha a linha (SKU ou código de barras
+duplicado, preço não numérico, vírgula decimal pt-BR) e relatório de erros. Converta preços para centavos com Decimal, nunca float.
+A importação roda em UMA transação (tudo ou nada), com a opção explícita de pular linhas inválidas. Permissão product.import e
+auditoria do lote. Testes com CSV de exemplo em UTF-8 e em Latin-1, e teste de duas empresas.
+```
+
 ### Fase 5: Endurecimento
 
 ```
@@ -323,15 +385,16 @@ para cada item), teste de migração da versão N-1 para N com dados reais, e do
 
 Tarefa 5.3: Verificação real de empacotamento. Gere o build com PyInstaller em Windows 10+ e em Linux, confirme que
 os scripts de migração e os plugins Qt estão no pacote, e faça um teste de inicialização do executável com banco
-novo e com banco de versão anterior. Gere e teste o instalador Inno Setup, o .deb e o AppImage. Registre o que foi
-testado em cada SO e o que não foi.
+novo e com banco de versão anterior. Gere e teste o instalador Inno Setup, o .deb e o AppImage. No Linux, teste em Wayland e em X11
+(QT_QPA_PLATFORM=wayland e =xcb), confirme que o logo e a tela de login aparecem sem artefatos e que o pacote traz as
+bibliotecas do Qt necessárias (por exemplo libxcb-cursor no X11). Registre o que foi testado em cada SO e o que não foi.
 ```
 
 ---
 
 ## Fase C: Correções de qualidade (faça ANTES da Tarefa 2.3)
 
-Resultado da auditoria de 18/10/2026. Um prompt por vez, cada um em chat novo, na ordem abaixo. Crie uma branch antes e faça o commit do trabalho atual (`git switch -c correcoes`).
+Resultado da auditoria de 18/10/2026. Um prompt por vez, cada um em chat novo, na ordem abaixo. Crie uma branch antes e faça o commit do trabalho atual (`git switch -c correcoes`). A C.7 e a C.8 foram acrescentadas em 20/10/2026. A C.1 e a C.2 são independentes: se preferir uma base verde antes de limpar arquivos, faça a C.2 primeiro.
 
 **C.1 Limpeza de arquivos vazios e inúteis**
 ```
@@ -402,6 +465,36 @@ lista de migrações; comandos de build por SO. Acrescente uma nota no topo do R
 (PySide6, Python 3.12+, Windows 10+), sem reescrevê-lo. Não mude os SO suportados.
 ```
 
+**C.7 Tela de login: logo no build e artefato visual no Wayland**
+```
+Releia o CONTEXTO.md (seção UI Qt). Corrija SOMENTE a tela de login e o carregamento do logo no build. Nada além disso.
+1) Crie src/erp/shared/ui/resources.py com resource_path(*parts) -> Path: usa sys._MEIPASS/"erp" quando congelado e a pasta
+   do pacote erp em desenvolvimento.
+2) Reescreva src/erp/modules/identity/presentation/login_view.py: janela normal (sem FramelessWindowHint e sem
+   WA_TranslucentBackground); card centralizado em um QGridLayout, com um QFrame VAZIO atrás só para a sombra
+   (QGraphicsDropShadowEffect nesse frame, nunca no card); estilo em um único QSS por objectName; logo via resource_path,
+   com log de aviso e sem quebrar se o arquivo faltar; botão Entrar como default; mesmo contrato com o presenter
+   (set_presenter, show_error, clear_password). Cada widget e cada layout é criado UMA vez.
+3) packaging/pyinstaller.spec: logo em datas (destino erp/ui/resources), falha clara se o arquivo não existir e upx=False
+   (UPX pode corromper bibliotecas do Qt).
+4) Testes (QT_QPA_PLATFORM=offscreen): resource_path em dev e com sys._MEIPASS simulado via monkeypatch; o diálogo não tem
+   FramelessWindowHint nem WA_TranslucentBackground; o logo carrega (pixmap não nulo); o botão chama presenter.login com
+   usuário e senha.
+Pronto quando o critério de pronto passar. A verificação visual (Fedora, wayland e xcb, com o executável do PyInstaller) é minha:
+marque-a como "não executado" se você não puder testar. Se o quadrado branco persistir, isole a splash antes de mexer no login.
+```
+
+**C.8 Senha padrão `admin/admin` (investigar e parar)**
+```
+Releia o CONTEXTO.md. NÃO altere nada ainda. O login admin/admin funciona, o que viola "não existe senha padrão".
+Rode `grep -rniE "admin.?admin|\"admin\"" src tests alembic` e mostre onde o usuário admin e a senha são criados
+(seed, bootstrap, migração, testes, scripts). Diga se algum hash ou senha está em migração já aplicada (nunca editar migração
+aplicada). Proponha o menor plano: (a) primeiro uso: se não existe nenhum usuário, uma tela de "Primeiro uso" cria o
+administrador com senha que cumpra a política do identity, must_change_password=True, ou lê NEXOERP_ADMIN_PASSWORD;
+(b) o que fazer com o banco de desenvolvimento que já tem admin/admin (migração nova que force a troca, ou recriar o banco).
+Nunca registrar senha nem hash em log. Pare e aguarde minha aprovação.
+```
+
 ---
 
 ## Passo 3: Prompts de apoio (use quando precisar)
@@ -427,6 +520,13 @@ Explique a causa em 2 linhas e corrija mostrando só os arquivos alterados. Não
 Releia o CONTEXTO.md. Seu último código violou: <regra>. Refaça a tarefa respeitando essa regra.
 ```
 
+**Quando a IA repetir blocos de código ou travar em loop**
+```
+Sua última resposta repetiu blocos de código (ou ficou grande demais). Descarte-a. Reescreva SOMENTE o arquivo <caminho>,
+uma única vez, sem trechos duplicados. Depois rode `uv run ruff check <caminho>` e `uv run python -m py_compile <caminho>`
+e mostre a saída real.
+```
+
 **Varredura de arquivos vazios (rodar a qualquer momento)**
 ```
 uv run python scan_stubs.py
@@ -446,3 +546,6 @@ cada candidato por busca (inclusive imports relativos e dinâmicos) antes de qua
 - **Ordem importa:** não pule a Tarefa 1.4 (auditoria) para depois do catálogo, pois adaptar auditoria depois é bem mais caro.
 - **Não crie estrutura vazia:** pastas e arquivos nascem junto com o código que os usa. Placeholder vazio vira ruído e quebra contratos do import-linter.
 - **Ao concluir cada fase:** rode a Tarefa 5.3 (build real) pelo menos uma vez por fase grande, para não descobrir só no final que o empacotamento quebrou.
+- **Sinais de que a IA se perdeu:** arquivo gigante, o mesmo bloco repetido, comando de shell dentro do código (como um `EOF` solto) ou a resposta terminando no meio. Não tente remendar: descarte e peça o arquivo de novo, só ele. Rode `ruff check` e `py_compile` no arquivo antes de testar qualquer coisa.
+- **Linux (Wayland e X11):** teste sempre com `QT_QPA_PLATFORM=wayland` e `QT_QPA_PLATFORM=xcb`. Se uma janela mostrar quadrado branco ou texto sumido, procure primeiro por `FramelessWindowHint`, `WA_TranslucentBackground` e `QGraphicsEffect` em container; a splash também é uma janela sem borda e merece suspeita.
+- **Senha de desenvolvimento:** se algo só funciona com `admin/admin`, trate como bug de segurança, não como atalho. A regra do projeto é não ter senha padrão.

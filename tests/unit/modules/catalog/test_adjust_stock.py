@@ -38,9 +38,7 @@ class FakeProductRepository(ProductRepository):
 
 def test_adjust_stock_increases() -> None:
     repo = FakeProductRepository()
-    product = Product(
-        id=1, sku="P001", name="Produto", unit="un", stock_qty=10000, company_id=1
-    )
+    product = Product(id=1, sku="P001", name="Produto", unit="un", stock_qty=10000, company_id=1)
     repo.add(product)
 
     uc = AdjustStock(repo)
@@ -61,9 +59,7 @@ def test_adjust_stock_increases() -> None:
 
 def test_adjust_stock_cannot_go_negative() -> None:
     repo = FakeProductRepository()
-    product = Product(
-        id=1, sku="P001", name="Produto", unit="un", stock_qty=10000, company_id=1
-    )
+    product = Product(id=1, sku="P001", name="Produto", unit="un", stock_qty=10000, company_id=1)
     repo.add(product)
 
     uc = AdjustStock(repo)
