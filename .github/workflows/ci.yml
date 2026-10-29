@@ -15,16 +15,16 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v7.0.1
 
       # uv ANTES de setup-python: o cache "uv" de setup-python exige uv no PATH
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
       - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.12"
 
