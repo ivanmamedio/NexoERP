@@ -19,14 +19,17 @@ from sqlalchemy.engine import Engine
 from erp.modules.cash.application.services import CashServices
 from erp.modules.cash.presentation.cash_movement_presenter import (
     CashMovementPresenter,
-    CashMovementView,
     MovementType,
 )
 from erp.shared.application.session import CurrentSession
 
 
-class CashMovementDialog(QDialog, CashMovementView):
-    """Diálogo para sangria ou suprimento."""
+class CashMovementDialog(QDialog):
+    """Diálogo para sangria ou suprimento.
+
+    Implementa estruturalmente o protocolo CashMovementView (herdar de um
+    Protocol junto de QDialog causa conflito de metaclasse com o PySide6).
+    """
 
     def __init__(
         self,

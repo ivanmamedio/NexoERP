@@ -22,13 +22,16 @@ from erp.modules.cash.application.services import CashServices
 from erp.modules.cash.domain.closing_report import CashClosingReport
 from erp.modules.cash.presentation.closing_report_presenter import (
     ClosingReportPresenter,
-    ClosingReportView,
 )
 from erp.shared.application.session import CurrentSession
 
 
-class ClosingReportDialog(QDialog, ClosingReportView):
-    """Diálogo para exibir relatório de fechamento de caixa."""
+class ClosingReportDialog(QDialog):
+    """Diálogo para exibir relatório de fechamento de caixa.
+
+    Implementa estruturalmente o protocolo ClosingReportView (herdar de um
+    Protocol junto de QDialog causa conflito de metaclasse com o PySide6).
+    """
 
     def __init__(
         self,

@@ -213,13 +213,14 @@ class TestSecurityAudit:
                         "datetime('now'), datetime('now'))"
                     )
                 )
-                # Version 0012 has both username AND user_number/employee_name as NOT NULL
+                # At N-1 (8706cf5235a7), the schema already has user_number and employee_name
+                # (username was removed by this migration). Insert data compatible with N-1 schema.
                 conn.execute(
                     text(
-                        "INSERT INTO users (username, user_number, employee_name, password_hash, "
+                        "INSERT INTO users (user_number, employee_name, password_hash, "
                         "must_change_password, failed_login_attempts, is_active, "
                         "company_id, created_at, updated_at) "
-                        "VALUES ('teste', 0, 'teste', '\$2b\$12\$test', 0, 0, 1, 1, "
+                        "VALUES (1, 'teste', '\$2b\$12\$test', 0, 0, 1, 1, "
                         "datetime('now'), datetime('now'))"
                     )
                 )

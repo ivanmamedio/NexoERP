@@ -19,13 +19,16 @@ from sqlalchemy.engine import Engine
 from erp.modules.settings.application.services import SettingsServices
 from erp.modules.settings.presentation.settings_presenter import (
     SettingsPresenter,
-    SettingsView,
 )
 from erp.shared.application.session import CurrentSession
 
 
-class SettingsDialog(QDialog, SettingsView):
-    """Diálogo de configurações da empresa."""
+class SettingsDialog(QDialog):
+    """Diálogo de configurações da empresa.
+
+    Implementa estruturalmente o protocolo SettingsView (herdar de um
+    Protocol junto de QDialog causa conflito de metaclasse com o PySide6).
+    """
 
     def __init__(
         self,

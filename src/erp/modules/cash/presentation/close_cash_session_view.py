@@ -19,13 +19,16 @@ from sqlalchemy.engine import Engine
 from erp.modules.cash.application.services import CashServices
 from erp.modules.cash.presentation.close_cash_session_presenter import (
     CloseCashSessionPresenter,
-    CloseCashSessionView,
 )
 from erp.shared.application.session import CurrentSession
 
 
-class CloseCashSessionDialog(QDialog, CloseCashSessionView):
-    """Diálogo para fechar sessão de caixa."""
+class CloseCashSessionDialog(QDialog):
+    """Diálogo para fechar sessão de caixa.
+
+    Implementa estruturalmente o protocolo CloseCashSessionView (herdar de um
+    Protocol junto de QDialog causa conflito de metaclasse com o PySide6).
+    """
 
     def __init__(
         self,

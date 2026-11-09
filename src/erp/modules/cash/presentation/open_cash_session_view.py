@@ -18,13 +18,16 @@ from sqlalchemy.engine import Engine
 from erp.modules.cash.application.services import CashServices
 from erp.modules.cash.presentation.open_cash_session_presenter import (
     OpenCashSessionPresenter,
-    OpenCashSessionView,
 )
 from erp.shared.application.session import CurrentSession
 
 
-class OpenCashSessionDialog(QDialog, OpenCashSessionView):
-    """Diálogo para abrir sessão de caixa."""
+class OpenCashSessionDialog(QDialog):
+    """Diálogo para abrir sessão de caixa.
+
+    Implementa estruturalmente o protocolo OpenCashSessionView (herdar de um
+    Protocol junto de QDialog causa conflito de metaclasse com o PySide6).
+    """
 
     def __init__(
         self,

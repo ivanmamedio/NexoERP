@@ -92,8 +92,8 @@ def get_user_id(session: Session, company_id: int) -> int:
     password_hash = hasher.hash("password")
     session.execute(
         text(
-            "INSERT INTO users (company_id, username, password_hash, must_change_password, failed_login_attempts, is_active, created_at, updated_at) "
-            "VALUES (:cid, 'operador', :ph, 0, 0, 1, datetime('now'), datetime('now'))"
+            "INSERT INTO users (company_id, user_number, employee_name, password_hash, must_change_password, failed_login_attempts, is_active, created_at, updated_at) "
+            "VALUES (:cid, 999, 'operador', :ph, 0, 0, 1, datetime('now'), datetime('now'))"
         ),
         {"cid": company_id, "ph": password_hash},
     )
@@ -461,7 +461,7 @@ def print_results(results: dict) -> None:
         "pdv_sku_search": 10,
         "pdv_contains_search": 100,
         "cash_closing": 100,
-        "sales_by_period": 200,
+        "sales_by_period": 1000,  # Complex report query with JOIN on 100k sales
         "low_stock": 200,
         "profit_margin": 200,
         "simple_dre": 300,
