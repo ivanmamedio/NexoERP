@@ -221,115 +221,21 @@ class _App:
         dialog.exec()
 
     def _on_companies_requested(self) -> None:
-        from PySide6.QtWidgets import (
-            QDialog,
-            QHBoxLayout,
-            QPushButton,
-            QTableWidget,
-            QTableWidgetItem,
-            QVBoxLayout,
-        )
-        from sqlalchemy.orm import Session
-
-        from erp.modules.companies.infrastructure.repository import (
-            SqlAlchemyCompanyRepository,
+        from erp.modules.companies.application.services import CompaniesServices
+        from erp.modules.companies.presentation.list_companies_view import (
+            create_companies_list_dialog,
         )
 
         engine = _AppContextHolder.engine
         if engine is None:
             return
 
-        dialog = QDialog(self._main_window)
-        dialog.setWindowTitle("Empresas")
-        dialog.resize(700, 500)
-        layout = QVBoxLayout(dialog)
-
-        table = QTableWidget(0, 4)
-        table.setHorizontalHeaderLabels(["Razão social", "Nome fantasia", "CNPJ", "Ativa"])
-        table.horizontalHeader().setSectionResizeMode(table.horizontalHeader().ResizeMode.Stretch)
-        layout.addWidget(table)
-
-        btn_layout = QHBoxLayout()
-        btn_add = QPushButton("Nova Empresa")
-        btn_close = QPushButton("Fechar")
-        btn_layout.addStretch()
-        btn_layout.addWidget(btn_add)
-        btn_layout.addWidget(btn_close)
-        layout.addLayout(btn_layout)
-
-        def _load_companies() -> None:
-            with Session(engine) as session:
-                repo = SqlAlchemyCompanyRepository(session)
-                companies = repo.list_all()
-                table.setRowCount(len(companies))
-                for row, c in enumerate(companies):
-                    table.setItem(row, 0, QTableWidgetItem(c.name or ""))
-                    table.setItem(row, 1, QTableWidgetItem(c.trade_name or ""))
-                    table.setItem(row, 2, QTableWidgetItem(c.tax_id or ""))
-                    table.setItem(row, 3, QTableWidgetItem("Sim" if c.active else "Não"))
-
-        def _on_add() -> None:
-            from erp.modules.companies.application.create_company import (
-                CreateCompany,
-                CreateCompanyInput,
-            )
-
-            create_dialog = QDialog(dialog)
-            create_dialog.setWindowTitle("Nova Empresa")
-            create_dialog.resize(400, 300)
-            create_layout = QVBoxLayout(create_dialog)
-
-            from PySide6.QtWidgets import QDialogButtonBox, QFormLayout, QLineEdit
-
-            form = QFormLayout()
-            name = QLineEdit()
-            name.setPlaceholderText("Razão social")
-            trade = QLineEdit()
-            trade.setPlaceholderText("Nome fantasia")
-            tax = QLineEdit()
-            tax.setPlaceholderText("CNPJ")
-            addr = QLineEdit()
-            addr.setPlaceholderText("Endereço")
-            phone = QLineEdit()
-            phone.setPlaceholderText("Telefone")
-            email = QLineEdit()
-            email.setPlaceholderText("E-mail")
-            form.addRow("Razão social:", name)
-            form.addRow("Nome fantasia:", trade)
-            form.addRow("CNPJ:", tax)
-            form.addRow("Endereço:", addr)
-            form.addRow("Telefone:", phone)
-            form.addRow("E-mail:", email)
-            create_layout.addLayout(form)
-
-            buttons = QDialogButtonBox(
-                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-            )
-            buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Salvar")
-            buttons.accepted.connect(create_dialog.accept)
-            buttons.rejected.connect(create_dialog.reject)
-            create_layout.addWidget(buttons)
-
-            if create_dialog.exec():
-                with Session(engine) as session:
-                    repo = SqlAlchemyCompanyRepository(session)
-                    use_case = CreateCompany(repo)
-                    use_case.execute(
-                        CreateCompanyInput(
-                            name=name.text().strip(),
-                            trade_name=trade.text().strip(),
-                            tax_id=tax.text().strip(),
-                            address=addr.text().strip(),
-                            phone=phone.text().strip(),
-                            email=email.text().strip(),
-                        )
-                    )
-                    session.commit()
-                _load_companies()
-
-        btn_add.clicked.connect(_on_add)
-        btn_close.clicked.connect(dialog.reject)
-        _load_companies()
+        companies_services = CompaniesServices(engine=engine)
+        dialog = create_companies_list_dialog(
+            services=companies_services,
+            session=self._session,
+            parent=self._main_window,
+        )
         dialog.exec()
 
     def _on_catalog_requested(self) -> None:

@@ -12,10 +12,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from erp.modules.companies.application.services import CompaniesServices
 from erp.modules.companies.domain.company import Company
 from erp.modules.companies.presentation.create_company_presenter import (
     CompaniesCreatePresenter,
 )
+from erp.shared.application.session import CurrentSession
 
 
 class CompaniesCreateWidget(QDialog):
@@ -80,6 +82,10 @@ class CompaniesCreateWidget(QDialog):
     def set_presenter(self, presenter: CompaniesCreatePresenter) -> None:
         self._presenter = presenter
 
+    def show_error(self, message: str) -> None:
+        self._error.setText(message)
+        self._error.show()
+
     def _on_submit(self) -> None:
         if self._presenter is None:
             return
@@ -113,3 +119,22 @@ class CompaniesCreateWidget(QDialog):
         self._phone.setText(company.phone or "")
         self._email.setText(company.email or "")
         self._active.setText("sim" if company.active else "não")
+
+
+def create_company_dialog(
+    services: CompaniesServices,
+    session: CurrentSession,
+    parent: QWidget | None = None,
+    company: Company | None = None,
+) -> CompaniesCreateWidget:
+    """Factory para criar o diálogo de criação/edição de empresa com presenter injetado."""
+    dialog = CompaniesCreateWidget(parent)
+    presenter = CompaniesCreatePresenter(
+        view=dialog,
+        services=services,
+        session=session,
+    )
+    dialog.set_presenter(presenter)
+    if company is not None:
+        dialog.load_company(company)
+    return dialog
