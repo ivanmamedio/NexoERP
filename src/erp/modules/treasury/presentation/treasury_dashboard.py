@@ -37,11 +37,13 @@ class TreasuryDashboardDialog(QDialog):
         self,
         presenter: TreasuryDashboardPresenter | None,
         session: CurrentSession,
+        engine: Engine | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._presenter = presenter
         self._session = session
+        self._engine = engine
 
         self.setWindowTitle("Tesouraria — Fluxo de Caixa, Contas a Pagar/Receber")
         self.setModal(True)
@@ -150,14 +152,34 @@ class TreasuryDashboardDialog(QDialog):
 
         layout.addLayout(summary_layout)
 
-        # Detalhes (placeholder para futuras expansões)
-        details_label = QLabel("Detalhamento por data disponível em relatórios específicos.")
-        details_label.setStyleSheet("color: #7f8c8d; font-style: italic; margin-top: 10px;")
-        details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(details_label)
+        # Botão para abrir detalhamento
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        self._detail_btn = QPushButton("Ver Detalhamento Diário/Mensal")
+        self._detail_btn.clicked.connect(self._open_cash_flow_detail)
+        btn_layout.addWidget(self._detail_btn)
+        layout.addLayout(btn_layout)
+
         layout.addStretch()
 
         return widget
+
+    def _open_cash_flow_detail(self) -> None:
+        """Abre o diálogo detalhado de fluxo de caixa."""
+        from erp.modules.treasury.application.services import TreasuryServices
+        from erp.modules.treasury.presentation.cash_flow_view import create_cash_flow_dialog
+
+        engine = self._engine
+        if engine is None:
+            return
+
+        services = TreasuryServices(engine=engine)
+        dialog = create_cash_flow_dialog(
+            services=services,
+            session=self._session,
+            parent=self,
+        )
+        dialog.exec()
 
     def _create_summary_card(self, title: str, value: str, color: str) -> tuple[QWidget, QLabel]:
         card = QWidget()
@@ -586,7 +608,7 @@ def create_treasury_dashboard_dialog(
     parent: QWidget | None = None,
 ) -> TreasuryDashboardDialog:
     """Factory para criar o dashboard de tesouraria com presenter injetado."""
-    dialog = TreasuryDashboardDialog(None, session, parent)
+    dialog = TreasuryDashboardDialog(None, session, engine, parent)
     presenter = TreasuryDashboardPresenter(
         view=dialog,
         services=services,
