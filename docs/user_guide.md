@@ -1,8 +1,24 @@
 # Documentação do Usuário - NexoERP
 
-## Instalação em 5 Minutos
+## Instalação Rápida (Usuário Final)
 
-### Windows (PowerShell)
+### Opção 1: Pacotes Prontos (Recomendado para Usuários Finais)
+
+Baixe o instalador para seu sistema operacional na [página de Releases](https://github.com/ivanmamedio/NexoERP/releases):
+
+| Sistema | Arquivo | Como Instalar |
+|---------|---------|---------------|
+| **Windows 10/11** | `NexoERP-Setup.exe` | Execute o `.exe` e siga o assistente |
+| **Linux (Ubuntu/Debian)** | `nexoerp-<versao>-amd64.deb` | `sudo apt install ./nexoerp-*.deb` |
+| **Linux (Qualquer distro)** | `nexoerp-<versao>-x86_64.AppImage` | `chmod +x nexoerp-*.AppImage && ./nexoerp-*.AppImage` |
+
+**Vantagens:** Não precisa instalar Python, Git, nem compilar. Instalação em 1 clique.
+
+---
+
+### Opção 2: Desenvolvimento / Código Fonte (Desenvolvedores)
+
+#### Windows (PowerShell)
 
 ```powershell
 # 1. Instalar Python 3.12+ (se não tiver)
@@ -20,7 +36,7 @@ uv sync --all-groups --dev
 uv run python -m erp
 ```
 
-### Linux (Ubuntu/Debian)
+#### Linux (Ubuntu/Debian)
 
 ```bash
 # 1. Instalar dependências do sistema
@@ -38,23 +54,48 @@ uv sync --all-groups --dev
 uv run python -m erp
 ```
 
+#### Verificar Instalação
+
+```bash
+# Deve mostrar a versão sem erros
+uv run python -m erp --help
+
+# Teste headless (sem interface gráfica)
+DISPLAY="" uv run python -m erp
+# Deve mostrar: "Bootstrap successful" e sair com código 0
+```
+
 ## Primeiro Uso
 
 ### 1. Login Inicial
-- Na primeira execução, crie o usuário administrador definindo a variável de ambiente:
-  - **Windows (PowerShell):**
-    ```powershell
-    $env:NEXOERP_ADMIN_PASSWORD = "SuaSenhaSegura123"
-    $env:NEXOERP_ADMIN_USERNAME = "admin"
-    uv run python -m erp
-    ```
-  - **Linux:**
-    ```bash
-    export NEXOERP_ADMIN_PASSWORD="SuaSenhaSegura123"
-    export NEXOERP_ADMIN_USERNAME="admin"
-    uv run python -m erp
-    ```
-- Ou chame programaticamente: `create_first_admin(session, hasher, "admin", "senha")`
+
+**Opção A: Tela de Primeiro Uso (Recomendado)**
+Na primeira execução sem usuários cadastrados, o NexoERP abre automaticamente a **Tela de Primeiro Uso** onde você:
+1. Define o nome do primeiro administrador
+2. Define a senha (mínimo 8 caracteres, com letra e número)
+3. Clica em "Criar Administrador"
+
+**Opção B: Variáveis de Ambiente (Automação/Deploy)**
+```powershell
+# Windows (PowerShell)
+$env:NEXOERP_ADMIN_PASSWORD = "SuaSenhaSegura123"
+$env:NEXOERP_ADMIN_USERNAME = "admin"
+uv run python -m erp
+```
+
+```bash
+# Linux
+export NEXOERP_ADMIN_PASSWORD="SuaSenhaSegura123"
+export NEXOERP_ADMIN_USERNAME="admin"
+uv run python -m erp
+```
+
+**Regras de Senha:**
+- Mínimo 8 caracteres
+- Máximo 72 caracteres (limite do bcrypt)
+- Pelo menos 1 letra e 1 número
+
+> **Importante:** Não existe senha padrão `admin/admin`. O primeiro admin **sempre** deve ser criado explicitamente.
 
 ### 2. Configurar Empresa
 1. Login com o usuário admin
@@ -138,6 +179,22 @@ uv run python -m erp
 - Verifique se o usuário tem o papel correto
 - Menu **Usuários** → editar usuário → **Papéis**
 - Admin tem acesso total; Operador só PDV e Caixa
+
+## Relatório de Erros (Novo)
+
+O NexoERP possui um **manipulador global de exceções** que captura erros inesperados:
+
+1. **Dialog amigável** aparece automaticamente em caso de erro
+2. **Botão "Copiar Relatório"** copia o traceback completo para a área de transferência
+3. **Botão "Fechar"** fecha o dialog e o aplicativo com segurança
+4. **Log completo** salvo em `~/.local/share/NexoERP/logs/erp.log`
+
+**Como reportar um erro:**
+1. Clique em **"Copiar Relatório"** no dialog de erro
+2. Cole no GitHub Issues ou envie para o suporte
+3. Inclua: o que estava fazendo, versão do app, SO
+
+> **Dica:** O relatório copiado NÃO contém senhas nem dados sensíveis.
 
 ## Atalhos do PDV
 
