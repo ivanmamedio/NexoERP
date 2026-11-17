@@ -30,6 +30,7 @@ from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyUserRepository,
 )
 from erp.shared.application.session import CurrentSession
+from erp.shared.ui.exception_handler import install_global_exception_handler
 from erp.ui.resource_paths import resource_path
 from erp.ui.splash import NexoERPSplashScreen, show_splash_screen
 
@@ -479,6 +480,9 @@ def main() -> int:
     from PySide6 import QtWidgets
 
     app = QtWidgets.QApplication(sys.argv)
+
+    # Instala handler global de exceções
+    install_global_exception_handler(app, ctx.engine)
 
     # Splash screen - usa helper de recursos
     logo_path = resource_path("erp", "ui", "resources", "logo.png")
