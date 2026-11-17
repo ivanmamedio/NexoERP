@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import shutil
 import sqlite3
 import tempfile
@@ -103,11 +102,7 @@ class BackupService(BackupServicePort):
             src_conn.close()
 
         # Create backup using sqlite3.Connection.backup() to a temp file
-        with tempfile.NamedTemporaryFile(
-            suffix=".db", delete=False, dir=str(self._backup_dir)
-        ) as tmp_file:
-            tmp_path = tmp_file.name
-
+        tmp_path = self._backup_dir / f"tmp_backup_{backup_id}_{timestamp}.db"
         try:
             src_conn = sqlite3.connect(source_db)
             dst_conn = sqlite3.connect(tmp_path)
@@ -124,12 +119,12 @@ class BackupService(BackupServicePort):
             return str(zip_path)
         finally:
             # Clean up temp file
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            if tmp_path.exists():
+                tmp_path.unlink()
 
     def _calculate_checksum(self, file_path: str) -> str:
         sha256 = hashlib.sha256()
-        with open(file_path, "rb") as f:
+        with Path(file_path).open("rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 sha256.update(chunk)
         return sha256.hexdigest()
@@ -171,15 +166,16 @@ class BackupService(BackupServicePort):
                     shutil.copy2(str(extracted_path), tmp_path)
                     # Clean up extracted file
                     if extracted_path.exists():
-                        os.unlink(str(extracted_path))
+                        extracted_path.unlink()
 
                 # Copy the extracted backup to the target location
                 shutil.copy2(tmp_path, target_db_path)
 
                 return True
             finally:
-                if tmp_path and os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
+                tmp_path_obj = Path(tmp_path) if tmp_path else None
+                if tmp_path_obj and tmp_path_obj.exists():
+                    tmp_path_obj.unlink()
         finally:
             session.close()
 
