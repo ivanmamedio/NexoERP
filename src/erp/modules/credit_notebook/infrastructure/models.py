@@ -40,7 +40,7 @@ class CreditCustomerModel(Base, TimestampMixin):
         return f"<CreditCustomerModel(id={self.id!r}, name={self.name!r})>"
 
 
-class CreditEntryModel(Base, TimestampMixin):
+class CreditEntryModel(Base):
     """Lançamento do caderno de fiado."""
 
     __tablename__ = "credit_entries"
