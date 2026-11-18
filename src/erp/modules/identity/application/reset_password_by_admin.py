@@ -31,6 +31,7 @@ class ResetPasswordByAdmin:
     """
 
     TEMP_PASSWORD = "novasenha"
+    TEMP_PASSWORD_HASH: str | None = None  # Will be set by caller
 
     def __init__(
         self,
@@ -54,8 +55,13 @@ class ResetPasswordByAdmin:
         if user is None:
             raise ValueError("Usuário não encontrado")
 
-        # Define senha temporária "novasenha" e força troca no próximo login
-        user.password_hash = self._password_hasher.hash(self.TEMP_PASSWORD)
+        # Use pre-computed hash from caller (AsyncBcryptHasher)
+        if self.TEMP_PASSWORD_HASH is None:
+            # Fallback for tests/sync usage
+            user.password_hash = self._password_hasher.hash(self.TEMP_PASSWORD)
+        else:
+            user.password_hash = self.TEMP_PASSWORD_HASH
+
         user.must_change_password = True
         user.reset_failed_logins()
         self._user_repo.save(user)

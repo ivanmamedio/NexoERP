@@ -78,12 +78,15 @@ def test_change_password_with_current_password() -> None:
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher, FakePermissionGate())
 
+    # Pre-hash the new password
+    new_password_hash = hasher.hash("senha_nova1")
+
     result = uc.execute(
         ChangePasswordInput(
             actor_id=1,
             user_id=1,
             current_password="senha_antiga1",
-            new_password="senha_nova1",
+            new_password_hash=new_password_hash,
         )
     )
 
@@ -106,12 +109,14 @@ def test_change_password_without_current_password() -> None:
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher, FakePermissionGate())
 
+    new_password_hash = hasher.hash("senha_nova1")
+
     result = uc.execute(
         ChangePasswordInput(
             actor_id=1,
             user_id=1,
             current_password=None,
-            new_password="senha_nova1",
+            new_password_hash=new_password_hash,
         )
     )
 
@@ -132,13 +137,15 @@ def test_change_password_wrong_current() -> None:
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher, FakePermissionGate())
 
+    new_password_hash = hasher.hash("senha_nova1")
+
     with pytest.raises(ValueError, match="Senha atual inválida"):
         uc.execute(
             ChangePasswordInput(
                 actor_id=1,
                 user_id=1,
                 current_password="senha_errada",
-                new_password="senha_nova1",
+                new_password_hash=new_password_hash,
             )
         )
 
@@ -148,13 +155,15 @@ def test_change_password_user_not_found() -> None:
     hasher = FakePasswordHasher()
     uc = ChangePassword(repo, hasher, FakePermissionGate())
 
+    new_password_hash = hasher.hash("nova")
+
     with pytest.raises(ValueError, match="Usuário não encontrado"):
         uc.execute(
             ChangePasswordInput(
                 actor_id=1,
                 user_id=999,
                 current_password="senha",
-                new_password="nova",
+                new_password_hash=new_password_hash,
             )
         )
 
@@ -174,12 +183,14 @@ def test_change_password_admin_reset_requires_user_manage() -> None:
     gate.deny = True
     uc = ChangePassword(repo, hasher, gate)
 
+    new_password_hash = hasher.hash("senha_nova1")
+
     with pytest.raises(PermissionDenied):
         uc.execute(
             ChangePasswordInput(
                 actor_id=1,
                 user_id=2,
                 current_password=None,
-                new_password="senha_nova1",
+                new_password_hash=new_password_hash,
             )
         )

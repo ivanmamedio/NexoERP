@@ -5,8 +5,9 @@ Fluxo de identidade:
   2. Splash screen com logo.
   3. Tela de login (modal).
   4. Se must_change_password=True -> tela de troca de senha (forçada).
-  4. MainWindow com menus filtrados por permissão e guarda de sessão ociosa.
-  5. Ao expirar a sessão ociosa, volta para o login.
+  5. Seleção de empresa (se usuário tem acesso a múltiplas).
+  6. MainWindow com menus filtrados por permissão e guarda de sessão ociosa.
+  7. Ao expirar a sessão ociosa, volta para o login.
 """
 
 from __future__ import annotations
@@ -86,6 +87,13 @@ class _App:
                 changed = self._show_change_password(forced=True)
                 if not changed:
                     continue
+
+            # Seleção de empresa após login/senha
+            company_selected = self._show_company_selection()
+            if not company_selected:
+                # Usuário cancelou seleção de empresa -> volta para login
+                self._session = CurrentSession()
+                continue
 
             self._open_main_window()
             # Fecha splash quando janela principal abrir
@@ -175,6 +183,112 @@ class _App:
         dialog.exec()
         return not self._session.username or not self._must_change_password()
 
+    def _show_company_selection(self) -> bool:
+        """Mostra diálogo de seleção de empresa se usuário tem acesso a múltiplas.
+        
+        Retorna True se empresa foi selecionada, False se usuário cancelou.
+        """
+        engine = _AppContextHolder.engine
+        if engine is None:
+            return False
+
+        from sqlalchemy import select
+        from sqlalchemy.orm import Session
+
+        from erp.modules.companies.infrastructure.models import CompanyModel
+        from erp.modules.identity.infrastructure.models import user_company_role
+        from erp.modules.identity.presentation.select_company_view import (
+            create_select_company_dialog,
+        )
+
+        dialog = create_select_company_dialog(
+            presenter=None,
+            parent=self._main_window,
+        )
+
+        # Load companies for current user
+        user_id = self._session.user_id
+        if user_id is None:
+            return False
+
+        try:
+            with Session(engine) as session:
+                stmt = (
+                    select(CompanyModel.id, CompanyModel.name)
+                    .join(
+                        user_company_role,
+                        CompanyModel.company_id == user_company_role.c.company_id,
+                    )
+                    .where(user_company_role.c.user_id == user_id)
+                    .distinct()
+                )
+                results = session.execute(stmt).all()
+                companies = [(row.id, row.name) for row in results]
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(dialog, "Erro", f"Erro ao carregar empresas: {exc}")
+            return False
+
+        if not companies:
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.warning(
+                dialog,
+                "Aviso",
+                "Você não tem acesso a nenhuma empresa. Contate o administrador.",
+            )
+            return False
+
+        if len(companies) == 1:
+            # Apenas uma empresa - seleciona automaticamente
+            self._session.company_id = companies[0][0]
+            # Atualiza company_id no usuário (default company) - precisa bypass do audit trigger
+            from sqlalchemy.orm import Session as SASession
+
+            from erp.modules.audit.infrastructure.triggers import (
+                disable_bypass,
+                enable_bypass,
+            )
+            from erp.modules.identity.infrastructure.models import UserModel
+            enable_bypass(engine)
+            try:
+                with SASession(engine) as session:
+                    user_model = session.get(UserModel, self._session.user_id)
+                    if user_model:
+                        user_model.company_id = companies[0][0]
+                        session.commit()
+            finally:
+                disable_bypass(engine)
+            return True
+
+        # Múltiplas empresas - mostra lista para seleção
+        dialog.render_companies(companies)
+
+        result = dialog.exec()
+        if result == QDialog.DialogCode.Accepted:
+            company_id = dialog.get_selected_company_id()
+            if company_id is not None:
+                self._session.company_id = company_id
+                # Atualiza company_id no usuário (default company) - precisa bypass do audit trigger
+                from sqlalchemy.orm import Session as SASession
+
+                from erp.modules.audit.infrastructure.triggers import (
+                    disable_bypass,
+                    enable_bypass,
+                )
+                from erp.modules.identity.infrastructure.models import UserModel
+                enable_bypass(engine)
+                try:
+                    with SASession(engine) as session:
+                        user_model = session.get(UserModel, self._session.user_id)
+                        if user_model:
+                            user_model.company_id = company_id
+                            session.commit()
+                finally:
+                    disable_bypass(engine)
+                return True
+        return False
+
     def _open_main_window(self) -> None:
         from erp.app.main_window import MainWindow
 
@@ -222,16 +336,25 @@ class _App:
         dialog.exec()
 
     def _on_companies_requested(self) -> None:
+        from sqlalchemy.orm import Session
+
         from erp.modules.companies.application.services import CompaniesServices
         from erp.modules.companies.presentation.list_companies_view import (
             create_companies_list_dialog,
         )
+        from erp.modules.identity.infrastructure.repository import SqlAlchemyUserRepository
 
         engine = _AppContextHolder.engine
         if engine is None:
             return
 
-        companies_services = CompaniesServices(engine=engine)
+        with Session(engine) as session:
+            user_repo = SqlAlchemyUserRepository(session)
+
+        companies_services = CompaniesServices(
+            engine=engine,
+            user_company_assigner=user_repo,
+        )
         dialog = create_companies_list_dialog(
             services=companies_services,
             session=self._session,

@@ -98,3 +98,13 @@ class ChangePasswordDialog(QDialog):
             return
         self._error_label.hide()
         self._presenter.change(self._current.text(), self._new.text(), self._confirm.text())
+
+
+def create_change_password_dialog(
+    presenter: ChangePasswordPresenter | None = None,
+    parent: object | None = None,
+) -> ChangePasswordDialog:
+    dialog = ChangePasswordDialog(parent)
+    if presenter is not None:
+        dialog.set_presenter(presenter)
+    return dialog

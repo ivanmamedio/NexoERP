@@ -152,3 +152,13 @@ class UsersWidget(QWidget):
     def _on_activate(self) -> None:
         if self._presenter is not None:
             self._presenter.set_active(True)
+
+
+def create_users_widget(
+    presenter: UsersPresenter | None = None,
+    parent: QWidget | None = None,
+) -> UsersWidget:
+    widget = UsersWidget(parent)
+    if presenter is not None:
+        widget.set_presenter(presenter)
+    return widget

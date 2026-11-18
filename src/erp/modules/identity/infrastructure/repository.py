@@ -130,6 +130,40 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
         )
         self._session.flush()
 
+    def assign_user_to_company(
+        self, user_id: int, company_id: int, role_name: str
+    ) -> None:
+        """Associa um usuário a uma empresa com um papel específico.
+
+        Implementa a porta UserCompanyAssigner para o módulo de empresas.
+        """
+        from erp.modules.identity.infrastructure.models import RoleModel, user_company_role
+
+        # Busca o papel pelo nome
+        role_model = self._session.execute(
+            select(RoleModel).where(RoleModel.name == role_name)
+        ).scalar_one_or_none()
+        if role_model is None:
+            raise ValueError(f"Papel '{role_name}' não encontrado")
+
+        # Idempotente: não duplica vínculo user-role-company já existente
+        existing = self._session.execute(
+            select(user_company_role).where(
+                user_company_role.c.user_id == user_id,
+                user_company_role.c.role_id == role_model.id,
+                user_company_role.c.company_id == company_id,
+            )
+        ).first()
+        if existing is not None:
+            return
+
+        self._session.execute(
+            insert(user_company_role).values(
+                user_id=user_id, role_id=role_model.id, company_id=company_id
+            )
+        )
+        self._session.flush()
+
 
 class SqlAlchemyRoleRepository(SqlAlchemyRepository[RoleModel, Role, int]):
     """SQLAlchemy repository for Role."""

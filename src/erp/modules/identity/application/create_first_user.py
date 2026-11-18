@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
-from erp.modules.identity.domain.password_policy import validate_password_policy
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
 
@@ -18,7 +17,7 @@ from erp.modules.identity.domain.user import User
 @dataclass(slots=True, frozen=True)
 class CreateFirstUserInput:
     employee_name: str
-    password: str
+    password_hash: str
     role_name: str = "Administrador"
 
 
@@ -55,13 +54,13 @@ class CreateFirstUser:
         if self._user_repo.list_all() is not None and len(self._user_repo.list_all()) > 0:
             raise ValueError("Já existe pelo menos um usuário cadastrado.")
 
-        validate_password_policy(data.password)
-        password_hash = self._password_hasher.hash(data.password)
+        # Password policy validation should be done by caller before hashing
+        # Using pre-hashed password from caller
 
         user = User(
             user_number=0,  # Primeiro admin sempre tem user_number = 0
             employee_name=data.employee_name,
-            password_hash=password_hash,
+            password_hash=data.password_hash,
             must_change_password=True,
             is_active=True,
         )

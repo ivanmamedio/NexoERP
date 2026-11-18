@@ -164,8 +164,16 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     resolved_data_dir = data_dir or app_paths.get_data_dir()
     resolved_data_dir.mkdir(parents=True, exist_ok=True)
 
+    # Allow override of backup directory via environment variable
+    backup_dir_env = os.environ.get("NEXOERP_BACKUP_DIR")
+    backup_dir = Path(backup_dir_env) if backup_dir_env else (resolved_data_dir / "backups")
+
     setup_logging()
-    _logger.info("Starting ERP bootstrap (data_dir=%s)", resolved_data_dir)
+    _logger.info(
+        "Starting ERP bootstrap (data_dir=%s, backup_dir=%s)",
+        resolved_data_dir,
+        backup_dir,
+    )
 
     db_path = resolved_data_dir / "erp.db"
     # Build engine and also get a clean URL for migrations (avoids Windows %3A%5C issues)
@@ -189,7 +197,7 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
 
             temp_service = BackupService(
                 session_factory=_temp_session_factory,
-                backup_dir=resolved_data_dir / "backups",
+                backup_dir=backup_dir,
                 secondary_dir=Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None,
             )
             temp_service.create_backup("pre_migration", str(db_path), "pre_migration")
@@ -290,7 +298,6 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     supervisor_auth = _SqlSupervisorAuth(identity_services)
 
     # Backup services (criado após as migrações para que a tabela backups exista)
-    backup_dir = resolved_data_dir / "backups"
     secondary_dir = Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None
     backup_service = BackupService(
         session_factory=lambda: Session(engine),

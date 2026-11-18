@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
@@ -11,6 +12,8 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
+    QProgressBar,
     QVBoxLayout,
     QWidget,
 )
@@ -103,6 +106,15 @@ class FirstUseDialog(QDialog):
         self._info_label.hide()
         card_layout.addWidget(self._info_label)
 
+        # Loading indicator
+        self._loading_bar = QProgressBar(card)
+        self._loading_bar.setObjectName("LoadingBar")
+        self._loading_bar.setRange(0, 0)  # Indeterminate
+        self._loading_bar.setTextVisible(False)
+        self._loading_bar.setFixedHeight(4)
+        self._loading_bar.hide()
+        card_layout.addWidget(self._loading_bar)
+
         self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, card)
         self._buttons.setObjectName("CreateButtons")
         submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
@@ -140,6 +152,48 @@ class FirstUseDialog(QDialog):
 
     def accept(self) -> None:
         super().accept()
+
+    # --- FirstUseView protocol extensions -----------------------------------
+
+    def set_loading(self, loading: bool) -> None:
+        """Show/hide loading indicator and disable/enable inputs."""
+        if loading:
+            self._loading_bar.show()
+            self._username.setEnabled(False)
+            self._password.setEnabled(False)
+            self._confirm.setEnabled(False)
+            submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
+            if submit_button is not None:
+                submit_button.setEnabled(False)
+                submit_button.setText("Processando...")
+        else:
+            self._loading_bar.hide()
+            self._username.setEnabled(True)
+            self._password.setEnabled(True)
+            self._confirm.setEnabled(True)
+            submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
+            if submit_button is not None:
+                submit_button.setEnabled(True)
+                submit_button.setText("Criar Primeiro Administrador")
+
+    def show_confirmation(
+        self,
+        message: str,
+        on_confirm: Callable[[], None],
+        on_cancel: Callable[[], None],
+    ) -> None:
+        """Show confirmation dialog with confirm/cancel actions."""
+        reply = QMessageBox.question(
+            self,
+            "Confirmar Criação",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            on_confirm()
+        else:
+            on_cancel()
 
     # --- internals ----------------------------------------------------------
 
@@ -215,4 +269,23 @@ QLabel#SubtitleLabel {
     font-size: 12px;
     color: #7f8c8d;
 }
+QProgressBar#LoadingBar {
+    background-color: #ecf0f1;
+    border: none;
+    border-radius: 2px;
+}
+QProgressBar#LoadingBar::chunk {
+    background-color: #3498db;
+    border-radius: 2px;
+}
 """
+
+
+def create_first_use_dialog(
+    presenter: FirstUsePresenter | None = None,
+    parent: QWidget | None = None,
+) -> FirstUseDialog:
+    dialog = FirstUseDialog(parent)
+    if presenter is not None:
+        dialog.set_presenter(presenter)
+    return dialog

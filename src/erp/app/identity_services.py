@@ -84,6 +84,9 @@ class SqlIdentityServices:
         new_password: str,
         actor_id: int,
     ) -> ChangePasswordOutput:
+        # Hash the password before calling the use case
+        new_password_hash = self._hasher.hash(new_password)
+
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
             result = ChangePassword(uow.users, self._hasher, PermissionGate(uow.users)).execute(
@@ -91,7 +94,7 @@ class SqlIdentityServices:
                     actor_id=actor_id,
                     user_id=user_id,
                     current_password=current_password,
-                    new_password=new_password,
+                    new_password_hash=new_password_hash,
                 )
             )
             uow.commit()
@@ -124,6 +127,9 @@ class SqlIdentityServices:
         actor_id: int,
         must_change_password: bool = False,
     ) -> CreateUserOutput:
+        # Hash the password before calling the use case
+        password_hash = self._hasher.hash(password)
+
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None and uow.roles is not None
             role = self._require_role(uow.roles, role_name)
@@ -131,7 +137,7 @@ class SqlIdentityServices:
                 CreateUserInput(
                     actor_id=actor_id,
                     employee_name=employee_name,
-                    password=password,
+                    password_hash=password_hash,
                     role_name=role_name,
                     must_change_password=must_change_password,
                 ),
@@ -166,6 +172,10 @@ class SqlIdentityServices:
         actor_id: int,
         target_user_id: int,
     ) -> ResetPasswordByAdminOutput:
+        # Pre-compute the temporary password hash
+        temp_password_hash = self._hasher.hash(ResetPasswordByAdmin.TEMP_PASSWORD)
+        ResetPasswordByAdmin.TEMP_PASSWORD_HASH = temp_password_hash
+
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
             result = ResetPasswordByAdmin(

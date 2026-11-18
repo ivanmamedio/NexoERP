@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from erp.modules.identity.application.permission_gate import PermissionGate
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
-from erp.modules.identity.domain.password_policy import validate_password_policy
 from erp.modules.identity.domain.permission import PERMISSION_USER_MANAGE
 
 
@@ -15,7 +14,7 @@ class ChangePasswordInput:
     actor_id: int
     user_id: int
     current_password: str | None
-    new_password: str
+    new_password_hash: str
 
 
 @dataclass(slots=True, frozen=True)
@@ -54,8 +53,9 @@ class ChangePassword:
             # Reset sem saber a senha atual só é permitido para administradores
             self._gate.require(data.actor_id, PERMISSION_USER_MANAGE.code)
 
-        validate_password_policy(data.new_password)
-        user.password_hash = self._password_hasher.hash(data.new_password)
+        # Password policy validation should be done by caller before hashing
+        # Using pre-hashed password from caller
+        user.password_hash = data.new_password_hash
         user.must_change_password = False
         user.reset_failed_logins()
         self._user_repo.save(user)

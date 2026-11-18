@@ -34,3 +34,12 @@ class UserPermissionReader(Protocol):
     """Port for reading permission codes of a user (implemented by identity)."""
 
     def get_permission_codes(self, user_id: int) -> list[str]: ...
+
+
+@runtime_checkable
+class UserCompanyAssigner(Protocol):
+    """Port for associating a user with a company and role (implemented by identity)."""
+
+    def assign_user_to_company(
+        self, user_id: int, company_id: int, role_name: str
+    ) -> None: ...

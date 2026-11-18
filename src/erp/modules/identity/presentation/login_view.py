@@ -249,3 +249,13 @@ class LoginDialog(QDialog):
             return
 
         self._presenter.login(user_number, self._password.text())
+
+
+def create_login_dialog(
+    presenter: LoginPresenter | None = None,
+    parent: QWidget | None = None,
+) -> LoginDialog:
+    dialog = LoginDialog(parent)
+    if presenter is not None:
+        dialog.set_presenter(presenter)
+    return dialog

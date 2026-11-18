@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from erp.modules.identity.application.permission_gate import PermissionGate
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
-from erp.modules.identity.domain.password_policy import validate_password_policy
 from erp.modules.identity.domain.permission import PERMISSION_USER_MANAGE
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.domain.user import User
@@ -16,7 +15,7 @@ from erp.modules.identity.domain.user import User
 class CreateUserInput:
     actor_id: int
     employee_name: str
-    password: str
+    password_hash: str
     role_name: str
     company_id: int | None = None
     must_change_password: bool = False
@@ -58,8 +57,8 @@ class CreateUser:
         if any(u.employee_name == data.employee_name for u in existing):
             raise ValueError(f"Funcionário '{data.employee_name}' já existe")
 
-        validate_password_policy(data.password)
-        self._password_hasher.hash(data.password)
+        # Password policy validation should be done by caller before hashing
+        # Using pre-hashed password from caller
 
         # Gerar próximo user_number sequencial
         existing_users = self._user_repo.list_all()
@@ -68,7 +67,7 @@ class CreateUser:
         user = User(
             user_number=next_number,
             employee_name=data.employee_name,
-            password_hash=self._password_hasher.hash(data.password),
+            password_hash=data.password_hash,
             must_change_password=data.must_change_password,
             company_id=data.company_id,
         )

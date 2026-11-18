@@ -24,6 +24,7 @@ from erp.modules.companies.application.list_companies import (
     ListCompaniesOutput,
 )
 from erp.modules.companies.application.permission_gate import CompanyPermissionGate
+from erp.modules.companies.application.ports import UserCompanyAssigner
 from erp.modules.companies.application.update_company import (
     UpdateCompany,
     UpdateCompanyInput,
@@ -38,23 +39,40 @@ class CompaniesServices:
     """Fachada de casos de uso de empresa sobre SQLAlchemy (1 transação por operação)."""
 
     def __init__(
-        self, engine: Engine, permission_gate: CompanyPermissionGate | None = None
+        self,
+        engine: Engine,
+        permission_gate: CompanyPermissionGate | None = None,
+        user_company_assigner: UserCompanyAssigner | None = None,
     ) -> None:
         self._engine = engine
         self._permission_gate = permission_gate
+        self._user_company_assigner = user_company_assigner
 
     def _require_company_manage(self, actor_user_id: int | None) -> None:
         if self._permission_gate is not None and actor_user_id is not None:
             self._permission_gate.assert_can_manage_companies(actor_user_id)
 
     def create_company(
-        self, input: CreateCompanyInput, *, actor_user_id: int | None = None
+        self,
+        input: CreateCompanyInput,
+        *,
+        actor_user_id: int | None = None,
+        assign_admin_role: str = "Administrador",
     ) -> CreateCompanyOutput:
         self._require_company_manage(actor_user_id)
         with SqlAlchemyCompanyUnitOfWork(self._engine) as uow:
             assert uow.companies is not None
             result = CreateCompany(uow.companies).execute(input)
             uow.commit()
+
+            # Associate the creating user (admin) with the new company
+            if actor_user_id is not None and self._user_company_assigner is not None:
+                self._user_company_assigner.assign_user_to_company(
+                    user_id=actor_user_id,
+                    company_id=result.company.id,
+                    role_name=assign_admin_role,
+                )
+
             return result
 
     def list_companies(self, *, active_only: bool = False) -> ListCompaniesOutput:

@@ -82,11 +82,14 @@ def test_create_user_success() -> None:
 
     role = Role(name="Caixa", description="Caixa", is_active=True)
 
+    # Pre-hash the password (as the presenter would do)
+    password_hash = hasher.hash("senha123")
+
     result = uc.execute(
         CreateUserInput(
             actor_id=1,
             employee_name="João",
-            password="senha123",
+            password_hash=password_hash,
             role_name="Caixa",
             must_change_password=False,
         ),
@@ -112,11 +115,13 @@ def test_create_user_duplicate_employee_name() -> None:
 
     role = Role(name="Caixa", description="Caixa", is_active=True)
 
+    password_hash = hasher.hash("senha123")
+
     uc.execute(
         CreateUserInput(
             actor_id=1,
             employee_name="João",
-            password="senha123",
+            password_hash=password_hash,
             role_name="Caixa",
         ),
         role=role,
@@ -127,7 +132,7 @@ def test_create_user_duplicate_employee_name() -> None:
             CreateUserInput(
                 actor_id=1,
                 employee_name="João",
-                password="senha456",
+                password_hash=password_hash,
                 role_name="Caixa",
             ),
             role=role,
@@ -144,12 +149,14 @@ def test_create_user_requires_user_manage() -> None:
 
     role = Role(name="Caixa", description="Caixa", is_active=True)
 
+    password_hash = hasher.hash("senha123")
+
     with pytest.raises(PermissionDenied):
         uc.execute(
             CreateUserInput(
                 actor_id=1,
                 employee_name="João",
-                password="senha123",
+                password_hash=password_hash,
                 role_name="Caixa",
             ),
             role=role,

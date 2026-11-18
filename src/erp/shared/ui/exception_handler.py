@@ -42,17 +42,17 @@ class GlobalExceptionHandler(QObject):
         exc_tb: TracebackType | None,
     ) -> None:
         """Handle uncaught exceptions."""
+        # Don't show dialog for KeyboardInterrupt or SystemExit
+        if exc_type in (KeyboardInterrupt, SystemExit):
+            self._original_excepthook(exc_type, exc_value, exc_tb)
+            return
+
         # Format the full traceback
         tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
         tb_text = "".join(tb_lines)
 
         # Log the full error
         _logger.critical("Uncaught exception:\n%s", tb_text)
-
-        # Don't show dialog for KeyboardInterrupt or SystemExit
-        if exc_type in (KeyboardInterrupt, SystemExit):
-            self._original_excepthook(exc_type, exc_value, exc_tb)
-            return
 
         # Show error dialog (use QTimer to ensure it runs in the event loop)
         QTimer.singleShot(0, lambda: self._show_error_dialog(exc_type, exc_value, tb_text))
