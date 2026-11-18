@@ -45,6 +45,8 @@ class CatalogServices(Protocol):
     def update_price(self, input: UpdatePriceInput) -> UpdatePriceOutput: ...
     def adjust_stock(self, input: AdjustStockInput) -> AdjustStockOutput: ...
     def list_low_stock(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
+    def list_all(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
+    def delete_product(self, product_id: int, *, company_id: int | None = None) -> None: ...
 
 
 class SqlAlchemyCatalogServices:
@@ -94,3 +96,15 @@ class SqlAlchemyCatalogServices:
         with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
             assert uow.products is not None
             return ListLowStock(uow.products).execute(company_id=company_id)
+
+    def list_all(self, *, company_id: int | None = None) -> ListLowStockOutput:
+        with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
+            assert uow.products is not None
+            products = uow.products.list_all(company_id=company_id)
+            return ListLowStockOutput(products=products)
+
+    def delete_product(self, product_id: int, *, company_id: int | None = None) -> None:
+        with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
+            assert uow.products is not None
+            uow.products.delete(product_id)
+            uow.commit()

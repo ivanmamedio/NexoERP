@@ -34,8 +34,8 @@ class SqlReportGenerator(ReportGeneratorPort):
         sql = """
             SELECT
                 date(s.created_at) as sale_date,
-                COALESCE(SUM(s.total_amount), 0) as total_sales,
-                COALESCE(SUM(si.quantity), 0) as total_items,
+                COALESCE(SUM(s.total_cents), 0) as total_sales,
+                COALESCE(SUM(si.quantity_thousandths), 0) as total_items,
                 COUNT(DISTINCT s.id) as total_transactions
             FROM sales s
             LEFT JOIN sale_items si ON s.id = si.sale_id
@@ -74,10 +74,10 @@ class SqlReportGenerator(ReportGeneratorPort):
                 p.id as product_id,
                 p.name as product_name,
                 p.sku,
-                COALESCE(SUM(si.quantity), 0) as quantity_sold,
-                COALESCE(SUM(si.total_price), 0) as total_revenue,
-                CASE WHEN SUM(si.quantity) > 0
-                    THEN SUM(si.total_price) / SUM(si.quantity)
+                COALESCE(SUM(si.quantity_thousandths), 0) as quantity_sold,
+                COALESCE(SUM(si.line_total_cents), 0) as total_revenue,
+                CASE WHEN SUM(si.quantity_thousandths) > 0
+                    THEN SUM(si.line_total_cents) / SUM(si.quantity_thousandths)
                     ELSE 0 END as avg_price
             FROM sale_items si
             JOIN sales s ON si.sale_id = s.id
@@ -124,10 +124,10 @@ class SqlReportGenerator(ReportGeneratorPort):
             SELECT
                 u.id as operator_id,
                 u.name as operator_name,
-                COALESCE(SUM(s.total_amount), 0) as total_sales,
+                COALESCE(SUM(s.total_cents), 0) as total_sales,
                 COUNT(DISTINCT s.id) as total_transactions,
                 CASE WHEN COUNT(DISTINCT s.id) > 0
-                    THEN SUM(s.total_amount) / COUNT(DISTINCT s.id)
+                    THEN SUM(s.total_cents) / COUNT(DISTINCT s.id)
                     ELSE 0 END as avg_ticket
             FROM sales s
             JOIN users u ON s.operator_id = u.id
@@ -167,16 +167,15 @@ class SqlReportGenerator(ReportGeneratorPort):
                 p.id as product_id,
                 p.name as product_name,
                 p.sku,
-                COALESCE(i.quantity, 0) as current_stock,
+                p.stock_qty as current_stock,
                 p.min_stock_qty as min_stock,
                 c.name as category_name
             FROM products p
-            LEFT JOIN inventory i ON p.id = i.product_id AND i.company_id = :company_id
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.company_id = :company_id
             AND p.active = 1
             AND p.min_stock_qty > 0
-            AND COALESCE(i.quantity, 0) <= p.min_stock_qty
+            AND p.stock_qty <= p.min_stock_qty
         """
         params: dict[str, object] = {"company_id": filter_.company_id}
 
@@ -256,7 +255,7 @@ class SqlReportGenerator(ReportGeneratorPort):
             SELECT
                 'receita' as category,
                 'Vendas' as description,
-                COALESCE(SUM(s.total_amount), 0) as amount
+                COALESCE(SUM(s.total_cents), 0) as amount
             FROM sales s
             WHERE s.company_id = :company_id
             AND s.status = 'finalized'
@@ -286,7 +285,7 @@ class SqlReportGenerator(ReportGeneratorPort):
             SELECT
                 'despesa' as category,
                 fc.name as description,
-                COALESCE(SUM(pi.amount), 0) as amount
+                COALESCE(SUM(pi.amount_cents), 0) as amount
             FROM payable_installments pi
             JOIN payables p ON pi.payable_id = p.id
             JOIN financial_categories fc ON p.category_id = fc.id
@@ -332,20 +331,20 @@ class SqlReportGenerator(ReportGeneratorPort):
                 cs.opened_at,
                 cs.closed_at,
                 u.name as operator_name,
-                cs.opening_amount,
-                cs.expected_amount,
-                cs.closing_amount as actual_amount,
-                COALESCE(cs.closing_amount, 0) - COALESCE(cs.expected_amount, 0) as difference,
+                cs.opening_amount_cents as opening_amount,
+                cs.expected_cash_cents as expected_amount,
+                cs.closing_amount_cents as actual_amount,
+                COALESCE(cs.closing_amount_cents, 0) - COALESCE(cs.expected_cash_cents, 0) as difference,
                 COALESCE((
-                    SELECT SUM(amount) FROM cash_movements
-                    WHERE session_id = cs.id AND type = 'sangria'
+                    SELECT SUM(amount_cents) FROM cash_movements
+                    WHERE session_id = cs.id AND movement_type = 'sangria'
                 ), 0) as sangrias,
                 COALESCE((
-                    SELECT SUM(amount) FROM cash_movements
-                    WHERE session_id = cs.id AND type = 'suprimento'
+                    SELECT SUM(amount_cents) FROM cash_movements
+                    WHERE session_id = cs.id AND movement_type = 'suprimento'
                 ), 0) as suprimentos
             FROM cash_sessions cs
-            JOIN users u ON cs.operator_id = u.id
+            JOIN users u ON cs.opened_by_user_id = u.id
             WHERE cs.company_id = :company_id
         """
         params: dict[str, object] = {"company_id": filter_.company_id}

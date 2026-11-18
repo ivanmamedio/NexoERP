@@ -181,6 +181,42 @@ class TreasuryDashboardDialog(QDialog):
         )
         dialog.exec()
 
+    def _open_payable_management(self) -> None:
+        """Abre o diálogo de gestão de contas a pagar."""
+        from erp.modules.treasury.application.services import TreasuryServices
+        from erp.modules.treasury.presentation.payable_receivable_dialogs import create_payable_receivable_dialog
+
+        engine = self._engine
+        if engine is None:
+            return
+
+        services = TreasuryServices(engine=engine)
+        dialog = create_payable_receivable_dialog(
+            services=services,
+            session=self._session,
+            engine=engine,
+            parent=self,
+        )
+        dialog.exec()
+
+    def _open_receivable_management(self) -> None:
+        """Abre o diálogo de gestão de contas a receber."""
+        from erp.modules.treasury.application.services import TreasuryServices
+        from erp.modules.treasury.presentation.payable_receivable_dialogs import create_payable_receivable_dialog
+
+        engine = self._engine
+        if engine is None:
+            return
+
+        services = TreasuryServices(engine=engine)
+        dialog = create_payable_receivable_dialog(
+            services=services,
+            session=self._session,
+            engine=engine,
+            parent=self,
+        )
+        dialog.exec()
+
     def _create_summary_card(self, title: str, value: str, color: str) -> tuple[QWidget, QLabel]:
         card = QWidget()
         card.setFixedHeight(100)
@@ -214,6 +250,11 @@ class TreasuryDashboardDialog(QDialog):
         # Toolbar
         toolbar = QHBoxLayout()
         toolbar.addStretch()
+
+        self._btn_manage_payables = QPushButton("Gerenciar Contas a Pagar")
+        self._btn_manage_payables.clicked.connect(self._open_payable_management)
+        toolbar.addWidget(self._btn_manage_payables)
+
         layout.addLayout(toolbar)
 
         # Tabela
@@ -243,6 +284,11 @@ class TreasuryDashboardDialog(QDialog):
 
         toolbar = QHBoxLayout()
         toolbar.addStretch()
+
+        self._btn_manage_receivables = QPushButton("Gerenciar Contas a Receber")
+        self._btn_manage_receivables.clicked.connect(self._open_receivable_management)
+        toolbar.addWidget(self._btn_manage_receivables)
+
         layout.addLayout(toolbar)
 
         self._receivables_table = QTableWidget()

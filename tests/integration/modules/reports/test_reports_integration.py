@@ -41,9 +41,15 @@ def session(tmp_path: Path) -> Generator[Session, None, None]:
                 CREATE TABLE IF NOT EXISTS sales (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     company_id INTEGER NOT NULL,
-                    operator_id INTEGER NOT NULL,
-                    total_amount REAL NOT NULL DEFAULT 0,
+                    session_id INTEGER,
+                    user_id INTEGER,
+                    username VARCHAR(100) NOT NULL DEFAULT '',
                     status VARCHAR(20) NOT NULL DEFAULT 'draft',
+                    subtotal_cents INTEGER NOT NULL DEFAULT 0,
+                    discount_cents INTEGER NOT NULL DEFAULT 0,
+                    total_cents INTEGER NOT NULL DEFAULT 0,
+                    paid_cents INTEGER NOT NULL DEFAULT 0,
+                    change_cents INTEGER NOT NULL DEFAULT 0,
                     created_at DATETIME NOT NULL
                 )
             """
@@ -55,9 +61,14 @@ def session(tmp_path: Path) -> Generator[Session, None, None]:
                 CREATE TABLE IF NOT EXISTS sale_items (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sale_id INTEGER NOT NULL,
-                    product_id INTEGER NOT NULL,
-                    quantity REAL NOT NULL DEFAULT 0,
-                    total_price REAL NOT NULL DEFAULT 0
+                    company_id INTEGER,
+                    product_id INTEGER,
+                    description VARCHAR(200) NOT NULL DEFAULT '',
+                    unit_price_cents INTEGER NOT NULL DEFAULT 0,
+                    quantity_thousandths INTEGER NOT NULL DEFAULT 0,
+                    line_total_cents INTEGER NOT NULL DEFAULT 0,
+                    unit VARCHAR(10) NOT NULL DEFAULT 'un',
+                    cancelled INTEGER NOT NULL DEFAULT 0
                 )
             """
             )
@@ -68,13 +79,19 @@ def session(tmp_path: Path) -> Generator[Session, None, None]:
                 CREATE TABLE IF NOT EXISTS products (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     company_id INTEGER NOT NULL,
-                    name VARCHAR(200) NOT NULL,
                     sku VARCHAR(100) NOT NULL,
+                    name VARCHAR(200) NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    category_id INTEGER,
+                    supplier_id INTEGER,
+                    unit VARCHAR(10) NOT NULL DEFAULT 'un',
                     cost_cents INTEGER NOT NULL DEFAULT 0,
+                    margin_pct INTEGER NOT NULL DEFAULT 0,
                     price_cents INTEGER NOT NULL DEFAULT 0,
                     min_stock_qty INTEGER NOT NULL DEFAULT 0,
-                    active INTEGER NOT NULL DEFAULT 1,
-                    category_id INTEGER
+                    stock_qty INTEGER NOT NULL DEFAULT 0,
+                    sold_by_weight INTEGER NOT NULL DEFAULT 0,
+                    active INTEGER NOT NULL DEFAULT 1
                 )
             """
             )
@@ -207,14 +224,14 @@ def test_sql_report_generator_sales_by_period(session: Session) -> None:
 
     session.execute(
         text(
-            "INSERT INTO sales (company_id, operator_id, total_amount, status, created_at) "
-            "VALUES (1, 1, 1000.00, 'finalized', '2026-01-15 10:00:00')"
+            "INSERT INTO sales (company_id, user_id, total_cents, status, created_at) "
+            "VALUES (1, 1, 100000, 'finalized', '2026-01-15 10:00:00')"
         )
     )
     session.execute(
         text(
-            "INSERT INTO sales (company_id, operator_id, total_amount, status, created_at) "
-            "VALUES (1, 1, 500.00, 'finalized', '2026-01-20 14:00:00')"
+            "INSERT INTO sales (company_id, user_id, total_cents, status, created_at) "
+            "VALUES (1, 1, 50000, 'finalized', '2026-01-20 14:00:00')"
         )
     )
     session.commit()

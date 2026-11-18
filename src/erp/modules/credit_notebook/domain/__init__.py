@@ -1,0 +1,1 @@
+"""Domain entities for Credit Notebook."""

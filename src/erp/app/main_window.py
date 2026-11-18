@@ -7,12 +7,19 @@ from collections.abc import Callable
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QLabel,
     QMainWindow,
     QStatusBar,
+    QToolBar,
+    QWidget,
 )
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from erp.modules.companies.infrastructure.models import CompanyModel
 from erp.modules.identity.application.services import IdentityServices
+from erp.modules.identity.infrastructure.models import user_company_role
 from erp.shared.application.session import CurrentSession
 from erp.shared.ui.idle_timer import IdleSessionTimer
 
@@ -61,6 +68,8 @@ class MainWindow(QMainWindow):
     settings_requested = Signal()
     #: Emitido pelo menu "Auditoria".
     audit_requested = Signal()
+    #: Emitido pelo menu "Caderno de Fiado".
+    credit_notebook_requested = Signal()
     #: Emitido quando a sessão expira por ociosidade (deve voltar ao login).
     session_expired = Signal()
 
@@ -70,17 +79,22 @@ class MainWindow(QMainWindow):
         services: IdentityServices,
         session: CurrentSession,
         idle_timeout_seconds: float,
+        engine=None,
         parent: QMainWindow | None = None,
     ) -> None:
         super().__init__(parent)
         self._services = services
         self._session = session
+        self._engine = engine
         self.setWindowTitle("NexoERP")
         self.resize(1000, 700)
 
         self._placeholder = QLabel("Selecione um módulo no menu.", self)
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setCentralWidget(self._placeholder)
+
+        # Toolbar com seletor de empresa
+        self._setup_company_toolbar()
 
         status = QStatusBar(self)
         username = session.username or "—"
@@ -95,6 +109,109 @@ class MainWindow(QMainWindow):
         self._watcher = _ActivityWatcher(self._idle_timer.register_activity)
 
         self._build_menus()
+
+    def _setup_company_toolbar(self) -> None:
+        """Configura toolbar com seletor de empresa ativa."""
+        if self._engine is None:
+            return
+
+        toolbar = QToolBar("Empresa", self)
+        toolbar.setMovable(False)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
+
+        # Label
+        lbl = QLabel("Empresa ativa:")
+        toolbar.addWidget(lbl)
+
+        # ComboBox para seleção de empresa
+        self._company_combo = QComboBox()
+        self._company_combo.setMinimumWidth(250)
+        self._company_combo.setPlaceholderText("Carregando empresas...")
+        self._company_combo.currentIndexChanged.connect(self._on_company_changed)
+        toolbar.addWidget(self._company_combo)
+
+        toolbar.addSeparator()
+
+        # Spacer
+        spacer = QWidget()
+        spacer.setSizePolicy(spacer.sizePolicy().Policy.Expanding, spacer.sizePolicy().Policy.Preferred)
+        toolbar.addWidget(spacer)
+
+        # User info
+        username = self._session.username or "—"
+        user_lbl = QLabel(f"Usuário: {username}")
+        user_lbl.setStyleSheet("font-weight: bold; padding-right: 10px;")
+        toolbar.addWidget(user_lbl)
+
+        self._load_companies()
+
+    def _load_companies(self) -> None:
+        """Carrega as empresas disponíveis para o usuário."""
+        if self._engine is None:
+            return
+
+        try:
+            with Session(self._engine) as session:
+                user_id = self._session.user_id
+                if user_id is None:
+                    return
+
+                stmt = (
+                    select(CompanyModel.company_id, CompanyModel.name)
+                    .join(
+                        user_company_role,
+                        CompanyModel.company_id == user_company_role.c.company_id,
+                    )
+                    .where(user_company_role.c.user_id == user_id)
+                    .distinct()
+                )
+                results = session.execute(stmt).all()
+                self._company_combo.clear()
+                for row in results:
+                    self._company_combo.addItem(row.name, row.company_id)
+
+                # Select current company
+                current_company_id = self._session.company_id
+                if current_company_id:
+                    idx = self._company_combo.findData(current_company_id)
+                    if idx >= 0:
+                        self._company_combo.setCurrentIndex(idx)
+        except Exception:
+            pass  # Silencioso - erro será mostrado no status
+
+    def _on_company_changed(self, index: int) -> None:
+        """Quando a empresa é alterada, atualiza a sessão."""
+        if index < 0:
+            return
+        company_id = self._company_combo.currentData()
+        if company_id is not None:
+            self._session.company_id = company_id
+            # Update user's default company in database
+            self._update_user_default_company(company_id)
+
+    def _update_user_default_company(self, company_id: int) -> None:
+        """Atualiza a empresa padrão do usuário no banco."""
+        if self._engine is None:
+            return
+        try:
+            from sqlalchemy.orm import Session as SASession
+            from erp.modules.audit.infrastructure.triggers import (
+                disable_bypass,
+                enable_bypass,
+            )
+            from erp.modules.identity.infrastructure.models import UserModel
+            
+            enable_bypass(self._engine)
+            try:
+                with SASession(self._engine) as session:
+                    user_model = session.get(UserModel, self._session.user_id)
+                    if user_model:
+                        user_model.company_id = company_id
+                        session.commit()
+            finally:
+                disable_bypass(self._engine)
+        except Exception:
+            pass  # Silencioso
 
     # --- lifecycle ----------------------------------------------------------
 
@@ -175,6 +292,12 @@ class MainWindow(QMainWindow):
             auditoria = menubar.addMenu("&Auditoria")
             action_audit = auditoria.addAction("&Log de Auditoria...")
             action_audit.triggered.connect(self.audit_requested)
+
+        # Caderno de Fiado
+        if self._has_permission("credit_notebook.view") or self._has_permission("credit_notebook.manage"):
+            fiado = menubar.addMenu("Caderno de &Fiado")
+            action_fiado = fiado.addAction("&Caderno de Fiado...")
+            action_fiado.triggered.connect(self.credit_notebook_requested)
 
         # Usuários (apenas para quem tem user.manage)
         if self._has_permission("user.manage"):

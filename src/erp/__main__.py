@@ -24,6 +24,7 @@ from sqlalchemy.engine import Engine
 from erp.app.identity_services import SqlIdentityServices
 from erp.bootstrap import bootstrap
 from erp.config.settings import get_session_timeout_minutes
+from erp.modules.catalog.application.services import SqlAlchemyCatalogServices
 from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.infrastructure.hasher import BcryptHasher
 from erp.modules.identity.infrastructure.repository import (
@@ -55,6 +56,8 @@ class _AppContextHolder:
     report_service: ReportService | None = None
     settings_services: SettingsServices | None = None
     supervisor_auth: SupervisorAuthPort | None = None
+    catalog_services: SqlAlchemyCatalogServices | None = None
+    event_bus: EventBus | None = None
 
 
 class _App:
@@ -300,6 +303,7 @@ class _App:
             services=self._services,
             session=self._session,
             idle_timeout_seconds=timeout_minutes * 60,
+            engine=engine,
         )
         self._main_window.change_password_requested.connect(self._on_change_password_requested)
         self._main_window.users_requested.connect(self._on_users_requested)
@@ -311,6 +315,7 @@ class _App:
         self._main_window.reports_requested.connect(self._on_reports_requested)
         self._main_window.settings_requested.connect(self._on_settings_requested)
         self._main_window.audit_requested.connect(self._on_audit_requested)
+        self._main_window.credit_notebook_requested.connect(self._on_credit_notebook_requested)
         self._main_window.session_expired.connect(self._on_session_expired)
         self._main_window.start_session_guard()
         self._main_window.show()
@@ -363,55 +368,19 @@ class _App:
         dialog.exec()
 
     def _on_catalog_requested(self) -> None:
-        from PySide6.QtWidgets import (
-            QDialog,
-            QPushButton,
-            QTableWidget,
-            QTableWidgetItem,
-            QVBoxLayout,
-        )
-        from sqlalchemy.orm import Session
-
-        from erp.modules.catalog.domain.product import Product
-        from erp.modules.catalog.infrastructure.repository import (
-            SqlAlchemyProductRepository,
-        )
+        from erp.modules.catalog.presentation.catalog_dialog import create_catalog_dialog
 
         engine = _AppContextHolder.engine
-        if engine is None:
+        catalog_services = _AppContextHolder.catalog_services
+        if engine is None or catalog_services is None:
             return
 
-        dialog = QDialog(self._main_window)
-        dialog.setWindowTitle("Catálogo / Produtos")
-        dialog.resize(700, 500)
-        layout = QVBoxLayout(dialog)
-
-        table = QTableWidget(0, 7)
-        table.setHorizontalHeaderLabels(
-            ["SKU", "Nome", "Unidade", "Preço", "Custo", "Estoque", "Estoque Baixo"]
+        dialog = create_catalog_dialog(
+            services=catalog_services,
+            session=self._session,
+            engine=engine,
+            parent=self._main_window,
         )
-        table.horizontalHeader().setSectionResizeMode(table.horizontalHeader().ResizeMode.Stretch)
-        layout.addWidget(table)
-
-        btn_close = QPushButton("Fechar")
-        btn_close.clicked.connect(dialog.reject)
-        layout.addWidget(btn_close)
-
-        def _load_products() -> None:
-            with Session(engine) as session:
-                repo = SqlAlchemyProductRepository(session)
-                products: list[Product] = repo.list_all()
-                table.setRowCount(len(products))
-                for row, p in enumerate(products):
-                    table.setItem(row, 0, QTableWidgetItem(p.sku or ""))
-                    table.setItem(row, 1, QTableWidgetItem(p.name or ""))
-                    table.setItem(row, 2, QTableWidgetItem(p.unit or ""))
-                    table.setItem(row, 3, QTableWidgetItem(f"{p.price_cents / 100:.2f}"))
-                    table.setItem(row, 4, QTableWidgetItem(f"{p.cost_cents / 100:.2f}"))
-                    table.setItem(row, 5, QTableWidgetItem(f"{p.stock_qty / 1000:.3f}"))
-                    table.setItem(row, 6, QTableWidgetItem("Sim" if p.is_low_stock() else "Não"))
-
-        _load_products()
         dialog.exec()
 
     def _on_pos_requested(self) -> None:
@@ -574,6 +543,23 @@ class _App:
 
         dialog.exec()
 
+    def _on_credit_notebook_requested(self) -> None:
+        from erp.modules.credit_notebook.application.services import CreditNotebookServices
+        from erp.modules.credit_notebook.presentation.credit_notebook_view import create_credit_notebook_dialog
+
+        engine = _AppContextHolder.engine
+        if engine is None:
+            return
+
+        services = CreditNotebookServices(engine=engine)
+        dialog = create_credit_notebook_dialog(
+            services=services,
+            session=self._session,
+            engine=engine,
+            parent=self._main_window,
+        )
+        dialog.exec()
+
     def _on_session_expired(self) -> None:
         _logger.info("Sessão expirada por ociosidade")
         if self._main_window is not None:
@@ -590,6 +576,8 @@ def main() -> int:
         _AppContextHolder.report_service = ctx.report_service
         _AppContextHolder.settings_services = ctx.settings_services
         _AppContextHolder.supervisor_auth = ctx.supervisor_auth
+        _AppContextHolder.catalog_services = ctx.catalog_services
+        _AppContextHolder.event_bus = ctx.event_bus
         _logger.info("Bootstrap successful. DB path: %s", ctx.db_path)
     except Exception:
         _logger.exception("Bootstrap failed")

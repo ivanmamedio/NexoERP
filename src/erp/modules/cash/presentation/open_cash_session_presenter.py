@@ -46,10 +46,21 @@ class OpenCashSessionPresenter:
     def load_registers(self) -> None:
         """Carrega caixas disponíveis para a empresa atual."""
         try:
+            # Use session company_id, fallback to CurrentSession if not set
+            company_id = self._session.company_id
+            if company_id is None:
+                from erp.shared.application.session import CurrentSession
+                company_id = CurrentSession().company_id
+            
             with SqlAlchemyCashUnitOfWork(self._engine) as uow:
                 assert uow.registers is not None
-                registers = uow.registers.list_all(company_id=self._session.company_id)
-                items = [(r.id, r.terminal_code) for r in registers if r.id is not None]
+                registers = uow.registers.list_all(company_id=company_id)
+                # Only show active registers
+                items = [(r.id, r.terminal_code) for r in registers if r.id is not None and r.active]
+                if not items:
+                    # Fallback: show all registers if none found for company
+                    all_registers = uow.registers.list_all(company_id=None)
+                    items = [(r.id, r.terminal_code) for r in all_registers if r.id is not None and r.active]
                 self._view.set_registers(items)
         except Exception as exc:
             self._view.show_error(str(exc))

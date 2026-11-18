@@ -5,11 +5,11 @@ from __future__ import annotations
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -56,11 +56,13 @@ class OpenCashSessionDialog(QDialog):
         self._register_combo.setPlaceholderText("Selecione um caixa")
         form.addRow("Caixa:", self._register_combo)
 
-        self._amount_spin = QSpinBox()
-        self._amount_spin.setRange(0, 99999999)
-        self._amount_spin.setSuffix(" centavos")
+        self._amount_spin = QDoubleSpinBox()
+        self._amount_spin.setRange(0.0, 999999.99)
+        self._amount_spin.setDecimals(2)
+        self._amount_spin.setSuffix(" R$")
         self._amount_spin.setGroupSeparatorShown(True)
-        form.addRow("Valor de abertura (centavos):", self._amount_spin)
+        self._amount_spin.setSingleStep(0.01)
+        form.addRow("Valor de abertura (R$):", self._amount_spin)
 
         layout.addLayout(form)
 
@@ -103,7 +105,8 @@ class OpenCashSessionDialog(QDialog):
         return data if isinstance(data, int) else None
 
     def get_opening_amount_cents(self) -> int:
-        return self._amount_spin.value()
+        # Convert from reais to centavos
+        return int(round(self._amount_spin.value() * 100))
 
     def accept(self) -> None:
         super().accept()
