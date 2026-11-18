@@ -57,13 +57,38 @@ class OpenCashSessionPresenter:
                 registers = uow.registers.list_all(company_id=company_id)
                 # Only show active registers
                 items = [(r.id, r.terminal_code) for r in registers if r.id is not None and r.active]
+                
                 if not items:
                     # Fallback: show all registers if none found for company
                     all_registers = uow.registers.list_all(company_id=None)
                     items = [(r.id, r.terminal_code) for r in all_registers if r.id is not None and r.active]
+                
+                if not items:
+                    # Create a default register if none exists
+                    self._view.show_error("Nenhum caixa cadastrado. Criando caixa padrão...")
+                    self._create_default_register(company_id, uow)
+                    # Reload after creation
+                    registers = uow.registers.list_all(company_id=company_id)
+                    items = [(r.id, r.terminal_code) for r in registers if r.id is not None and r.active]
+                
                 self._view.set_registers(items)
         except Exception as exc:
             self._view.show_error(str(exc))
+
+    def _create_default_register(self, company_id: int | None, uow: SqlAlchemyCashUnitOfWork) -> None:
+        """Cria um caixa padrão se nenhum existir."""
+        try:
+            from erp.modules.cash.domain.cash_register import CashRegister
+            default_register = CashRegister(
+                name="Caixa Principal",
+                terminal_code="CX01",
+                company_id=company_id,
+                active=True,
+            )
+            uow.registers.add(default_register)
+            uow.commit()
+        except Exception:
+            pass  # Silencioso - erro será mostrado no load_registers
 
     def open_session(self) -> bool:
         """Tenta abrir a sessão de caixa."""

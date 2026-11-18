@@ -56,6 +56,8 @@ class MainWindow(QMainWindow):
     companies_requested = Signal()
     #: Emitido pelo menu "Catálogo / Produtos".
     catalog_requested = Signal()
+    #: Emitido pelo menu "Tabela de Preço".
+    price_requested = Signal()
     #: Emitido pelo menu "PDV / Vendas".
     pos_requested = Signal()
     #: Emitido pelo menu "Caixa".
@@ -64,6 +66,8 @@ class MainWindow(QMainWindow):
     treasury_requested = Signal()
     #: Emitido pelo menu "Relatórios".
     reports_requested = Signal()
+    #: Emitido pelo menu "Relatórios Gráficos".
+    graphical_reports_requested = Signal()
     #: Emitido pelo menu "Configurações".
     settings_requested = Signal()
     #: Emitido pelo menu "Auditoria".
@@ -257,6 +261,12 @@ class MainWindow(QMainWindow):
                 action_catalog = cadastros.addAction("&Produtos / Catálogo...")
                 action_catalog.triggered.connect(self.catalog_requested)
 
+        # Preço
+        if self._has_permission("product.view") or self._has_permission("product.manage"):
+            preco = menubar.addMenu("&Preço")
+            action_price = preco.addAction("&Tabela de Formação de Preço...")
+            action_price.triggered.connect(self.price_requested)
+
         # Vendas / PDV
         if self._has_permission("sale.view") or self._has_permission("sale.create"):
             vendas = menubar.addMenu("&Vendas")
@@ -280,6 +290,8 @@ class MainWindow(QMainWindow):
             relatorios = menubar.addMenu("&Relatórios")
             action_reports = relatorios.addAction("&Gerar Relatório...")
             action_reports.triggered.connect(self.reports_requested)
+            action_graphical = relatorios.addAction("&Relatórios Gráficos...")
+            action_graphical.triggered.connect(self.graphical_reports_requested)
 
         # Configurações
         if self._has_permission("settings.update"):

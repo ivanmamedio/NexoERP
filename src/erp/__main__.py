@@ -309,10 +309,12 @@ class _App:
         self._main_window.users_requested.connect(self._on_users_requested)
         self._main_window.companies_requested.connect(self._on_companies_requested)
         self._main_window.catalog_requested.connect(self._on_catalog_requested)
+        self._main_window.price_requested.connect(self._on_price_requested)
         self._main_window.pos_requested.connect(self._on_pos_requested)
         self._main_window.cash_requested.connect(self._on_cash_requested)
         self._main_window.treasury_requested.connect(self._on_treasury_requested)
         self._main_window.reports_requested.connect(self._on_reports_requested)
+        self._main_window.graphical_reports_requested.connect(self._on_graphical_reports_requested)
         self._main_window.settings_requested.connect(self._on_settings_requested)
         self._main_window.audit_requested.connect(self._on_audit_requested)
         self._main_window.credit_notebook_requested.connect(self._on_credit_notebook_requested)
@@ -383,6 +385,22 @@ class _App:
         )
         dialog.exec()
 
+    def _on_price_requested(self) -> None:
+        from erp.modules.catalog.presentation.price_dialog import create_price_dialog
+
+        engine = _AppContextHolder.engine
+        catalog_services = _AppContextHolder.catalog_services
+        if engine is None or catalog_services is None:
+            return
+
+        dialog = create_price_dialog(
+            services=catalog_services,
+            session=self._session,
+            engine=engine,
+            parent=self._main_window,
+        )
+        dialog.exec()
+
     def _on_pos_requested(self) -> None:
         from erp.modules.sales.presentation.pos_view import create_pos_dialog
 
@@ -406,6 +424,7 @@ class _App:
             QDialog,
             QPushButton,
             QVBoxLayout,
+            QMessageBox,
         )
 
         from erp.modules.cash.presentation.open_cash_session_view import (
@@ -414,7 +433,9 @@ class _App:
 
         engine = _AppContextHolder.engine
         cash_services = _AppContextHolder.cash_services
-        if engine is None or cash_services is None:
+        sales_services = _AppContextHolder.sales_services
+        supervisor_auth = _AppContextHolder.supervisor_auth
+        if engine is None or cash_services is None or sales_services is None or supervisor_auth is None:
             return
 
         dialog = QDialog(self._main_window)
@@ -423,9 +444,17 @@ class _App:
         layout = QVBoxLayout(dialog)
 
         btn_open = QPushButton("Abrir Sessão de Caixa")
+        btn_open.setMinimumHeight(50)
+        btn_open.setStyleSheet("font-size: 14px; font-weight: bold;")
+        
+        btn_pdv = QPushButton("Abrir PDV (Venda)")
+        btn_pdv.setMinimumHeight(50)
+        btn_pdv.setStyleSheet("font-size: 14px; font-weight: bold; background-color: #27ae60; color: white;")
+        btn_pdv.setEnabled(False)  # Habilitado apenas após abrir caixa
+        
         btn_close = QPushButton("Sair")
 
-        for btn in (btn_open, btn_close):
+        for btn in (btn_open, btn_pdv, btn_close):
             layout.addWidget(btn)
 
         def _open_session() -> None:
@@ -436,9 +465,45 @@ class _App:
                 parent=dialog,
             )
             if dlg.exec():
-                pass
+                # Caixa aberto com sucesso - habilitar PDV
+                btn_pdv.setEnabled(True)
+                QMessageBox.information(dialog, "Sucesso", "Caixa aberto! O PDV está disponível para vendas.")
+
+        def _open_pdv() -> None:
+            from erp.modules.sales.presentation.pos_view import create_pos_dialog
+            # Obter a sessão de caixa aberta
+            from erp.modules.cash.application.services import CashServices
+            from erp.modules.cash.infrastructure.unit_of_work import SqlAlchemyCashUnitOfWork
+            from erp.shared.application.session import CurrentSession
+            
+            # Buscar sessão aberta para o usuário/empresa atual
+            try:
+                with SqlAlchemyCashUnitOfWork(engine) as uow:
+                    assert uow.sessions is not None
+                    sessions = uow.sessions.list_by_company(company_id=self._session.company_id)
+                    open_sessions = [s for s in sessions if s.status == "open" and s.opened_by_user_id == self._session.user_id]
+                    
+                    if not open_sessions:
+                        QMessageBox.warning(dialog, "Aviso", "Nenhuma sessão de caixa aberta encontrada para este usuário.")
+                        return
+                    
+                    # Usar a sessão mais recente
+                    session_id = open_sessions[0].id
+            except Exception:
+                QMessageBox.warning(dialog, "Erro", "Erro ao buscar sessão de caixa.")
+                return
+
+            pdv_dialog = create_pos_dialog(
+                sales_services=sales_services,
+                supervisor_auth=supervisor_auth,
+                session=self._session,
+                session_id=session_id,
+                parent=self._main_window,
+            )
+            pdv_dialog.exec()
 
         btn_open.clicked.connect(_open_session)
+        btn_pdv.clicked.connect(_open_pdv)
         btn_close.clicked.connect(dialog.reject)
         dialog.exec()
 
@@ -475,6 +540,29 @@ class _App:
         dialog = create_report_dialog(
             report_service=report_service,
             company_id=company_id,
+            parent=self._main_window,
+        )
+        dialog.exec()
+
+    def _on_graphical_reports_requested(self) -> None:
+        from erp.modules.reports.presentation.graphical_reports_dialog import create_graphical_reports_dialog
+
+        report_service = _AppContextHolder.report_service
+        if report_service is None:
+            return
+
+        company_id = self._session.company_id
+        if company_id is None:
+            return
+
+        # Create session factory for the dialog
+        from sqlalchemy.orm import Session
+        session_factory = lambda: Session(_AppContextHolder.engine)
+
+        dialog = create_graphical_reports_dialog(
+            report_service=report_service,
+            company_id=company_id,
+            session_factory=session_factory,
             parent=self._main_window,
         )
         dialog.exec()
