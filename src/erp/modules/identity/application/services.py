@@ -45,6 +45,7 @@ class IdentityServices(Protocol):
         password: str,
         role_name: str,
         actor_id: int,
+        company_id: int | None = None,
         must_change_password: bool = False,
     ) -> CreateUserOutput: ...
 

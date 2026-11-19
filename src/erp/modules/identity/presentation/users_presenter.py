@@ -77,6 +77,7 @@ class UsersPresenter:
                 password=password,
                 role_name=role_name,
                 actor_id=actor_id,
+                company_id=self._session.company_id,
                 must_change_password=True,
             )
         except (ValueError, DomainError) as exc:
@@ -84,7 +85,8 @@ class UsersPresenter:
             return
 
         self._view.show_info(
-            f"Usuário '{output.employee_name}' criado com papel '{output.role_name}'."
+            f"Usuário '{output.employee_name}' criado com papel '{output.role_name}'. "
+            f"Número para login: {output.user_number}"
         )
         self._view.clear_user_form()
         self.load()

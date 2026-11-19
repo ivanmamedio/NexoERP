@@ -44,7 +44,14 @@ class FakeIdentityServices(IdentityServices):
         return self.roles_output or ListRolesOutput(roles=())
 
     def create_user(
-        self, *, employee_name, password, role_name, actor_id, must_change_password=False
+        self,
+        *,
+        employee_name,
+        password,
+        role_name,
+        actor_id,
+        company_id=None,
+        must_change_password=False,
     ):  # type: ignore[override]
         self.create_calls += 1
         if self.should_fail:
@@ -52,7 +59,10 @@ class FakeIdentityServices(IdentityServices):
         from erp.modules.identity.application.create_user import CreateUserOutput
 
         return CreateUserOutput(
-            user_id=1, user_number=0, employee_name=employee_name, role_name=role_name
+            user_id=1,
+            user_number=0,
+            employee_name=employee_name,
+            role_name=role_name,
         )
 
     def assign_role(self, *, user_id, role_name, actor_id):  # type: ignore[override]
@@ -157,7 +167,9 @@ def test_users_presenter_create_user_success() -> None:
 
     assert services.create_calls == 1
     assert view.cleared is True
-    assert view.infos == ["Usuário 'João' criado com papel 'Caixa'."]
+    assert view.infos == [
+        "Usuário 'João' criado com papel 'Caixa'. Número para login: 0"
+    ]
     assert services.list_users_calls == 1  # recarrega após criar
 
 

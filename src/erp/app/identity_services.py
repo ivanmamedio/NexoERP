@@ -125,6 +125,7 @@ class SqlIdentityServices:
         password: str,
         role_name: str,
         actor_id: int,
+        company_id: int | None = None,
         must_change_password: bool = False,
     ) -> CreateUserOutput:
         # Hash the password before calling the use case
@@ -139,6 +140,7 @@ class SqlIdentityServices:
                     employee_name=employee_name,
                     password_hash=password_hash,
                     role_name=role_name,
+                    company_id=company_id,
                     must_change_password=must_change_password,
                 ),
                 role=role,

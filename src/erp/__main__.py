@@ -31,6 +31,7 @@ from erp.modules.identity.infrastructure.repository import (
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
 )
+from erp.shared.application.events import EventBus
 from erp.shared.application.session import CurrentSession
 from erp.shared.ui.exception_handler import install_global_exception_handler
 from erp.ui.resource_paths import resource_path
@@ -201,13 +202,15 @@ class _App:
         from erp.modules.companies.infrastructure.models import CompanyModel
         from erp.modules.identity.infrastructure.models import user_company_role
         from erp.modules.identity.presentation.select_company_view import (
-            create_select_company_dialog,
+            SelectCompanyDialog,
+        )
+        from erp.modules.identity.presentation.select_company_presenter import (
+            SelectCompanyPresenter,
         )
 
-        dialog = create_select_company_dialog(
-            presenter=None,
-            parent=self._main_window,
-        )
+        dialog = SelectCompanyDialog(parent=self._main_window)
+        presenter = SelectCompanyPresenter(view=dialog, session=self._session)
+        dialog.set_presenter(presenter)
 
         # Load companies for current user
         user_id = self._session.user_id
