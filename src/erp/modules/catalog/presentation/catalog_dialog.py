@@ -329,7 +329,6 @@ class CatalogWidget(QWidget):
         self._table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self._table.doubleClicked.connect(self._on_edit_product)
-        self._table.selectionModel().selectionChanged.connect(self._on_selection_changed)
         layout.addWidget(self._table)
 
         # Proxy model for filtering
@@ -337,6 +336,7 @@ class CatalogWidget(QWidget):
         self._proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self._proxy_model.setFilterKeyColumn(-1)  # Search all columns
         self._table.setModel(self._proxy_model)
+        self._table.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
         layout.setContentsMargins(8, 8, 8, 8)
 
