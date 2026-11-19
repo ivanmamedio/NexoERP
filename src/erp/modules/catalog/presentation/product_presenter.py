@@ -68,7 +68,6 @@ class ProductEditPresenter:
     def save(
         self,
         *,
-        sku: str,
         name: str,
         description: str,
         unit: str,
@@ -80,17 +79,23 @@ class ProductEditPresenter:
         sold_by_weight: bool,
         active: bool,
     ) -> bool:
-        if not sku:
-            self._view.show_error("Informe o SKU.")
-            return False
         if not name:
             self._view.show_error("Informe o nome do produto.")
+            return False
+        if not description:
+            self._view.show_error("Informe a descrição do produto.")
+            return False
+        if not unit:
+            self._view.show_error("Informe a unidade de medida.")
+            return False
+        if price_cents <= 0:
+            self._view.show_error("O preço de venda deve ser maior que zero.")
             return False
 
         try:
             self._services.create_product(
                 CreateProductInput(
-                    sku=sku,
+                    sku="",  # SKU será gerado automaticamente pelo sistema
                     name=name,
                     description=description,
                     unit=unit,

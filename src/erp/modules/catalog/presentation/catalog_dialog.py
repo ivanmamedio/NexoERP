@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -13,7 +12,6 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
@@ -23,9 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from erp.modules.catalog.application.create_product import CreateProductInput
 from erp.modules.catalog.application.services import CatalogServices
-from erp.modules.catalog.application.update_product import UpdateProductInput
 from erp.modules.catalog.domain.product import Product
 from erp.modules.catalog.presentation.product_presenter import (
     ProductEditPresenter,
@@ -122,10 +118,6 @@ class ProductEditDialog(QDialog):
 
         form = QFormLayout()
 
-        self._sku_edit = QLineEdit()
-        self._sku_edit.setPlaceholderText("Código/SKU único")
-        form.addRow("SKU:", self._sku_edit)
-
         self._name_edit = QLineEdit()
         self._name_edit.setPlaceholderText("Nome do produto")
         form.addRow("Nome:", self._name_edit)
@@ -216,7 +208,6 @@ class ProductEditDialog(QDialog):
     def _on_save_clicked(self) -> None:
         if self._presenter is not None:
             self._presenter.save(
-                sku=self._sku_edit.text().strip(),
                 name=self._name_edit.text().strip(),
                 description=self._desc_edit.text().strip(),
                 unit=self._unit_combo.currentText().strip(),
@@ -241,8 +232,6 @@ class ProductEditDialog(QDialog):
         self._product = product
         if product is not None:
             self.setWindowTitle(f"Editar Produto: {product.name}")
-            self._sku_edit.setText(product.sku)
-            self._sku_edit.setReadOnly(True)
             self._name_edit.setText(product.name)
             self._desc_edit.setText(product.description)
             self._unit_combo.setCurrentText(product.unit)
@@ -255,7 +244,6 @@ class ProductEditDialog(QDialog):
             self._active_check.setCurrentIndex(0 if product.active else 1)
         else:
             self.setWindowTitle("Novo Produto")
-            self._sku_edit.setReadOnly(False)
 
 
 class CatalogWidget(QWidget):
@@ -360,7 +348,8 @@ class CatalogWidget(QWidget):
 
     def _on_new_product(self) -> None:
         dialog = ProductEditDialog(None, self._session, self)
-        dialog._presenter = self._edit_presenter
+        self._edit_presenter.view = dialog
+        dialog.set_presenter(self._edit_presenter)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._load_products()
 
@@ -375,7 +364,8 @@ class CatalogWidget(QWidget):
             return
 
         dialog = ProductEditDialog(None, self._session, self)
-        dialog._presenter = self._edit_presenter
+        self._edit_presenter.view = dialog
+        dialog.set_presenter(self._edit_presenter)
         dialog.load_product(product)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._load_products()

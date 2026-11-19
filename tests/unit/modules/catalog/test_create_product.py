@@ -73,6 +73,27 @@ def test_create_product_success() -> None:
     assert stored.name == "Arroz 5kg"
 
 
+def test_create_product_auto_sku_when_empty() -> None:
+    """SKU é gerado automaticamente quando não informado."""
+    repo = FakeProductRepository()
+    uc = CreateProduct(repo)
+
+    output = uc.execute(
+        CreateProductInput(
+            sku="",
+            name="Arroz 5kg",
+            description="Arroz tipo 1",
+            unit="un",
+            cost_cents=1000,
+            price_cents=1300,
+            company_id=1,
+        )
+    )
+
+    assert output.product.sku == "PROD-0001"
+    assert output.product.name == "Arroz 5kg"
+
+
 def test_create_product_duplicate_sku() -> None:
     repo = FakeProductRepository()
     uc = CreateProduct(repo)
@@ -81,6 +102,7 @@ def test_create_product_duplicate_sku() -> None:
         CreateProductInput(
             sku="PROD-001",
             name="Arroz 5kg",
+            description="Arroz tipo 1",
             unit="un",
             cost_cents=1000,
             price_cents=1300,
@@ -93,23 +115,7 @@ def test_create_product_duplicate_sku() -> None:
             CreateProductInput(
                 sku="PROD-001",
                 name="Outro Produto",
-                unit="un",
-                cost_cents=1000,
-                price_cents=1300,
-                company_id=1,
-            )
-        )
-
-
-def test_create_product_empty_sku() -> None:
-    repo = FakeProductRepository()
-    uc = CreateProduct(repo)
-
-    with pytest.raises(ValidationError, match="SKU é obrigatório"):
-        uc.execute(
-            CreateProductInput(
-                sku="",
-                name="Arroz 5kg",
+                description="Outro",
                 unit="un",
                 cost_cents=1000,
                 price_cents=1300,
