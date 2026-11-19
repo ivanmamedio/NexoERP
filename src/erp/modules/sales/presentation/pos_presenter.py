@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
+from erp.modules.catalog.application.quick_create_product import (
+    QuickCreateProductInput,
+)
+from erp.modules.catalog.application.services import CatalogServices
 from erp.modules.sales.application.add_item import AddItemInput
 from erp.modules.sales.application.apply_discount import ApplyDiscountInput
 from erp.modules.sales.application.cancel_sale import (
@@ -25,7 +29,7 @@ from erp.modules.sales.application.ports import SupervisorAuthPort
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.sales.application.start_sale import StartSaleInput
 from erp.shared.application.session import CurrentSession
-from erp.shared.domain.errors import DomainError, PermissionDenied
+from erp.shared.domain.errors import DomainError, NotFound, PermissionDenied, ValidationError
 
 #: Código de permissão que autoriza desconto sem supervisor.
 _DISCOUNT_PERMISSION = "sale.discount"
@@ -80,6 +84,7 @@ class PosView(Protocol):
     def ask_discount(self, current_total_cents: int) -> int | None: ...
     def ask_supervisor_credentials(self) -> tuple[str, str] | None: ...
     def ask_cancel_reason(self) -> str | None: ...
+    def ask_quick_create_product(self, query: str) -> tuple[str, str, int, str] | None: ...
     def show_sale_finalized(self, *, sale_id: int, total_cents: int, change_cents: int) -> None: ...
     def close_view(self) -> None: ...
 
@@ -95,12 +100,14 @@ class PosPresenter:
         supervisor_auth: SupervisorAuthPort,
         session: CurrentSession,
         session_id: int | None = None,
+        catalog_services: CatalogServices | None = None,
     ) -> None:
         self._view = view
         self._sales_services = sales_services
         self._supervisor_auth = supervisor_auth
         self._session = session
         self._session_id = session_id
+        self._catalog_services = catalog_services
         self._sale_id: int | None = None
         self._suggestions: list[ProductOption] = []
 
@@ -141,7 +148,10 @@ class PosPresenter:
     # --- itens --------------------------------------------------------------
 
     def on_scan_entered(self) -> bool:
-        """Enter no campo de leitura: adiciona por código/SKU/nome ou '3*código'."""
+        """Enter no campo de leitura: adiciona por código/SKU/nome ou '3*código'.
+
+        Se o produto não existir, oferece cadastro rápido direto no PDV.
+        """
         self._view.set_suggestions([])
         self._suggestions = []
         sale_id = self._sale_id
@@ -162,6 +172,9 @@ class PosPresenter:
                     company_id=self._session.company_id,
                 )
             )
+        except NotFound:
+            # Produto não encontrado: oferece cadastro rápido
+            return self._offer_quick_create(query)
         except DomainError as exc:
             self._view.show_error(str(exc))
             self._view.clear_scan_input()
@@ -170,6 +183,64 @@ class PosPresenter:
         except Exception as exc:  # pragma: no cover - erro inesperado de infraestrutura
             self._view.show_error(f"Erro inesperado: {exc}")
             self._view.clear_scan_input()
+            self._view.focus_scan_input()
+            return False
+
+        self._view.clear_scan_input()
+        self._refresh()
+        self._view.focus_scan_input()
+        return True
+
+    def _offer_quick_create(self, query: str) -> bool:
+        """Pede ao operador para cadastrar rapidamente o produto não encontrado."""
+        if self._catalog_services is None:
+            self._view.show_error("Cadastro rápido não disponível.")
+            self._view.clear_scan_input()
+            self._view.focus_scan_input()
+            return False
+
+        result = self._view.ask_quick_create_product(query)
+        if result is None:
+            self._view.clear_scan_input()
+            self._view.focus_scan_input()
+            return False
+
+        sku, name, price_cents, unit = result
+
+        try:
+            output = self._catalog_services.quick_create_product(
+                QuickCreateProductInput(
+                    sku=sku,
+                    name=name,
+                    price_cents=price_cents,
+                    unit=unit,
+                    company_id=self._session.company_id,
+                )
+            )
+        except (ValidationError, ValueError) as exc:
+            self._view.show_error(str(exc))
+            self._view.focus_scan_input()
+            return False
+        except Exception as exc:  # pragma: no cover
+            self._view.show_error(f"Erro ao cadastrar produto: {exc}")
+            self._view.focus_scan_input()
+            return False
+
+        # Produto criado: adiciona à venda automaticamente
+        sale_id = self._sale_id
+        if sale_id is None:
+            self._view.show_error("Nenhuma venda aberta.")
+            return False
+        try:
+            self._sales_services.add_item(
+                AddItemInput(
+                    sale_id=sale_id,
+                    query=output.sku,
+                    company_id=self._session.company_id,
+                )
+            )
+        except DomainError as exc:
+            self._view.show_error(str(exc))
             self._view.focus_scan_input()
             return False
 

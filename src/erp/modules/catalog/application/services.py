@@ -20,6 +20,11 @@ from erp.modules.catalog.application.list_low_stock import (
     ListLowStock,
     ListLowStockOutput,
 )
+from erp.modules.catalog.application.quick_create_product import (
+    QuickCreateProduct,
+    QuickCreateProductInput,
+    QuickCreateProductOutput,
+)
 from erp.modules.catalog.application.update_price import (
     UpdatePrice,
     UpdatePriceInput,
@@ -47,6 +52,9 @@ class CatalogServices(Protocol):
     def list_low_stock(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
     def list_all(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
     def delete_product(self, product_id: int, *, company_id: int | None = None) -> None: ...
+    def quick_create_product(
+        self, input: QuickCreateProductInput
+    ) -> QuickCreateProductOutput: ...
 
 
 class SqlAlchemyCatalogServices:
@@ -108,3 +116,12 @@ class SqlAlchemyCatalogServices:
             assert uow.products is not None
             uow.products.delete(product_id)
             uow.commit()
+
+    def quick_create_product(
+        self, input: QuickCreateProductInput
+    ) -> QuickCreateProductOutput:
+        with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
+            assert uow.products is not None
+            result = QuickCreateProduct(uow.products).execute(input)
+            uow.commit()
+            return result

@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from erp.modules.catalog.application.services import CatalogServices
 from erp.modules.sales.application.ports import SupervisorAuthPort
 from erp.modules.sales.application.services import SalesServices
 from erp.modules.sales.presentation.payment_dialog import PaymentDialog
@@ -307,6 +308,76 @@ class PosDialog(QDialog):
         reason = text.strip()
         return reason or None
 
+    def ask_quick_create_product(
+        self, query: str
+    ) -> tuple[str, str, int, str] | None:
+        """Diálogo de cadastro rápido de produto direto no PDV.
+
+        Retorna (sku, nome, preço_cents, unidade) ou None se cancelado.
+        """
+        from PySide6.QtWidgets import (
+            QComboBox,
+            QDialog,
+            QDialogButtonBox,
+            QDoubleSpinBox,
+            QFormLayout,
+            QLineEdit,
+            QVBoxLayout,
+        )
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Cadastrar produto rápido")
+        dlg.setModal(True)
+        dlg.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dlg)
+        form = QFormLayout()
+
+        sku_edit = QLineEdit(query.strip())
+        sku_edit.setPlaceholderText("SKU / código do produto")
+        form.addRow("SKU:", sku_edit)
+
+        name_edit = QLineEdit()
+        name_edit.setPlaceholderText("Nome do produto")
+        form.addRow("Nome:", name_edit)
+
+        price_spin = QDoubleSpinBox()
+        price_spin.setRange(0.01, 999999.99)
+        price_spin.setDecimals(2)
+        price_spin.setSuffix(" R$")
+        price_spin.setGroupSeparatorShown(True)
+        price_spin.setSingleStep(0.01)
+        price_spin.setValue(0.01)
+        form.addRow("Preço (R$):", price_spin)
+
+        unit_combo = QComboBox()
+        unit_combo.addItems(["UN", "KG", "L", "M", "CX", "PC"])
+        unit_combo.setCurrentText("UN")
+        form.addRow("Unidade:", unit_combo)
+
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setText("Cadastrar")
+            ok_button.setDefault(True)
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Cancelar")
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return None
+
+        sku = sku_edit.text().strip()
+        name = name_edit.text().strip()
+        price_cents = round(price_spin.value() * 100)
+        unit = unit_combo.currentText().strip()
+        return sku, name, price_cents, unit
+
     def show_sale_finalized(self, *, sale_id: int, total_cents: int, change_cents: int) -> None:
         message = f"Venda {sale_id} finalizada.\nTotal: {Money(total_cents).format_brl()}"
         if change_cents > 0:
@@ -323,6 +394,7 @@ def create_pos_dialog(
     supervisor_auth: SupervisorAuthPort,
     session: CurrentSession,
     session_id: int | None = None,
+    catalog_services: CatalogServices | None = None,
     parent: QWidget | None = None,
 ) -> PosDialog:
     """Cria a tela do PDV, injeta o presenter e inicia uma venda."""
@@ -333,6 +405,7 @@ def create_pos_dialog(
         supervisor_auth=supervisor_auth,
         session=session,
         session_id=session_id,
+        catalog_services=catalog_services,
     )
     dialog.set_presenter(presenter)
     presenter.start()

@@ -206,6 +206,49 @@ class FakeSupervisorAuth:
         )
 
 
+class FakeCatalogServices:
+    """Fake de CatalogServices para testes de cadastro rápido no PDV."""
+
+    def __init__(self) -> None:
+        self.quick_create_calls: list[object] = []
+        self.should_fail = False
+        self.fail_message = "Erro ao cadastrar"
+
+    def quick_create_product(self, input_data: object) -> object:
+        self.quick_create_calls.append(input_data)
+        if self.should_fail:
+            raise ValueError(self.fail_message)
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            product_id=99,
+            sku=input_data.sku,
+            name=input_data.name,
+            price_cents=input_data.price_cents,
+        )
+
+    def create_product(self, input_data: object) -> object:
+        raise NotImplementedError
+
+    def update_product(self, input_data: object) -> object:
+        raise NotImplementedError
+
+    def update_price(self, input_data: object) -> object:
+        raise NotImplementedError
+
+    def adjust_stock(self, input_data: object) -> object:
+        raise NotImplementedError
+
+    def list_low_stock(self, *, company_id: int | None = None) -> object:
+        raise NotImplementedError
+
+    def list_all(self, *, company_id: int | None = None) -> object:
+        raise NotImplementedError
+
+    def delete_product(self, product_id: int, *, company_id: int | None = None) -> None:
+        raise NotImplementedError
+
+
 class FakePosView:
     def __init__(self) -> None:
         self.errors: list[str] = []
@@ -222,6 +265,7 @@ class FakePosView:
         self.discount_cents: int | None = None
         self.credentials: tuple[str, str] | None = None
         self.cancel_reason: str | None = None
+        self.quick_create_result: tuple[str, str, int, str] | None = None
 
     def show_error(self, message: str) -> None:
         self.errors.append(message)
@@ -262,6 +306,9 @@ class FakePosView:
     def ask_cancel_reason(self) -> str | None:
         return self.cancel_reason
 
+    def ask_quick_create_product(self, query: str) -> tuple[str, str, int, str] | None:
+        return self.quick_create_result
+
     def show_sale_finalized(self, *, sale_id: int, total_cents: int, change_cents: int) -> None:
         self.finalized.append((sale_id, total_cents, change_cents))
 
@@ -270,26 +317,31 @@ class FakePosView:
 
 
 def _make_presenter(
-    *, session: CurrentSession | None = None, session_id: int | None = 7
-) -> tuple[PosPresenter, FakePosView, FakeSalesServices, FakeSupervisorAuth]:
+    *,
+    session: CurrentSession | None = None,
+    session_id: int | None = 7,
+    catalog_services: FakeCatalogServices | None = None,
+) -> tuple[PosPresenter, FakePosView, FakeSalesServices, FakeSupervisorAuth, FakeCatalogServices]:
     view = FakePosView()
     sales = FakeSalesServices()
     supervisor_auth = FakeSupervisorAuth()
+    catalog = catalog_services or FakeCatalogServices()
     presenter = PosPresenter(
         view=view,
         sales_services=sales,
         supervisor_auth=supervisor_auth,
         session=session or CurrentSession(user_id=1, company_id=1, username="caixa"),
         session_id=session_id,
+        catalog_services=catalog,
     )
-    return presenter, view, sales, supervisor_auth
+    return presenter, view, sales, supervisor_auth, catalog
 
 
 # --- start ------------------------------------------------------------------
 
 
 def test_start_sale_uses_open_cash_session() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
 
     assert presenter.start() is True
 
@@ -304,7 +356,7 @@ def test_start_sale_uses_open_cash_session() -> None:
 
 
 def test_start_without_company_shows_error() -> None:
-    presenter, view, sales, _ = _make_presenter(
+    presenter, view, sales, _, _catalog = _make_presenter(
         session=CurrentSession(user_id=1, company_id=None, username="caixa")
     )
 
@@ -317,7 +369,7 @@ def test_start_without_company_shows_error() -> None:
 
 
 def test_add_item_refreshes_table_and_total() -> None:
-    presenter, view, _, _ = _make_presenter()
+    presenter, view, _, _, _catalog = _make_presenter()
     presenter.start()
 
     view.scan_text = "ARROZ"
@@ -331,7 +383,7 @@ def test_add_item_refreshes_table_and_total() -> None:
 
 
 def test_add_item_multiplier() -> None:
-    presenter, view, _, _ = _make_presenter()
+    presenter, view, _, _, _catalog = _make_presenter()
     presenter.start()
 
     view.scan_text = "3*ARROZ"
@@ -341,20 +393,41 @@ def test_add_item_multiplier() -> None:
     assert view.totals == (3000, 0, 3000)
 
 
-def test_add_item_not_found_shows_error_and_keeps_sale() -> None:
-    presenter, view, _, _ = _make_presenter()
+def test_add_item_not_found_offers_quick_create_and_cancelled() -> None:
+    """Produto não encontrado: oferece cadastro rápido; cancelado não gera erro."""
+    presenter, view, _, _, _catalog = _make_presenter()
     presenter.start()
 
     view.scan_text = "NAOEXISTE"
+    view.quick_create_result = None  # usuário cancela o cadastro rápido
     assert presenter.on_scan_entered() is False
 
+    # Nenhum erro é mostrado (o usuário apenas cancela o cadastro rápido)
+    assert view.errors == []
     assert view.item_rows == []
-    assert "não encontrado" in view.errors[0].lower()
+    assert view.scan_text == ""
+
+
+def test_add_item_not_found_quick_create_success() -> None:
+    """Produto não encontrado: cadastro rápido com sucesso adiciona o item à venda."""
+    presenter, view, _, _, _catalog = _make_presenter()
+    presenter.start()
+
+    view.scan_text = "NAOEXISTE"
+    view.quick_create_result = ("NOVO-PRODUTO", "Produto Novo", 1500, "UN")
+    assert presenter.on_scan_entered() is True
+
+    assert len(_catalog.quick_create_calls) == 1
+    assert _catalog.quick_create_calls[0].sku == "NOVO-PRODUTO"
+    assert _catalog.quick_create_calls[0].name == "Produto Novo"
+    assert _catalog.quick_create_calls[0].price_cents == 1500
+    assert len(view.item_rows) == 1
+    assert view.item_rows[0].description == "NOVO-PRODUTO"
     assert view.scan_text == ""
 
 
 def test_select_suggestion_adds_product() -> None:
-    presenter, view, _, _ = _make_presenter()
+    presenter, view, _, _, _catalog = _make_presenter()
     presenter.start()
     presenter.on_search_text_changed("arr")
 
@@ -363,7 +436,7 @@ def test_select_suggestion_adds_product() -> None:
 
 
 def test_search_suggests_after_two_characters_and_clears_short_text() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
 
     presenter.on_search_text_changed("arr")
@@ -375,7 +448,7 @@ def test_search_suggests_after_two_characters_and_clears_short_text() -> None:
 
 
 def test_search_strips_multiplier_prefix() -> None:
-    presenter, _, sales, _ = _make_presenter()
+    presenter, _, sales, _, _catalog = _make_presenter()
     presenter.start()
 
     presenter.on_search_text_changed("3*arr")
@@ -387,7 +460,7 @@ def test_search_strips_multiplier_prefix() -> None:
 
 
 def test_finalize_with_change_starts_new_sale() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -403,7 +476,7 @@ def test_finalize_with_change_starts_new_sale() -> None:
 
 
 def test_finalize_insufficient_payment_shows_error() -> None:
-    presenter, view, _, _ = _make_presenter()
+    presenter, view, _, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -416,7 +489,7 @@ def test_finalize_insufficient_payment_shows_error() -> None:
 
 
 def test_payment_cancelled_keeps_sale_open() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -431,7 +504,7 @@ def test_payment_cancelled_keeps_sale_open() -> None:
 
 
 def test_discount_with_operator_permission() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -445,7 +518,7 @@ def test_discount_with_operator_permission() -> None:
 
 
 def test_discount_without_permission_asks_supervisor_pin() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -462,7 +535,7 @@ def test_discount_without_permission_asks_supervisor_pin() -> None:
 
 
 def test_discount_with_invalid_supervisor_shows_error() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -476,7 +549,7 @@ def test_discount_with_invalid_supervisor_shows_error() -> None:
 
 
 def test_discount_supervisor_without_permission_shows_error() -> None:
-    presenter, view, sales, supervisor_auth = _make_presenter()
+    presenter, view, sales, supervisor_auth, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -494,7 +567,7 @@ def test_discount_supervisor_without_permission_shows_error() -> None:
 
 
 def test_cancel_item_requires_selection() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
 
     assert presenter.cancel_selected_item() is False
@@ -503,7 +576,7 @@ def test_cancel_item_requires_selection() -> None:
 
 
 def test_cancel_selected_item_updates_total() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -518,7 +591,7 @@ def test_cancel_selected_item_updates_total() -> None:
 
 
 def test_cancel_sale_starts_a_new_sale() -> None:
-    presenter, view, sales, _ = _make_presenter()
+    presenter, view, sales, _, _catalog = _make_presenter()
     presenter.start()
     view.scan_text = "ARROZ"
     presenter.on_scan_entered()
@@ -531,7 +604,7 @@ def test_cancel_sale_starts_a_new_sale() -> None:
 
 
 def test_escape_closes_view() -> None:
-    presenter, view, _, _ = _make_presenter()
+    presenter, view, _, _, _catalog = _make_presenter()
 
     presenter.on_escape()
 
