@@ -245,6 +245,9 @@ class ProductEditDialog(QDialog):
         else:
             self.setWindowTitle("Novo Produto")
 
+    def set_presenter(self, presenter: ProductEditPresenter) -> None:
+        self._presenter = presenter
+
 
 class CatalogWidget(QWidget):
     """Widget principal do catálogo com tabela e ações."""
