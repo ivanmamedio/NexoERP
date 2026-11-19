@@ -17,9 +17,11 @@ class FakeIdentityServices(IdentityServices):
     def __init__(self) -> None:
         self.calls = 0
         self.fail = False
+        self.last_identifier: str | None = None
 
-    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
+    def authenticate(self, identifier: str, password: str):  # type: ignore[override]
         self.calls += 1
+        self.last_identifier = identifier
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
 
@@ -74,11 +76,32 @@ def test_login_dialog_authenticates(qtbot):
     dialog._on_submit()
 
     assert services.calls == 1
+    assert services.last_identifier == "0"
     assert session.user_id == 1
     assert session.user_number == 0
     assert session.username == "João"
     assert session.company_id == 1
     assert dialog.isVisible() is False  # accept() fecha o diálogo
+
+
+def test_login_dialog_authenticates_by_name(qtbot):
+    """O login pelo nome do funcionário também funciona."""
+    services = FakeIdentityServices()
+    session = CurrentSession()
+    dialog = LoginDialog()
+    presenter = LoginPresenter(dialog, services, session)
+    dialog.set_presenter(presenter)
+
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    dialog._user_number.setText("João")
+    dialog._password.setText("senha123")
+    dialog._on_submit()
+
+    assert services.calls == 1
+    assert services.last_identifier == "João"
+    assert session.user_id == 1
 
 
 def test_login_dialog_shows_error_on_invalid(qtbot):

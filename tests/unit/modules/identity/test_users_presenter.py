@@ -21,7 +21,7 @@ class FakeIdentityServices(IdentityServices):
         self.users_output = None
         self.roles_output = None
 
-    def authenticate(self, user_number, password):  # type: ignore[override]
+    def authenticate(self, identifier: str, password: str):  # type: ignore[override]
         raise NotImplementedError
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]

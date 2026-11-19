@@ -23,7 +23,7 @@ from erp.modules.identity.application.set_user_active import SetUserActiveOutput
 class IdentityServices(Protocol):
     """Operações de identity expostas para a camada de apresentação."""
 
-    def authenticate(self, user_number: int, password: str) -> AuthenticateOutput: ...
+    def authenticate(self, identifier: str, password: str) -> AuthenticateOutput: ...
 
     def change_password(
         self,

@@ -67,11 +67,11 @@ class SqlIdentityServices:
         self._engine = engine
         self._hasher = BcryptHasher()
 
-    def authenticate(self, user_number: int, password: str) -> AuthenticateOutput:
+    def authenticate(self, identifier: str, password: str) -> AuthenticateOutput:
         with SqlAlchemyIdentityUnitOfWork(self._engine) as uow:
             assert uow.users is not None
             result = Authenticate(uow.users, self._hasher).execute(
-                AuthenticateInput(user_number=user_number, password=password)
+                AuthenticateInput(identifier=identifier, password=password)
             )
             uow.commit()
             return result

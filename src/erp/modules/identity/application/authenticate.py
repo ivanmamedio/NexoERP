@@ -1,15 +1,19 @@
-"""Authenticate case of use."""
+"""Authenticate case of use.
+
+Aceita login por número de usuário (sequencial) ou pelo nome do funcionário.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
+from erp.modules.identity.domain.user import User
 
 
 @dataclass(slots=True, frozen=True)
 class AuthenticateInput:
-    user_number: int
+    identifier: str  # número do usuário (ex: "0") ou nome do funcionário
     password: str
 
 
@@ -23,7 +27,11 @@ class AuthenticateOutput:
 
 
 class Authenticate:
-    """Autentica um usuário verificando user_number e senha."""
+    """Autentica um usuário verificando identificador e senha.
+
+    O identificador pode ser o número sequencial do usuário
+    ou o nome do funcionário (employee_name).
+    """
 
     def __init__(
         self,
@@ -34,7 +42,7 @@ class Authenticate:
         self._password_hasher = password_hasher
 
     def execute(self, data: AuthenticateInput) -> AuthenticateOutput:
-        user = self._user_repo.get_by_user_number(data.user_number)
+        user = self._resolve_user(data.identifier)
         if user is None:
             raise ValueError("Usuário ou senha inválidos")
 
@@ -59,3 +67,16 @@ class Authenticate:
             company_id=user.company_id,
             must_change_password=user.must_change_password,
         )
+
+    def _resolve_user(self, identifier: str) -> User | None:
+        """Tenta resolver o identificador como número, depois como nome."""
+        text = identifier.strip()
+        if not text:
+            return None
+
+        # Se for puramente numérico, busca por user_number
+        if text.isdigit():
+            return self._user_repo.get_by_user_number(int(text))
+
+        # Caso contrário, busca por employee_name
+        return self._user_repo.get_by_employee_name(text)

@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QIntValidator, QPixmap
+from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -129,9 +129,8 @@ class LoginDialog(QDialog):
 
         self._user_number = QLineEdit()
         self._user_number.setObjectName("UserNumberInput")
-        self._user_number.setPlaceholderText("Número do usuário")
-        self._user_number.setAccessibleName("Número do usuário")
-        self._user_number.setValidator(QIntValidator(0, 999999, self))
+        self._user_number.setPlaceholderText("Usuário (número ou nome)")
+        self._user_number.setAccessibleName("Usuário (número ou nome)")
 
         self._password = QLineEdit()
         self._password.setObjectName("PasswordInput")
@@ -238,17 +237,12 @@ class LoginDialog(QDialog):
             return
 
         self._error_label.hide()
-        user_number_text = self._user_number.text().strip()
-        if not user_number_text:
-            self.show_error("Informe o número do usuário.")
-            return
-        try:
-            user_number = int(user_number_text)
-        except ValueError:
-            self.show_error("Número do usuário inválido.")
+        identifier = self._user_number.text().strip()
+        if not identifier:
+            self.show_error("Informe o número ou nome do usuário.")
             return
 
-        self._presenter.login(user_number, self._password.text())
+        self._presenter.login(identifier, self._password.text())
 
 
 def create_login_dialog(

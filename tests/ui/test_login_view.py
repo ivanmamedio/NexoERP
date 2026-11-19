@@ -20,18 +20,22 @@ class FakeIdentityServices(IdentityServices):
     def __init__(self) -> None:
         self.calls = 0
         self.fail = False
-        self.last_user_number: int | None = None
+        self.last_identifier: str | None = None
         self.last_password: str | None = None
 
-    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
+    def authenticate(self, identifier: str, password: str):  # type: ignore[override]
         self.calls += 1
-        self.last_user_number = user_number
+        self.last_identifier = identifier
         self.last_password = password
         if self.fail:
             raise ValueError("Usuário ou senha inválidos")
 
         return AuthenticateOutput(
-            user_id=1, user_number=0, employee_name="João", company_id=1, must_change_password=False
+            user_id=1,
+            user_number=0,
+            employee_name="João",
+            company_id=1,
+            must_change_password=False,
         )
 
     def change_password(self, *, user_id, current_password, new_password, actor_id):  # type: ignore[override]
@@ -116,7 +120,7 @@ def test_login_dialog_enter_button_calls_presenter(qtbot):
     submit_button.click()
 
     assert services.calls == 1
-    assert services.last_user_number == 0
+    assert services.last_identifier == "0"
     assert services.last_password == "senha123"
     assert session.user_id == 1
     assert session.company_id == 1

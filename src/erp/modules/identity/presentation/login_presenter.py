@@ -31,14 +31,21 @@ class LoginPresenter:
         self._session = session
         self.must_change_password = False
 
-    def login(self, user_number: int, password: str) -> bool:
-        """Tenta autenticar. Retorna True em caso de sucesso."""
+    def login(self, identifier: str, password: str) -> bool:
+        """Tenta autenticar. Retorna True em caso de sucesso.
+
+        O ``identifier`` pode ser o número do usuário ou o nome do funcionário.
+        """
         if not password:
-            self._view.show_error("Informe número de usuário e senha.")
+            self._view.show_error("Informe usuário e senha.")
+            return False
+
+        if not identifier or not identifier.strip():
+            self._view.show_error("Informe o número ou nome do usuário.")
             return False
 
         try:
-            output = self._services.authenticate(user_number, password)
+            output = self._services.authenticate(identifier.strip(), password)
         except ValueError as exc:
             self._view.show_error(str(exc))
             self._view.clear_password()

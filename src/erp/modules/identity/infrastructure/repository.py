@@ -72,6 +72,15 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
         model = self._session.execute(stmt).scalar_one_or_none()
         return self._to_domain(model) if model else None
 
+    def get_by_employee_name(self, employee_name: str) -> User | None:
+        """Busca usuário pelo nome do funcionário (case-insensitive)."""
+        stmt = select(UserModel).where(
+            UserModel.employee_name.ilike(employee_name.strip())
+        )
+        stmt = self._apply_company_filter(stmt)
+        model = self._session.execute(stmt).scalar_one_or_none()
+        return self._to_domain(model) if model else None
+
     def get_roles(self, user: User) -> list[Role]:
         if user.id is None:
             return []

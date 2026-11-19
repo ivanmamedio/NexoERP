@@ -27,6 +27,9 @@ class FakeUserRepository(UserRepository):
     def get_by_user_number(self, user_number: int) -> User | None:
         return self._user
 
+    def get_by_employee_name(self, employee_name: str) -> User | None:
+        return self._user
+
     def get_roles(self, user: User) -> list:
         return []
 
@@ -51,7 +54,7 @@ class FakePasswordHasher(PasswordHasher):
         return self._verify_result
 
 
-def test_authenticate_success() -> None:
+def test_authenticate_success_by_number() -> None:
     user = User(
         id=1,
         user_number=0,
@@ -63,12 +66,31 @@ def test_authenticate_success() -> None:
     hasher = FakePasswordHasher(verify_result=True)
     uc = Authenticate(repo, hasher)
 
-    result = uc.execute(AuthenticateInput(user_number=0, password="senha123"))
+    result = uc.execute(AuthenticateInput(identifier="0", password="senha123"))
 
     assert result.user_id == 1
     assert result.user_number == 0
     assert result.employee_name == "João"
     assert result.must_change_password is False
+
+
+def test_authenticate_success_by_name() -> None:
+    user = User(
+        id=1,
+        user_number=0,
+        employee_name="João",
+        password_hash="hash",
+        is_active=True,
+    )
+    repo = FakeUserRepository(user)
+    hasher = FakePasswordHasher(verify_result=True)
+    uc = Authenticate(repo, hasher)
+
+    result = uc.execute(AuthenticateInput(identifier="João", password="senha123"))
+
+    assert result.user_id == 1
+    assert result.user_number == 0
+    assert result.employee_name == "João"
 
 
 def test_authenticate_user_not_found() -> None:
@@ -77,7 +99,7 @@ def test_authenticate_user_not_found() -> None:
     uc = Authenticate(repo, hasher)
 
     with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
-        uc.execute(AuthenticateInput(user_number=999, password="senha123"))
+        uc.execute(AuthenticateInput(identifier="999", password="senha123"))
 
 
 def test_authenticate_wrong_password() -> None:
@@ -87,7 +109,7 @@ def test_authenticate_wrong_password() -> None:
     uc = Authenticate(repo, hasher)
 
     with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
-        uc.execute(AuthenticateInput(user_number=0, password="senha_errada"))
+        uc.execute(AuthenticateInput(identifier="0", password="senha_errada"))
 
     assert user.failed_login_attempts == 1
 
@@ -99,4 +121,13 @@ def test_authenticate_inactive_user() -> None:
     uc = Authenticate(repo, hasher)
 
     with pytest.raises(ValueError, match="Usuário inativo"):
-        uc.execute(AuthenticateInput(user_number=0, password="senha123"))
+        uc.execute(AuthenticateInput(identifier="0", password="senha123"))
+
+
+def test_authenticate_empty_identifier() -> None:
+    repo = FakeUserRepository(None)
+    hasher = FakePasswordHasher()
+    uc = Authenticate(repo, hasher)
+
+    with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
+        uc.execute(AuthenticateInput(identifier="", password="senha123"))

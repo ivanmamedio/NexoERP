@@ -11,6 +11,7 @@ from erp.shared.application.session import CurrentSession
 class FakeIdentityServices(IdentityServices):
     def __init__(self) -> None:
         self.authenticate_calls = 0
+        self.last_identifier: str | None = None
         self.should_fail = False
         self.fail_message = "Usuário ou senha inválidos"
         self.must_change_password = False
@@ -19,8 +20,9 @@ class FakeIdentityServices(IdentityServices):
         self.return_employee_name = "João"
         self.return_company_id = 1
 
-    def authenticate(self, user_number: int, password: str):  # type: ignore[override]
+    def authenticate(self, identifier: str, password: str):  # type: ignore[override]
         self.authenticate_calls += 1
+        self.last_identifier = identifier
         if self.should_fail:
             raise ValueError(self.fail_message)
 
@@ -75,22 +77,41 @@ class FakeLoginView:
         self.accepted = True
 
 
-def test_login_presenter_success() -> None:
+def test_login_presenter_success_by_number() -> None:
     services = FakeIdentityServices()
     session = CurrentSession()
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login(0, "senha123")
+    result = presenter.login("0", "senha123")
 
     assert result is True
     assert services.authenticate_calls == 1
+    assert services.last_identifier == "0"
     assert session.user_id == 1
     assert session.user_number == 0
     assert session.username == "João"  # compatibilidade
     assert session.company_id == 1
     assert view.accepted is True
     assert view.errors == []
+
+
+def test_login_presenter_success_by_name() -> None:
+    services = FakeIdentityServices()
+    session = CurrentSession()
+    view = FakeLoginView()
+    presenter = LoginPresenter(view, services, session)
+
+    result = presenter.login("João", "senha123")
+
+    assert result is True
+    assert services.authenticate_calls == 1
+    assert services.last_identifier == "João"
+    assert session.user_id == 1
+    assert session.user_number == 0
+    assert session.username == "João"
+    assert session.company_id == 1
+    assert view.accepted is True
 
 
 def test_login_presenter_propagates_company_id() -> None:
@@ -101,7 +122,7 @@ def test_login_presenter_propagates_company_id() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    presenter.login(0, "senha123")
+    presenter.login("0", "senha123")
 
     assert session.company_id == 7
 
@@ -112,12 +133,40 @@ def test_login_presenter_empty_fields() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login(0, "")
+    result = presenter.login("", "")
 
     assert result is False
     assert services.authenticate_calls == 0
     assert session.user_id is None
-    assert view.errors == ["Informe número de usuário e senha."]
+    assert view.errors == ["Informe usuário e senha."]
+
+
+def test_login_presenter_empty_password() -> None:
+    services = FakeIdentityServices()
+    session = CurrentSession()
+    view = FakeLoginView()
+    presenter = LoginPresenter(view, services, session)
+
+    result = presenter.login("0", "")
+
+    assert result is False
+    assert services.authenticate_calls == 0
+    assert session.user_id is None
+    assert view.errors == ["Informe usuário e senha."]
+
+
+def test_login_presenter_empty_identifier() -> None:
+    services = FakeIdentityServices()
+    session = CurrentSession()
+    view = FakeLoginView()
+    presenter = LoginPresenter(view, services, session)
+
+    result = presenter.login("", "senha123")
+
+    assert result is False
+    assert services.authenticate_calls == 0
+    assert session.user_id is None
+    assert view.errors == ["Informe o número ou nome do usuário."]
 
 
 def test_login_presenter_invalid_credentials() -> None:
@@ -127,7 +176,7 @@ def test_login_presenter_invalid_credentials() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    result = presenter.login(0, "senha_errada")
+    result = presenter.login("0", "senha_errada")
 
     assert result is False
     assert session.user_id is None
@@ -143,7 +192,7 @@ def test_login_presenter_sets_must_change_password() -> None:
     view = FakeLoginView()
     presenter = LoginPresenter(view, services, session)
 
-    presenter.login(0, "senha123")
+    presenter.login("0", "senha123")
 
     assert presenter.must_change_password is True
 
