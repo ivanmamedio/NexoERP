@@ -54,8 +54,6 @@ class CreateProduct:
     def execute(self, input: CreateProductInput) -> CreateProductOutput:
         if not input.name:
             raise ValidationError("Nome do produto é obrigatório.")
-        if not input.description:
-            raise ValidationError("Descrição do produto é obrigatória.")
         if input.price_cents <= 0:
             raise ValidationError("Preço de venda deve ser maior que zero.")
         if not input.unit:
