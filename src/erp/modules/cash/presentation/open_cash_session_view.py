@@ -127,4 +127,6 @@ def create_open_cash_session_dialog(
         engine=engine,
     )
     dialog._presenter = presenter
+    # Carrega os registros após o presenter estar vinculado ao diálogo
+    presenter.load_registers()
     return dialog

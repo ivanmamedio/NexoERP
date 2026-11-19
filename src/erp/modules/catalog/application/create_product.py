@@ -52,19 +52,28 @@ class CreateProduct:
         self._repository = repository
 
     def execute(self, input: CreateProductInput) -> CreateProductOutput:
-        if not input.sku:
-            raise ValidationError("SKU é obrigatório.")
         if not input.name:
             raise ValidationError("Nome do produto é obrigatório.")
+        if input.price_cents <= 0:
+            raise ValidationError("Preço de venda deve ser maior que zero.")
+        if not input.unit:
+            raise ValidationError("Unidade de medida é obrigatória.")
 
-        existing = self._repository.get_by_sku(input.sku, input.company_id)
+        # Gera SKU automaticamente se não fornecido
+        sku = input.sku.strip().upper() if input.sku else ""
+        if not sku:
+            all_products = self._repository.list_all(company_id=input.company_id)
+            next_num = len(all_products) + 1
+            sku = f"PROD-{next_num:04d}"
+
+        existing = self._repository.get_by_sku(sku, input.company_id)
         if existing is not None:
-            raise ValidationError(f"Já existe produto com SKU {input.sku} nesta empresa.")
+            raise ValidationError(f"Já existe produto com SKU {sku} nesta empresa.")
 
         product = Product(
-            sku=input.sku,
-            name=input.name,
-            description=input.description,
+            sku=sku,
+            name=input.name.strip(),
+            description=input.description.strip(),
             category_id=input.category_id,
             supplier_id=input.supplier_id,
             unit=input.unit,

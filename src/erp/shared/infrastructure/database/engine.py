@@ -23,7 +23,12 @@ def build_engine(db_path: Path) -> Engine:
     # as_posix() converts backslashes to forward slashes for proper SQLite URL
     resolved_path = db_path.resolve()
     db_url = f"sqlite:///{resolved_path.as_posix()}"
-    engine = create_engine(db_url, future=True)
+    engine = create_engine(
+        db_url,
+        future=True,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
+    )
     event.listen(engine, "connect", _apply_pragmas)
     return engine
 
