@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Script de carga para Task 5.1 — gera 50k produtos e 100k vendas, mede performance.
+"""Script de carga para Task 5.1 - gera 50k produtos e 100k vendas, mede performance.
 
 Uso:
     uv run python scripts/load_test.py --seed
@@ -14,25 +14,12 @@ import random
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 
-from sqlalchemy import select, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from erp.bootstrap import bootstrap
-from erp.modules.catalog.domain.product import Product
-from erp.modules.catalog.infrastructure.models import ProductModel
-from erp.modules.sales.domain.sale import Sale
-from erp.modules.sales.domain.sale_item import SaleItem
-from erp.modules.sales.domain.sale_payment import SalePayment
-from erp.modules.sales.infrastructure.models import SaleItemModel, SaleModel, SalePaymentModel
-from erp.modules.treasury.domain.financial_category import FinancialCategory
-from erp.modules.treasury.infrastructure.models import FinancialCategoryModel
-from erp.modules.cash.domain.cash_session import CashSession
-from erp.modules.cash.infrastructure.models import CashRegisterModel, CashSessionModel
-from erp.modules.identity.infrastructure.models import UserModel
-from erp.shared.application.session import CurrentSession
-from erp.shared.domain.value_objects import Money
+from erp.config.paths import get_data_dir
 
 
 @dataclass
@@ -51,13 +38,14 @@ class LoadTester:
         self.config = config
         self.ctx = bootstrap()
         self.engine = self.ctx.engine
-        self.company_id = 1  # empresa padrão
+        self.company_id = 1  # empresa padrao
+        self.db_path = get_data_dir() / "erp.db"
 
     def _get_session(self) -> Session:
         return Session(self.engine)
 
     def seed_all(self) -> None:
-        """Executa todo o seeding: categorias, fornecedores, produtos, vendas."""
+        """Executa todo o seeding: empresa, usuarios, categorias, fornecedores, produtos, vendas."""
         print("=" * 60)
         print("INICIANDO SEED DE CARGA (50k produtos, 100k vendas)")
         print("=" * 60)
@@ -70,7 +58,6 @@ class LoadTester:
             self._ensure_categories(session)
             self._ensure_suppliers(session)
             self._ensure_cash_registers(session)
-            self._ensure_financial_categories(session)
             session.commit()
 
         self._seed_products()
@@ -78,10 +65,9 @@ class LoadTester:
         self._seed_cash_sessions()
 
         elapsed = time.perf_counter() - start
-        print(f"\n✅ Seed completo em {elapsed:.2f}s")
+        print(f"\n[OK] Seed completo em {elapsed:.2f}s")
 
     def _ensure_company(self, session: Session) -> None:
-        # Verifica se empresa 1 existe
         result = session.execute(text("SELECT 1 FROM companies WHERE id = 1")).fetchone()
         if not result:
             now = datetime.now(UTC)
@@ -89,21 +75,19 @@ class LoadTester:
                 INSERT INTO companies (id, company_id, name, trade_name, tax_id, address, phone, email, active, created_at, updated_at)
                 VALUES (1, 1, 'Empresa Teste', 'Empresa Teste', '00.000.000/0001-00', 'Rua Teste, 123', '(11) 99999-9999', 'teste@empresa.com', 1, :now, :now)
             """), {"now": now})
-            print("  📦 Empresa 1 criada")
+            print("  [OK] Empresa 1 criada")
 
     def _ensure_users(self, session: Session) -> None:
-        # Verifica usuários
         count = session.execute(text("SELECT COUNT(*) FROM users")).scalar()
         if count >= self.config.num_users:
-            print(f"  👥 {count} usuários já existem")
+            print(f"  [USERS] {count} usuarios ja existem")
             return
 
-        # Cria usuários adicionais
         from erp.modules.identity.infrastructure.hasher import BcryptHasher
         hasher = BcryptHasher()
 
         for i in range(count + 1, self.config.num_users + 1):
-            user_number = i - 1  # admin é 0
+            user_number = i - 1  # admin e 0
             employee_name = f"Operador {i}"
             password_hash = hasher.hash("senha123")
             session.execute(text("""
@@ -118,7 +102,6 @@ class LoadTester:
                 "now": datetime.now(UTC),
             })
 
-            # Atribui papel de Caixa
             session.execute(text("""
                 INSERT INTO user_company_roles (user_id, role_id, company_id)
                 SELECT u.id, r.id, 1 FROM users u, roles r
@@ -126,27 +109,27 @@ class LoadTester:
             """), {"user_number": user_number})
 
         session.commit()
-        print(f"  👥 {self.config.num_users} usuários garantidos")
+        print(f"  [USERS] {self.config.num_users} usuarios garantidos")
 
     def _ensure_categories(self, session: Session) -> None:
         count = session.execute(text("SELECT COUNT(*) FROM categories WHERE company_id = 1")).scalar()
         if count >= self.config.num_categories:
-            print(f"  📂 {count} categorias já existem")
+            print(f"  [CAT] {count} categorias ja existem")
             return
 
         for i in range(count + 1, self.config.num_categories + 1):
             session.execute(text("""
                 INSERT INTO categories (company_id, name, description, parent_id, is_active, created_at, updated_at)
                 VALUES (1, :name, :description, NULL, 1, :now, :now)
-            """), {"name": f"Categoria {i}", "description": f"Descrição da categoria {i}", "now": datetime.now(UTC)})
+            """), {"name": f"Categoria {i}", "description": f"Descricao da categoria {i}", "now": datetime.now(UTC)})
 
         session.commit()
-        print(f"  📂 {self.config.num_categories} categorias garantidas")
+        print(f"  [CAT] {self.config.num_categories} categorias garantidas")
 
     def _ensure_suppliers(self, session: Session) -> None:
         count = session.execute(text("SELECT COUNT(*) FROM suppliers WHERE company_id = 1")).scalar()
         if count >= self.config.num_suppliers:
-            print(f"  🚚 {count} fornecedores já existem")
+            print(f"  [SUPP] {count} fornecedores ja existem")
             return
 
         for i in range(count + 1, self.config.num_suppliers + 1):
@@ -164,12 +147,12 @@ class LoadTester:
             })
 
         session.commit()
-        print(f"  🚚 {self.config.num_suppliers} fornecedores garantidos")
+        print(f"  [SUPP] {self.config.num_suppliers} fornecedores garantidos")
 
     def _ensure_cash_registers(self, session: Session) -> None:
         count = session.execute(text("SELECT COUNT(*) FROM cash_registers WHERE company_id = 1")).scalar()
         if count >= self.config.num_cash_registers:
-            print(f"  💰 {count} caixas já existem")
+            print(f"  [CASH] {count} caixas ja existem")
             return
 
         for i in range(count + 1, self.config.num_cash_registers + 1):
@@ -179,38 +162,11 @@ class LoadTester:
             """), {"name": f"Caixa {i}", "terminal_code": f"TERM{i:03d}", "now": datetime.now(UTC)})
 
         session.commit()
-        print(f"  💰 {self.config.num_cash_registers} caixas garantidos")
-
-    def _ensure_financial_categories(self, session: Session) -> None:
-        count = session.execute(text("SELECT COUNT(*) FROM financial_categories WHERE company_id = 1")).scalar()
-        if count >= 10:
-            print(f"  💳 {count} categorias financeiras já existem")
-            return
-
-        categories = [
-            ("Receita", "Vendas", "income", "Receitas de vendas"),
-            ("Receita", "Serviços", "income", "Receitas de serviços"),
-            ("Despesa", "Mercadorias", "expense", "Compra de mercadorias"),
-            ("Despesa", "Aluguel", "expense", "Aluguel do imóvel"),
-            ("Despesa", "Salários", "expense", "Pagamento de salários"),
-            ("Despesa", "Impostos", "expense", "Pagamento de impostos"),
-            ("Despesa", "Marketing", "expense", "Marketing e publicidade"),
-            ("Transferência", "Banco", "transfer", "Transferências bancárias"),
-        ]
-
-        for kind, name, cat_kind, description in categories:
-            session.execute(text("""
-                INSERT INTO financial_categories (company_id, name, kind, description, is_active, created_at, updated_at)
-                VALUES (1, :name, :kind, :description, 1, :now, :now)
-            """), {"name": name, "kind": cat_kind, "description": description, "now": datetime.now(UTC)})
-
-        session.commit()
-        print(f"  💳 Categorias financeiras garantidas")
+        print(f"  [CASH] {self.config.num_cash_registers} caixas garantidos")
 
     def _seed_products(self) -> None:
-        print(f"\n  📦 Criando {self.config.num_products} produtos...")
+        print(f"\n  [PROD] Criando {self.config.num_products} produtos...")
 
-        # Busca IDs necessários
         with self._get_session() as session:
             category_ids = [row[0] for row in session.execute(text("SELECT id FROM categories WHERE company_id = 1")).fetchall()]
             supplier_ids = [row[0] for row in session.execute(text("SELECT id FROM suppliers WHERE company_id = 1")).fetchall()]
@@ -227,15 +183,15 @@ class LoadTester:
             products_data = []
             now = datetime.now(UTC)
             for i in range(start_idx, end_idx):
-                cost = random.randint(500, 50000)  # R$ 5,00 a R$ 500,00
-                margin = random.randint(15, 80)  # 15% a 80%
+                cost = random.randint(500, 50000)
+                margin = random.randint(15, 80)
                 price = int(cost / (1 - margin / 100))
 
                 products_data.append({
                     "company_id": self.company_id,
                     "sku": f"SKU{i:06d}",
                     "name": f"Produto {i}",
-                    "description": f"Descrição do produto {i}",
+                    "description": f"Descricao do produto {i}",
                     "category_id": random.choice(category_ids),
                     "supplier_id": random.choice(supplier_ids) if supplier_ids else None,
                     "unit": random.choice(units),
@@ -267,22 +223,21 @@ class LoadTester:
             if (batch_num + 1) % 10 == 0 or batch_num == total_batches - 1:
                 print(f"    Lote {batch_num + 1}/{total_batches} ({end_idx - 1}/{self.config.num_products})")
 
-        print(f"  ✅ {self.config.num_products} produtos criados")
+        print(f"  [OK] {self.config.num_products} produtos criados")
 
     def _seed_sales(self) -> None:
-        print(f"\n  💰 Criando {self.config.num_sales} vendas...")
+        print(f"\n  [SALES] Criando {self.config.num_sales} vendas...")
 
         with self._get_session() as session:
             product_ids = [row[0] for row in session.execute(text("SELECT id FROM products WHERE company_id = 1 AND active = 1")).fetchall()]
             user_ids = [row[0] for row in session.execute(text("SELECT id FROM users WHERE company_id = 1")).fetchall()]
             user_names = {row[0]: row[1] for row in session.execute(text("SELECT id, employee_name FROM users WHERE company_id = 1")).fetchall()}
             register_ids = [row[0] for row in session.execute(text("SELECT id FROM cash_registers WHERE company_id = 1")).fetchall()]
-            
-            # Verifica qual é o próximo ID disponível
+
             max_sale_id = session.execute(text("SELECT COALESCE(MAX(id), 0) FROM sales")).scalar()
             sale_id_start = max_sale_id + 1
 
-        payment_methods = ["Dinheiro", "PIX", "Cartão Débito", "Cartão Crédito", "Vale"]
+        payment_methods = ["Dinheiro", "PIX", "Cartao Debito", "Cartao Credito", "Vale"]
 
         sales_per_batch = self.config.batch_size
         total_batches = (self.config.num_sales + sales_per_batch - 1) // sales_per_batch
@@ -301,21 +256,19 @@ class LoadTester:
                 num_items = random.randint(1, 10)
                 subtotal = 0
 
-                # Venda
                 sale_date = datetime.now(UTC) - timedelta(days=random.randint(0, 365))
                 session_id = random.choice(register_ids) if register_ids else None
                 user_id = random.choice(user_ids)
                 status = "finalized"
 
-                # Itens
                 sale_items = random.sample(product_ids, min(num_items, len(product_ids)))
-                for item_idx, product_id in enumerate(sale_items):
-                    with self._get_session() as session:
-                        product = session.get(ProductModel, product_id)
+                for product_id in sale_items:
+                    with self._get_session() as s:
+                        product = s.execute(text("SELECT price_cents, name, unit FROM products WHERE id = :pid"), {"pid": product_id}).fetchone()
                         if not product:
                             continue
                         qty = random.randint(1, 20) * 1000
-                        unit_price = product.price_cents
+                        unit_price = product[0]
                         line_total = unit_price * qty
                         subtotal += line_total
 
@@ -323,11 +276,11 @@ class LoadTester:
                             "sale_id": sale_id,
                             "company_id": self.company_id,
                             "product_id": product_id,
-                            "description": product.name,
+                            "description": product[1],
                             "unit_price_cents": unit_price,
                             "quantity_thousandths": qty,
                             "line_total_cents": line_total,
-                            "unit": product.unit,
+                            "unit": product[2],
                             "cancelled": 0,
                             "cancel_reason": "",
                         })
@@ -335,7 +288,6 @@ class LoadTester:
                 discount = random.randint(0, subtotal // 10) if subtotal > 1000 else 0
                 total = subtotal - discount
 
-                # Pagamentos
                 remaining = total
                 payments = []
                 for _ in range(random.randint(1, 3)):
@@ -350,11 +302,13 @@ class LoadTester:
                 if remaining > 0:
                     payments[-1] += remaining
 
+                payment_changes = []
                 for amount in payments:
                     method = random.choice(payment_methods)
                     change = 0
-                    if method == "Dinheiro" and amount > total // len(payments):
-                        change = amount - total // len(payments)
+                    if method == "Dinheiro" and amount > total // max(len(payments), 1):
+                        change = amount - total // max(len(payments), 1)
+                    payment_changes.append({"method": method, "amount_cents": amount, "change_cents": change})
                     payments_data.append({
                         "sale_id": sale_id,
                         "company_id": self.company_id,
@@ -374,7 +328,7 @@ class LoadTester:
                     "discount_cents": discount,
                     "total_cents": total,
                     "paid_cents": total,
-                    "change_cents": sum(p.get("change_cents", 0) for p in payments_data[-len(payments):]),
+                    "change_cents": sum(p["change_cents"] for p in payment_changes),
                     "cancel_reason": "",
                     "cancelled_by_user_id": None,
                     "cancelled_by_username": "",
@@ -428,27 +382,25 @@ class LoadTester:
             if (batch_num + 1) % 10 == 0 or batch_num == total_batches - 1:
                 print(f"    Lote {batch_num + 1}/{total_batches} ({end_idx - 1}/{self.config.num_sales})")
 
-        print(f"  ✅ {self.config.num_sales} vendas criadas")
+        print(f"  [OK] {self.config.num_sales} vendas criadas")
 
     def _seed_cash_sessions(self) -> None:
-        print(f"\n  🏪 Criando sessões de caixa...")
+        print(f"\n  [CASH-SESSION] Criando sessoes de caixa...")
 
         with self._get_session() as session:
             register_ids = [row[0] for row in session.execute(text("SELECT id FROM cash_registers WHERE company_id = 1")).fetchall()]
             user_ids = [row[0] for row in session.execute(text("SELECT id FROM users WHERE company_id = 1")).fetchall()]
 
             for register_id in register_ids:
-                # Verifica se já tem sessão
                 existing = session.execute(text("""
                     SELECT 1 FROM cash_sessions WHERE register_id = :rid AND status = 'open'
                 """), {"rid": register_id}).fetchone()
                 if existing:
                     continue
 
-                opening = random.randint(10000, 50000)  # R$ 100 a R$ 500
+                opening = random.randint(10000, 50000)
                 opened_by_user_id = random.choice(user_ids)
-                with self._get_session() as s:
-                    opened_by_username = s.execute(text("SELECT employee_name FROM users WHERE id = :uid"), {"uid": opened_by_user_id}).scalar() or f"user{opened_by_user_id}"
+                opened_by_username = session.execute(text("SELECT employee_name FROM users WHERE id = :uid"), {"uid": opened_by_user_id}).scalar() or f"user{opened_by_user_id}"
 
                 session.execute(text("""
                     INSERT INTO cash_sessions (
@@ -478,58 +430,39 @@ class LoadTester:
 
             session.commit()
 
-        print(f"  ✅ Sessões de caixa criadas")
+        print(f"  [OK] Sessoes de caixa criadas")
 
     def measure_performance(self) -> dict:
-        """Mede performance de operações críticas."""
+        """Mede performance de operacoes criticas."""
         print("\n" + "=" * 60)
         print("MEDINDO PERFORMANCE")
         print("=" * 60)
 
         results = {}
 
-        # 1. App startup (bootstrap)
         results["bootstrap"] = self._measure_bootstrap()
-
-        # 2. PDV busca por SKU
         results["pdv_sku_search"] = self._measure_pdv_sku_search()
-
-        # 3. PDV busca por nome (prefixo)
         results["pdv_name_search"] = self._measure_pdv_name_search()
-
-        # 4. PDV busca por nome (substring)
         results["pdv_name_substring"] = self._measure_pdv_name_substring()
-
-        # 5. Relatório vendas por período
         results["report_sales_by_period"] = self._measure_report_sales_by_period()
-
-        # 6. Relatório vendas por produto
         results["report_sales_by_product"] = self._measure_report_sales_by_product()
-
-        # 7. Relatório estoque baixo
         results["report_low_stock"] = self._measure_report_low_stock()
-
-        # 8. Relatório margem de lucro
         results["report_profit_margin"] = self._measure_report_profit_margin()
-
-        # 9. Fechamento de caixa
         results["cash_closing"] = self._measure_cash_closing()
-
-        # 10. Fluxo de caixa (treasury)
         results["treasury_cash_flow"] = self._measure_treasury_cash_flow()
 
         print("\n" + "=" * 60)
         print("RESUMO DE PERFORMANCE")
         print("=" * 60)
         for key, value in results.items():
-            status = "✅" if value.get("ok", True) else "⚠️"
+            status = "[OK]" if value.get("ok", True) else "[WARN]"
             print(f"  {status} {key}: {value['time_ms']:.2f}ms ({value.get('rows', 0)} rows)")
 
         return results
 
     def _measure_bootstrap(self) -> dict:
         start = time.perf_counter()
-        ctx = bootstrap()
+        bootstrap()
         elapsed = (time.perf_counter() - start) * 1000
         return {"time_ms": elapsed, "ok": elapsed < 2000, "note": "Target: < 2s"}
 
@@ -548,12 +481,11 @@ class LoadTester:
 
     def _measure_pdv_name_search(self) -> dict:
         with self._get_session() as session:
-            # Busca um nome existente e pega prefixo
             name = session.execute(text("SELECT name FROM products WHERE company_id = 1 AND active = 1 ORDER BY RANDOM() LIMIT 1")).scalar()
             if not name:
                 return {"time_ms": 0, "ok": False, "note": "No products"}
 
-            prefix = name[:5]  # primeiro 5 chars
+            prefix = name[:5]
 
             start = time.perf_counter()
             session.execute(text("""
@@ -570,7 +502,7 @@ class LoadTester:
             if not name:
                 return {"time_ms": 0, "ok": False, "note": "No products"}
 
-            substr = name[3:8]  # meio do nome
+            substr = name[3:8]
 
             start = time.perf_counter()
             session.execute(text("""
@@ -579,7 +511,7 @@ class LoadTester:
                 ORDER BY name LIMIT 20
             """), {"substr": f"%{substr}%"}).fetchall()
             elapsed = (time.perf_counter() - start) * 1000
-        return {"time_ms": elapsed, "ok": elapsed < 500, "note": "Target: < 500ms (full scan esperado)"}
+        return {"time_ms": elapsed, "ok": elapsed < 500, "note": "Target: < 500ms"}
 
     def _measure_report_sales_by_period(self) -> dict:
         with self._get_session() as session:
@@ -723,20 +655,19 @@ class LoadTester:
         return {"time_ms": elapsed, "ok": elapsed < 500, "note": "Target: < 500ms"}
 
     def analyze_indexes(self) -> None:
-        """Analisa índices existentes e sugere novos."""
+        """Analisa indices existentes e sugere novos."""
         print("\n" + "=" * 60)
-        print("ANÁLISE DE ÍNDICES")
+        print("ANALISE DE INDICES")
         print("=" * 60)
 
         with self._get_session() as session:
-            # Lista índices atuais
             indexes = session.execute(text("""
                 SELECT name, tbl_name, sql FROM sqlite_master
                 WHERE type = 'index' AND name NOT LIKE 'sqlite_%'
                 ORDER BY tbl_name, name
             """)).fetchall()
 
-            print("\nÍndices atuais:")
+            print("\nIndices atuais:")
             by_table = {}
             for idx in indexes:
                 table = idx[1]
@@ -747,8 +678,7 @@ class LoadTester:
             for table, idxs in sorted(by_table.items()):
                 print(f"  {table}: {', '.join(idxs)}")
 
-            # Análise de planos de query (EXPLAIN QUERY PLAN)
-            print("\nAnálise de planos de query (EXPLAIN QUERY PLAN):")
+            print("\nAnalise de planos de query (EXPLAIN QUERY PLAN):")
 
             queries = [
                 ("PDV SKU search", "SELECT * FROM products WHERE company_id = 1 AND sku = 'SKU000001' AND active = 1"),
@@ -758,14 +688,6 @@ class LoadTester:
                     FROM sales s
                     WHERE s.company_id = 1 AND s.created_at >= date('now', '-30 days')
                     GROUP BY date(s.created_at)
-                """),
-                ("Sales by product", """
-                    SELECT p.id, p.name, SUM(si.line_total_cents)
-                    FROM sale_items si
-                    JOIN sales s ON si.sale_id = s.id
-                    JOIN products p ON si.product_id = p.id
-                    WHERE s.company_id = 1 AND s.created_at >= date('now', '-30 days')
-                    GROUP BY p.id
                 """),
                 ("Low stock", "SELECT * FROM products WHERE company_id = 1 AND active = 1 AND min_stock_qty > 0 AND stock_qty <= min_stock_qty"),
             ]
@@ -780,10 +702,10 @@ class LoadTester:
 def main():
     parser = argparse.ArgumentParser(description="Load test para NexoERP (Task 5.1)")
     parser.add_argument("--seed", action="store_true", help="Executa seeding de 50k produtos e 100k vendas")
-    parser.add_argument("--measure", action="store_true", help="Mede performance das operações críticas")
-    parser.add_argument("--analyze", action="store_true", help="Analisa índices e planos de query")
-    parser.add_argument("--products", type=int, default=50_000, help="Número de produtos")
-    parser.add_argument("--sales", type=int, default=100_000, help="Número de vendas")
+    parser.add_argument("--measure", action="store_true", help="Mede performance das operacoes criticas")
+    parser.add_argument("--analyze", action="store_true", help="Analisa indices e planos de query")
+    parser.add_argument("--products", type=int, default=50_000, help="Numero de produtos")
+    parser.add_argument("--sales", type=int, default=100_000, help="Numero de vendas")
 
     args = parser.parse_args()
 

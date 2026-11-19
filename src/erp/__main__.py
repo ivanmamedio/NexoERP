@@ -674,7 +674,7 @@ def main() -> int:
         _logger.exception("Bootstrap failed")
         return 1
 
-    if "CODESPACES" in os.environ or not os.environ.get("DISPLAY"):
+    if "CODESPACES" in os.environ or (os.name != "nt" and not os.environ.get("DISPLAY")):
         _logger.info("Running in headless environment. Skipping UI launch.")
         _logger.info("Run 'uv run pytest' to validate the infrastructure.")
         return 0
