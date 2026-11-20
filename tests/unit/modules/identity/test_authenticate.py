@@ -10,6 +10,7 @@ from erp.modules.identity.application.authenticate import (
 )
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 from erp.modules.identity.domain.user import User
+from erp.shared.domain.errors import NotFound, PermissionDenied, ValidationError
 
 
 class FakeUserRepository(UserRepository):
@@ -98,7 +99,7 @@ def test_authenticate_user_not_found() -> None:
     hasher = FakePasswordHasher()
     uc = Authenticate(repo, hasher)
 
-    with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
+    with pytest.raises(NotFound, match="Usuário ou senha inválidos"):
         uc.execute(AuthenticateInput(identifier="999", password="senha123"))
 
 
@@ -108,7 +109,7 @@ def test_authenticate_wrong_password() -> None:
     hasher = FakePasswordHasher(verify_result=False)
     uc = Authenticate(repo, hasher)
 
-    with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
+    with pytest.raises(ValidationError, match="Usuário ou senha inválidos"):
         uc.execute(AuthenticateInput(identifier="0", password="senha_errada"))
 
     assert user.failed_login_attempts == 1
@@ -120,7 +121,7 @@ def test_authenticate_inactive_user() -> None:
     hasher = FakePasswordHasher(verify_result=True)
     uc = Authenticate(repo, hasher)
 
-    with pytest.raises(ValueError, match="Usuário inativo"):
+    with pytest.raises(PermissionDenied, match="Usuário inativo"):
         uc.execute(AuthenticateInput(identifier="0", password="senha123"))
 
 
@@ -129,5 +130,5 @@ def test_authenticate_empty_identifier() -> None:
     hasher = FakePasswordHasher()
     uc = Authenticate(repo, hasher)
 
-    with pytest.raises(ValueError, match="Usuário ou senha inválidos"):
+    with pytest.raises(NotFound, match="Usuário ou senha inválidos"):
         uc.execute(AuthenticateInput(identifier="", password="senha123"))

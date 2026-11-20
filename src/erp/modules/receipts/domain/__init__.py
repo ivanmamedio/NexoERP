@@ -11,10 +11,10 @@ from erp.shared.domain.value_objects import Money
 
 @dataclass(slots=True)
 class ReceiptLine:
-    """Uma linha do cupom (descrição, quantidade, preço unitário, total)."""
+    """Uma linha do cupom (descrição, quantidade em milésimos, preço unitário, total)."""
 
     description: str
-    quantity: float
+    quantity_thousandths: int
     unit: str
     unit_price: Money
     total: Money
@@ -47,13 +47,15 @@ class Receipt(Entity):
     change: Money = field(default_factory=lambda: Money(0))
     non_fiscal_line: str = "NÃO É DOCUMENTO FISCAL"
 
-    def add_line(self, description: str, quantity: float, unit: str, unit_price: Money) -> None:
+    def add_line(
+        self, description: str, quantity_thousandths: int, unit: str, unit_price: Money
+    ) -> None:
         """Adiciona uma linha ao cupom."""
-        total = Money(int(unit_price.cents * quantity))
+        total = unit_price.multiply_by_qty(quantity_thousandths)
         self.lines.append(
             ReceiptLine(
                 description=description,
-                quantity=quantity,
+                quantity_thousandths=quantity_thousandths,
                 unit=unit,
                 unit_price=unit_price,
                 total=total,

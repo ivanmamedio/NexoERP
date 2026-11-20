@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
+from erp.modules.credit_notebook.application.apply_payment import ApplyPaymentInput
 from erp.modules.credit_notebook.application.create_customer import (
     CreateCreditCustomerInput,
-    CreateCreditCustomerOutput,
 )
-from erp.modules.credit_notebook.application.create_entry import (
-    CreateCreditEntryInput,
-    CreateCreditEntryOutput,
-)
+from erp.modules.credit_notebook.application.list_customers import CreditCustomerView
+from erp.modules.credit_notebook.application.list_entries import CreditEntryView
 from erp.modules.credit_notebook.application.services import CreditNotebookServices
 from erp.modules.credit_notebook.application.update_customer import (
     UpdateCreditCustomerInput,
-    UpdateCreditCustomerOutput,
 )
-from erp.modules.credit_notebook.application.apply_payment import ApplyPaymentInput
 from erp.shared.application.session import CurrentSession
 from erp.shared.domain.errors import NotFound, ValidationError
 
@@ -28,8 +25,8 @@ class CreditNotebookView(Protocol):
 
     def show_error(self, message: str) -> None: ...
     def show_success(self, message: str) -> None: ...
-    def set_customers(self, customers: list) -> None: ...
-    def set_entries(self, entries: list) -> None: ...
+    def set_customers(self, customers: list[CreditCustomerView]) -> None: ...
+    def set_entries(self, entries: list[CreditEntryView]) -> None: ...
 
 
 class CreditNotebookPresenter:
@@ -150,6 +147,7 @@ class CreditNotebookPresenter:
 
         try:
             from erp.modules.credit_notebook.application.create_entry import CreateCreditEntryInput
+
             output = self._services.create_entry(
                 CreateCreditEntryInput(
                     customer_id=customer_id,
@@ -214,7 +212,3 @@ class CreditNotebookPresenter:
             self._view.set_entries(list(output.entries))
         except Exception as exc:
             self._view.show_error(str(exc))
-
-
-# Need to import datetime for the type hint
-from datetime import datetime

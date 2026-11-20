@@ -208,14 +208,7 @@ class CSVExporter(ReportExporterPort):
         title: str,
         subtitle: str = "",
     ) -> None:
-        # Lazy import for PDF
-        try:
-            import reportlab  # type: ignore[import-untyped]
-        except ImportError:
-            raise ImportError(
-                "Relatórios PDF requerem o módulo 'reportlab'.\n"
-                "Instale com: uv add reportlab"
-            )
+        # Lazy import for PDF (imported inside _export_pdf_lazy)
         self._export_pdf_lazy(rows, headers, file_path, title, subtitle)
 
     def _row_to_list(self, row: object) -> list[str]:

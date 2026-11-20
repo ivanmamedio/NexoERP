@@ -5,11 +5,11 @@ Revises: d3d407b12fb7
 Create Date: 2026-11-18 00:00:00.000000
 
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "0013_credit_notebook"
@@ -34,14 +34,22 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_credit_customers_company_phone", "credit_customers", ["company_id", "phone"])
+    op.create_index(
+        "ix_credit_customers_company_phone", "credit_customers", ["company_id", "phone"]
+    )
     op.create_index("ix_credit_customers_company_name", "credit_customers", ["company_id", "name"])
 
     # Credit entries table
     op.create_table(
         "credit_entries",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("customer_id", sa.Integer(), sa.ForeignKey("credit_customers.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "customer_id",
+            sa.Integer(),
+            sa.ForeignKey("credit_customers.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("company_id", sa.Integer(), nullable=True, index=True),
         sa.Column("entry_type", sa.String(20), nullable=False, default="charge", index=True),
         sa.Column("description", sa.String(500), nullable=False, default=""),

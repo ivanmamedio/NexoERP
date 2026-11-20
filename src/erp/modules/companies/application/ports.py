@@ -40,6 +40,4 @@ class UserPermissionReader(Protocol):
 class UserCompanyAssigner(Protocol):
     """Port for associating a user with a company and role (implemented by identity)."""
 
-    def assign_user_to_company(
-        self, user_id: int, company_id: int, role_name: str
-    ) -> None: ...
+    def assign_user_to_company(self, user_id: int, company_id: int, role_name: str) -> None: ...

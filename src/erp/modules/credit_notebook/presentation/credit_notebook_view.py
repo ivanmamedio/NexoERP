@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from decimal import Decimal
-from typing import TYPE_CHECKING
+from datetime import date, datetime
+from typing import TYPE_CHECKING, cast
 
-from PySide6.QtCore import QAbstractTableModel, QDate, QModelIndex, Qt, QSortFilterProxyModel
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QDate,
+    QModelIndex,
+    QPersistentModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -19,7 +25,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QTableView,
     QTabWidget,
     QVBoxLayout,
@@ -27,6 +32,8 @@ from PySide6.QtWidgets import (
 )
 from sqlalchemy.engine import Engine
 
+from erp.modules.credit_notebook.application.list_customers import CreditCustomerView
+from erp.modules.credit_notebook.application.list_entries import CreditEntryView
 from erp.modules.credit_notebook.application.services import CreditNotebookServices
 from erp.modules.credit_notebook.presentation.credit_notebook_presenter import (
     CreditNotebookPresenter,
@@ -40,19 +47,21 @@ if TYPE_CHECKING:
 class CreditCustomerTableModel(QAbstractTableModel):
     """Modelo para a tabela de clientes."""
 
-    def __init__(self, customers: list) -> None:
+    def __init__(self, customers: list[CreditCustomerView]) -> None:
         super().__init__()
         self._customers = customers
 
-    def rowCount(self, parent: QModelIndex | None = None) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return len(self._customers)
 
-    def columnCount(self, parent: QModelIndex | None = None) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return 8
 
-    def data(self, index: QModelIndex, role: int):
+    def data(
+        self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object:
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         customer = self._customers[index.row()]
@@ -64,19 +73,28 @@ class CreditCustomerTableModel(QAbstractTableModel):
         if column == 2:
             return customer.email or "—"
         if column == 3:
-            return f"R$ {customer.credit_limit_cents / 100:.2f}" if customer.credit_limit_cents > 0 else "Ilimitado"
+            return (
+                f"R$ {customer.credit_limit_cents / 100:.2f}"
+                if customer.credit_limit_cents > 0
+                else "Ilimitado"
+            )
         if column == 4:
-            color = "red" if customer.current_balance_cents > customer.credit_limit_cents and customer.credit_limit_cents > 0 else "black"
             return f"R$ {customer.current_balance_cents / 100:.2f}"
         if column == 5:
-            return f"R$ {customer.available_credit_cents / 100:.2f}" if customer.credit_limit_cents > 0 else "Ilimitado"
+            return (
+                f"R$ {customer.available_credit_cents / 100:.2f}"
+                if customer.credit_limit_cents > 0
+                else "Ilimitado"
+            )
         if column == 6:
-            return "Bloqueado" if customer.is_blocked else customer.status
+            return "Bloqueado" if customer.status == "blocked" else customer.status
         if column == 7:
             return str(customer.total_entries)
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object | None:
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -92,7 +110,7 @@ class CreditCustomerTableModel(QAbstractTableModel):
             )[section]
         return None
 
-    def get_customer_at(self, row: int):
+    def get_customer_at(self, row: int) -> CreditCustomerView | None:
         if 0 <= row < len(self._customers):
             return self._customers[row]
         return None
@@ -101,19 +119,21 @@ class CreditCustomerTableModel(QAbstractTableModel):
 class CreditEntryTableModel(QAbstractTableModel):
     """Modelo para a tabela de lançamentos."""
 
-    def __init__(self, entries: list) -> None:
+    def __init__(self, entries: list[CreditEntryView]) -> None:
         super().__init__()
         self._entries = entries
 
-    def rowCount(self, parent: QModelIndex | None = None) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return len(self._entries)
 
-    def columnCount(self, parent: QModelIndex | None = None) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return 9
 
-    def data(self, index: QModelIndex, role: int):
+    def data(
+        self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object:
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         entry = self._entries[index.row()]
@@ -142,7 +162,9 @@ class CreditEntryTableModel(QAbstractTableModel):
             return "—"  # Customer name - will be filled by presenter
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object | None:
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -159,7 +181,7 @@ class CreditEntryTableModel(QAbstractTableModel):
             )[section]
         return None
 
-    def get_entry_at(self, row: int):
+    def get_entry_at(self, row: int) -> CreditEntryView | None:
         if 0 <= row < len(self._entries):
             return self._entries[row]
         return None
@@ -170,14 +192,14 @@ class CustomerEditDialog(QDialog):
 
     def __init__(
         self,
-        presenter,
+        presenter: CreditNotebookPresenter,
         session: CurrentSession,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._presenter = presenter
         self._session = session
-        self._customer = None
+        self._customer: CreditCustomerView | None = None
 
         self.setWindowTitle("Novo Cliente")
         self.setModal(True)
@@ -246,12 +268,12 @@ class CustomerEditDialog(QDialog):
                 phone=self._phone_edit.text().strip(),
                 email=self._email_edit.text().strip(),
                 address=self._address_edit.text().strip(),
-                credit_limit_cents=int(round(self._limit_spin.value() * 100)),
+                credit_limit_cents=round(self._limit_spin.value() * 100),
                 status=["active", "blocked", "inactive"][self._status_combo.currentIndex()],
                 notes=self._notes_edit.text().strip(),
             )
 
-    def load_customer(self, customer) -> None:
+    def load_customer(self, customer: CreditCustomerView | None) -> None:
         self._customer = customer
         if customer is not None:
             self.setWindowTitle(f"Editar Cliente: {customer.name}")
@@ -262,7 +284,7 @@ class CustomerEditDialog(QDialog):
             self._limit_spin.setValue(customer.credit_limit_cents / 100)
             status_map = {"active": 0, "blocked": 1, "inactive": 2}
             self._status_combo.setCurrentIndex(status_map.get(customer.status, 0))
-            self._notes_edit.setText(customer.notes)
+            self._notes_edit.setText(customer.address)
         else:
             self.setWindowTitle("Novo Cliente")
 
@@ -272,7 +294,7 @@ class EntryEditDialog(QDialog):
 
     def __init__(
         self,
-        presenter,
+        presenter: CreditNotebookPresenter,
         session: CurrentSession,
         parent: QWidget | None = None,
     ) -> None:
@@ -292,12 +314,14 @@ class EntryEditDialog(QDialog):
         form = QFormLayout()
 
         self._type_combo = QComboBox()
-        self._type_combo.addItems([
-            "Venda a prazo (Charge)",
-            "Pagamento/Abatimento (Payment)",
-            "Ajuste (Adjustment)",
-            "Juros/Mora (Interest)",
-        ])
+        self._type_combo.addItems(
+            [
+                "Venda a prazo (Charge)",
+                "Pagamento/Abatimento (Payment)",
+                "Ajuste (Adjustment)",
+                "Juros/Mora (Interest)",
+            ]
+        )
         form.addRow("Tipo:", self._type_combo)
 
         self._desc_edit = QLineEdit()
@@ -350,8 +374,12 @@ class EntryEditDialog(QDialog):
                 customer_id=self._customer_id,
                 entry_type=entry_type_map[self._type_combo.currentIndex()],
                 description=self._desc_edit.text().strip(),
-                amount_cents=int(round(self._amount_spin.value() * 100)),
-                due_date=self._due_date.date().toPython() if self._due_date.date().year() > 2000 else None,
+                amount_cents=round(self._amount_spin.value() * 100),
+                due_date=datetime.combine(
+                    cast(date, self._due_date.date().toPython()), datetime.min.time()
+                )
+                if self._due_date.date().year() > 2000
+                else None,
                 notes=self._notes_edit.text().strip(),
             )
 
@@ -364,7 +392,7 @@ class PaymentDialog(QDialog):
 
     def __init__(
         self,
-        presenter,
+        presenter: CreditNotebookPresenter,
         session: CurrentSession,
         entry_id: int,
         pending_amount: int,
@@ -426,7 +454,7 @@ class PaymentDialog(QDialog):
         if self._presenter is not None:
             self._presenter.apply_payment(
                 entry_id=self._entry_id,
-                amount_cents=int(round(self._amount_spin.value() * 100)),
+                amount_cents=round(self._amount_spin.value() * 100),
             )
 
 
@@ -517,7 +545,9 @@ class CreditNotebookWidget(QWidget):
         self._customers_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self._customers_table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self._customers_table.doubleClicked.connect(self._on_edit_customer)
-        self._customers_table.selectionModel().selectionChanged.connect(self._on_customer_selection_changed)
+        self._customers_table.selectionModel().selectionChanged.connect(
+            self._on_customer_selection_changed
+        )
         layout.addWidget(self._customers_table)
 
         # Proxy for search
@@ -544,12 +574,16 @@ class CreditNotebookWidget(QWidget):
         filter_layout.addStretch()
 
         self._type_filter_combo = QComboBox()
-        self._type_filter_combo.addItems(["Todos", "Vendas (Charge)", "Pagamentos (Payment)", "Ajustes", "Juros"])
+        self._type_filter_combo.addItems(
+            ["Todos", "Vendas (Charge)", "Pagamentos (Payment)", "Ajustes", "Juros"]
+        )
         self._type_filter_combo.currentIndexChanged.connect(self._on_entry_filter_changed)
         filter_layout.addWidget(self._type_filter_combo)
 
         self._status_filter_combo = QComboBox()
-        self._status_filter_combo.addItems(["Todos", "Pendentes", "Pagos", "Parciais", "Cancelados"])
+        self._status_filter_combo.addItems(
+            ["Todos", "Pendentes", "Pagos", "Parciais", "Cancelados"]
+        )
         self._status_filter_combo.currentIndexChanged.connect(self._on_entry_filter_changed)
         filter_layout.addWidget(self._status_filter_combo)
 
@@ -560,7 +594,9 @@ class CreditNotebookWidget(QWidget):
         self._entries_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self._entries_table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self._entries_table.doubleClicked.connect(self._on_apply_payment_to_entry)
-        self._entries_table.selectionModel().selectionChanged.connect(self._on_entry_selection_changed)
+        self._entries_table.selectionModel().selectionChanged.connect(
+            self._on_entry_selection_changed
+        )
         layout.addWidget(self._entries_table)
 
         self._entries_proxy = QSortFilterProxyModel(self)
@@ -580,7 +616,9 @@ class CreditNotebookWidget(QWidget):
 
         self._statement_customer_combo = QComboBox()
         self._statement_customer_combo.addItem("Selecione um cliente", None)
-        self._statement_customer_combo.currentIndexChanged.connect(self._on_statement_customer_changed)
+        self._statement_customer_combo.currentIndexChanged.connect(
+            self._on_statement_customer_changed
+        )
         stmt_filter.addWidget(self._statement_customer_combo)
 
         stmt_filter.addStretch()
@@ -621,13 +659,14 @@ class CreditNotebookWidget(QWidget):
     def _load_customers(self) -> None:
         try:
             output = self._services.list_customers(
-                company_id=self._session.company_id,
-                search_query=self._search_edit.text()
+                company_id=self._session.company_id, search_query=self._search_edit.text()
             )
             self._customers_source = output.customers
             self._customers_model = CreditCustomerTableModel(list(self._customers_source))
             self._customers_proxy.setSourceModel(self._customers_model)
-            self._customers_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            self._customers_table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
             self._customers_table.horizontalHeader().setStretchLastSection(True)
 
             # Update customer filter combos
@@ -666,9 +705,9 @@ class CreditNotebookWidget(QWidget):
             status_map = {
                 0: None,  # Todos
                 1: "pending",  # Pendentes
-                2: "paid",     # Pagos
+                2: "paid",  # Pagos
                 3: "partial",  # Parciais
-                4: "cancelled", # Cancelados
+                4: "cancelled",  # Cancelados
             }
             type_map = {
                 0: None,
@@ -687,14 +726,33 @@ class CreditNotebookWidget(QWidget):
 
             # Populate customer names
             customer_names = {c.customer_id: c.name for c in self._customers_source}
+            entries_with_names = []
             for entry in output.entries:
-                if not hasattr(entry, 'customer_name') or not entry.customer_name:
-                    entry.customer_name = customer_names.get(entry.customer_id, f"ID {entry.customer_id}")
+                if not entry.customer_name:
+                    entry = CreditEntryView(
+                        entry_id=entry.entry_id,
+                        customer_id=entry.customer_id,
+                        customer_name=customer_names.get(
+                            entry.customer_id, f"ID {entry.customer_id}"
+                        ),
+                        entry_type=entry.entry_type,
+                        description=entry.description,
+                        amount_cents=entry.amount_cents,
+                        status=entry.status,
+                        due_date=entry.due_date,
+                        paid_amount_cents=entry.paid_amount_cents,
+                        pending_amount_cents=entry.pending_amount_cents,
+                        created_at=entry.created_at,
+                        created_by_username=entry.created_by_username,
+                    )
+                entries_with_names.append(entry)
 
-            self._entries_source = output.entries
+            self._entries_source = entries_with_names
             self._entries_model = CreditEntryTableModel(list(self._entries_source))
             self._entries_proxy.setSourceModel(self._entries_model)
-            self._entries_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            self._entries_table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
             self._entries_table.horizontalHeader().setStretchLastSection(True)
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar lançamentos: {exc}")
@@ -707,7 +765,9 @@ class CreditNotebookWidget(QWidget):
             )
 
             total_charges = sum(e.amount_cents for e in output.entries if e.entry_type == "charge")
-            total_payments = sum(e.amount_cents for e in output.entries if e.entry_type == "payment")
+            total_payments = sum(
+                e.amount_cents for e in output.entries if e.entry_type == "payment"
+            )
             balance = total_charges - total_payments
 
             self._stmt_total_charges.setText(f"Total Vendas: R$ {total_charges / 100:.2f}")
@@ -718,7 +778,9 @@ class CreditNotebookWidget(QWidget):
             self._statement_source = output.entries
             self._statement_model = CreditEntryTableModel(list(self._statement_source))
             self._statement_table.setModel(self._statement_model)
-            self._statement_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            self._statement_table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
             self._statement_table.horizontalHeader().setStretchLastSection(True)
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar extrato: {exc}")
@@ -732,7 +794,7 @@ class CreditNotebookWidget(QWidget):
         self._btn_apply_payment.setEnabled(has_selection)
 
     def _on_entry_selection_changed(self) -> None:
-        has_selection = self._entries_table.selectionModel().hasSelection()
+        self._entries_table.selectionModel().hasSelection()
         # Could enable actions here
 
     def _on_entry_filter_changed(self) -> None:
@@ -749,7 +811,8 @@ class CreditNotebookWidget(QWidget):
             self._stmt_balance.setText("Saldo Devedor: R$ 0,00")
 
     def _on_new_customer(self) -> None:
-        dialog = CustomerEditDialog(None, self._session, self)
+        assert self._presenter is not None
+        dialog = CustomerEditDialog(self._presenter, self._session, self)
         dialog._presenter = self._presenter
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._load_customers()
@@ -764,7 +827,7 @@ class CreditNotebookWidget(QWidget):
         if customer is None:
             return
 
-        dialog = CustomerEditDialog(None, self._session, self)
+        dialog = CustomerEditDialog(self._presenter, self._session, self)
         dialog._presenter = self._presenter
         dialog.load_customer(customer)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -781,7 +844,8 @@ class CreditNotebookWidget(QWidget):
         if customer is None:
             return
 
-        dialog = EntryEditDialog(None, self._session, self)
+        assert self._presenter is not None
+        dialog = EntryEditDialog(self._presenter, self._session, self)
         dialog._presenter = self._presenter
         dialog.set_customer(customer.customer_id)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -790,7 +854,9 @@ class CreditNotebookWidget(QWidget):
     def _on_apply_payment(self) -> None:
         indexes = self._customers_table.selectionModel().selectedRows()
         if not indexes:
-            QMessageBox.warning(self, "Aviso", "Selecione um cliente para ver seus lançamentos pendentes.")
+            QMessageBox.warning(
+                self, "Aviso", "Selecione um cliente para ver seus lançamentos pendentes."
+            )
             return
         # Switch to entries tab and filter by customer
         self._tabs.setCurrentIndex(1)
@@ -808,39 +874,64 @@ class CreditNotebookWidget(QWidget):
         if entry is None or entry.pending_amount_cents <= 0:
             return
 
-        dialog = PaymentDialog(None, self._session, entry.entry_id, entry.pending_amount_cents, self)
+        dialog = PaymentDialog(
+            self._presenter, self._session, entry.entry_id, entry.pending_amount_cents, self
+        )
         dialog._presenter = self._presenter
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._load_entries()
             self._load_customers()
 
     def _on_export_pdf(self) -> None:
-        QMessageBox.information(self, "Em desenvolvimento", "Exportação PDF será implementada em breve.")
+        QMessageBox.information(
+            self, "Em desenvolvimento", "Exportação PDF será implementada em breve."
+        )
 
     def _on_export_xlsx(self) -> None:
-        QMessageBox.information(self, "Em desenvolvimento", "Exportação Planilha será implementada em breve.")
+        QMessageBox.information(
+            self, "Em desenvolvimento", "Exportação Planilha será implementada em breve."
+        )
 
     # --- View protocol implementation ---
 
-    def set_customers(self, customers: list) -> None:
-        self._customers_source = customers
+    def set_customers(self, customers: list[CreditCustomerView]) -> None:
+        self._customers_source = tuple(customers)
         self._customers_model = CreditCustomerTableModel(list(customers))
         self._customers_proxy.setSourceModel(self._customers_model)
-        self._customers_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self._customers_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
         self._customers_table.horizontalHeader().setStretchLastSection(True)
         self._update_customer_combos()
 
-    def set_entries(self, entries: list) -> None:
+    def set_entries(self, entries: list[CreditEntryView]) -> None:
         # Populate customer names
         customer_names = {c.customer_id: c.name for c in self._customers_source}
+        entries_with_names = []
         for entry in entries:
-            if not hasattr(entry, 'customer_name') or not entry.customer_name:
-                entry.customer_name = customer_names.get(entry.customer_id, f"ID {entry.customer_id}")
+            if not entry.customer_name:
+                entry = CreditEntryView(
+                    entry_id=entry.entry_id,
+                    customer_id=entry.customer_id,
+                    customer_name=customer_names.get(entry.customer_id, f"ID {entry.customer_id}"),
+                    entry_type=entry.entry_type,
+                    description=entry.description,
+                    amount_cents=entry.amount_cents,
+                    status=entry.status,
+                    due_date=entry.due_date,
+                    paid_amount_cents=entry.paid_amount_cents,
+                    pending_amount_cents=entry.pending_amount_cents,
+                    created_at=entry.created_at,
+                    created_by_username=entry.created_by_username,
+                )
+            entries_with_names.append(entry)
 
-        self._entries_source = entries
-        self._entries_model = CreditEntryTableModel(list(entries))
+        self._entries_source = entries_with_names
+        self._entries_model = CreditEntryTableModel(list(self._entries_source))
         self._entries_proxy.setSourceModel(self._entries_model)
-        self._entries_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self._entries_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
         self._entries_table.horizontalHeader().setStretchLastSection(True)
 
     def show_error(self, message: str) -> None:

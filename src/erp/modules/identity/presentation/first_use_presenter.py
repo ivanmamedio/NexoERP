@@ -11,6 +11,7 @@ from erp.modules.identity.application.create_first_user import (
 )
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 from erp.modules.identity.domain.password_policy import validate_password_policy
+from erp.modules.identity.domain.role import Role
 from erp.modules.identity.infrastructure.repository import SqlAlchemyRoleRepository
 from erp.shared.application.session import CurrentSession
 from erp.shared.domain.errors import DomainError
@@ -114,7 +115,7 @@ class FirstUsePresenter:
         )
         return True
 
-    def _do_create_first_user(self, username: str, password: str, role) -> None:
+    def _do_create_first_user(self, username: str, password: str, role: Role) -> None:
         """Executa a criação com hash assíncrono."""
         self._view.set_loading(True)
         self._view.show_info("Criando usuário... Isso pode levar alguns segundos.")

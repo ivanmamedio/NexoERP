@@ -67,9 +67,11 @@ class CompaniesServices:
 
             # Associate the creating user (admin) with the new company
             if actor_user_id is not None and self._user_company_assigner is not None:
+                company_id_val = result.company.id
+                assert company_id_val is not None
                 self._user_company_assigner.assign_user_to_company(
                     user_id=actor_user_id,
-                    company_id=result.company.id,
+                    company_id=company_id_val,
                     role_name=assign_admin_role,
                 )
 

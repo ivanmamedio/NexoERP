@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from erp.modules.identity.application.ports import PasswordHasher, UserRepository
 from erp.modules.identity.domain.user import User
+from erp.shared.domain.errors import NotFound, PermissionDenied, ValidationError
 
 
 @dataclass(slots=True, frozen=True)
@@ -44,18 +45,18 @@ class Authenticate:
     def execute(self, data: AuthenticateInput) -> AuthenticateOutput:
         user = self._resolve_user(data.identifier)
         if user is None:
-            raise ValueError("Usuário ou senha inválidos")
+            raise NotFound("Usuário ou senha inválidos")
 
         if user.is_locked():
-            raise ValueError("Usuário bloqueado por tentativas falhas excessivas")
+            raise PermissionDenied("Usuário bloqueado por tentativas falhas excessivas")
 
         if not user.is_active:
-            raise ValueError("Usuário inativo")
+            raise PermissionDenied("Usuário inativo")
 
         if not self._password_hasher.verify(data.password, user.password_hash):
             user.record_failed_login()
             self._user_repo.save(user)
-            raise ValueError("Usuário ou senha inválidos")
+            raise ValidationError("Usuário ou senha inválidos")
 
         user.reset_failed_logins()
         self._user_repo.save(user)

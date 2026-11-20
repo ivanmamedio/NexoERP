@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
+from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -15,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from sqlalchemy import select
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from erp.modules.companies.infrastructure.models import CompanyModel
@@ -22,6 +25,21 @@ from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.infrastructure.models import user_company_role
 from erp.shared.application.session import CurrentSession
 from erp.shared.ui.idle_timer import IdleSessionTimer
+
+_logger = logging.getLogger(__name__)
+
+
+def _load_stylesheet() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - fallback silencioso
+        _logger.warning("Falha ao carregar stylesheet: %s", exc)
+        return ""
+
+
+_logger = logging.getLogger(__name__)
 
 
 class _ActivityWatcher(QObject):
@@ -83,7 +101,7 @@ class MainWindow(QMainWindow):
         services: IdentityServices,
         session: CurrentSession,
         idle_timeout_seconds: float,
-        engine=None,
+        engine: Engine | None = None,
         parent: QMainWindow | None = None,
     ) -> None:
         super().__init__(parent)
@@ -92,6 +110,9 @@ class MainWindow(QMainWindow):
         self._engine = engine
         self.setWindowTitle("NexoERP")
         self.resize(1000, 700)
+
+        # Carregar e aplicar stylesheet do design system
+        self.setStyleSheet(_load_stylesheet())
 
         self._placeholder = QLabel("Selecione um módulo no menu.", self)
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -138,7 +159,9 @@ class MainWindow(QMainWindow):
 
         # Spacer
         spacer = QWidget()
-        spacer.setSizePolicy(spacer.sizePolicy().Policy.Expanding, spacer.sizePolicy().Policy.Preferred)
+        spacer.setSizePolicy(
+            spacer.sizePolicy().Policy.Expanding, spacer.sizePolicy().Policy.Preferred
+        )
         toolbar.addWidget(spacer)
 
         # User info
@@ -181,7 +204,7 @@ class MainWindow(QMainWindow):
                     if idx >= 0:
                         self._company_combo.setCurrentIndex(idx)
         except Exception:
-            pass  # Silencioso - erro será mostrado no status
+            _logger.exception("Erro ao carregar empresas para seleção.")
 
     def _on_company_changed(self, index: int) -> None:
         """Quando a empresa é alterada, atualiza a sessão."""
@@ -199,12 +222,13 @@ class MainWindow(QMainWindow):
             return
         try:
             from sqlalchemy.orm import Session as SASession
+
             from erp.modules.audit.infrastructure.triggers import (
                 disable_bypass,
                 enable_bypass,
             )
             from erp.modules.identity.infrastructure.models import UserModel
-            
+
             enable_bypass(self._engine)
             try:
                 with SASession(self._engine) as session:
@@ -215,7 +239,7 @@ class MainWindow(QMainWindow):
             finally:
                 disable_bypass(self._engine)
         except Exception:
-            pass  # Silencioso
+            _logger.exception("Erro ao atualizar empresa padrão do usuário.")
 
     # --- lifecycle ----------------------------------------------------------
 
@@ -306,7 +330,9 @@ class MainWindow(QMainWindow):
             action_audit.triggered.connect(self.audit_requested)
 
         # Caderno de Fiado
-        if self._has_permission("credit_notebook.view") or self._has_permission("credit_notebook.manage"):
+        if self._has_permission("credit_notebook.view") or self._has_permission(
+            "credit_notebook.manage"
+        ):
             fiado = menubar.addMenu("Caderno de &Fiado")
             action_fiado = fiado.addAction("&Caderno de Fiado...")
             action_fiado.triggered.connect(self.credit_notebook_requested)

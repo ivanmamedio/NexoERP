@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.credit_notebook.application.ports import CreditCustomerRepository
-from erp.modules.credit_notebook.domain.credit_customer import CreditCustomer
 
 
 @dataclass(slots=True, frozen=True)
@@ -41,13 +40,9 @@ class ListCreditCustomers:
 
     def execute(self, input_data: ListCreditCustomersInput) -> ListCreditCustomersOutput:
         if input_data.search_query:
-            customers = self._repository.search(
-                input_data.search_query, input_data.company_id
-            )
+            customers = self._repository.search(input_data.search_query, input_data.company_id)
         else:
-            customers = self._repository.list_all(
-                input_data.company_id, input_data.status
-            )
+            customers = self._repository.list_all(input_data.company_id, input_data.status)
 
         views = tuple(
             CreditCustomerView(

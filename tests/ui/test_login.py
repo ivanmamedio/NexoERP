@@ -11,6 +11,7 @@ from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.presentation.login_presenter import LoginPresenter
 from erp.modules.identity.presentation.login_view import LoginDialog
 from erp.shared.application.session import CurrentSession
+from erp.shared.domain.errors import ValidationError
 
 
 class FakeIdentityServices(IdentityServices):
@@ -23,7 +24,7 @@ class FakeIdentityServices(IdentityServices):
         self.calls += 1
         self.last_identifier = identifier
         if self.fail:
-            raise ValueError("Usuário ou senha inválidos")
+            raise ValidationError("Usuário ou senha inválidos")
 
         return AuthenticateOutput(
             user_id=1,

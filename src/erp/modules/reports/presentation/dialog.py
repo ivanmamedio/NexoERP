@@ -112,7 +112,9 @@ class ReportDialog(QDialog):
         btn_layout.addStretch()
 
         graphical_btn = QPushButton("📊 Relatórios Gráficos")
-        graphical_btn.setStyleSheet("font-weight: bold; padding: 8px 16px; background-color: #3498db; color: white;")
+        graphical_btn.setStyleSheet(
+            "font-weight: bold; padding: 8px 16px; background-color: #3498db; color: white;"
+        )
         graphical_btn.clicked.connect(self._on_graphical_reports)
         btn_layout.addWidget(graphical_btn)
 
@@ -153,15 +155,13 @@ class ReportDialog(QDialog):
             self._file_path_edit.setText(file_path)
 
     def _on_graphical_reports(self) -> None:
-        from erp.modules.reports.presentation.graphical_reports_dialog import create_graphical_reports_dialog
+        from erp.modules.reports.presentation.graphical_reports_dialog import (
+            create_graphical_reports_dialog,
+        )
 
-        # Get session factory from report service
-        session_factory = self._report_service._session_factory if hasattr(self._report_service, '_session_factory') else None
-        
         dialog = create_graphical_reports_dialog(
             report_service=self._report_service,
             company_id=self._company_id,
-            session_factory=session_factory,
             parent=self,
         )
         dialog.exec()

@@ -184,7 +184,9 @@ class TreasuryDashboardDialog(QDialog):
     def _open_payable_management(self) -> None:
         """Abre o diálogo de gestão de contas a pagar."""
         from erp.modules.treasury.application.services import TreasuryServices
-        from erp.modules.treasury.presentation.payable_receivable_dialogs import create_payable_receivable_dialog
+        from erp.modules.treasury.presentation.payable_receivable_dialogs import (
+            create_payable_receivable_dialog,
+        )
 
         engine = self._engine
         if engine is None:
@@ -202,7 +204,9 @@ class TreasuryDashboardDialog(QDialog):
     def _open_receivable_management(self) -> None:
         """Abre o diálogo de gestão de contas a receber."""
         from erp.modules.treasury.application.services import TreasuryServices
-        from erp.modules.treasury.presentation.payable_receivable_dialogs import create_payable_receivable_dialog
+        from erp.modules.treasury.presentation.payable_receivable_dialogs import (
+            create_payable_receivable_dialog,
+        )
 
         engine = self._engine
         if engine is None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 import shutil
 from pathlib import Path
 
@@ -17,6 +18,8 @@ from PySide6.QtWidgets import (
 )
 
 from erp.modules.backup.application.service import BackupService
+
+_logger = logging.getLogger(__name__)
 
 
 class RestoreBackupDialog(QDialog):
@@ -97,7 +100,7 @@ class RestoreBackupDialog(QDialog):
                     )
                     self._backup_combo.addItem(label, b.id)
         except Exception:
-            pass
+            _logger.exception("Erro ao listar backups para restauração.")
 
     def _on_backup_selected(self, index: int) -> None:
         if index < 0:

@@ -189,7 +189,7 @@ class _App:
 
     def _show_company_selection(self) -> bool:
         """Mostra diálogo de seleção de empresa se usuário tem acesso a múltiplas.
-        
+
         Retorna True se empresa foi selecionada, False se usuário cancelou.
         """
         engine = _AppContextHolder.engine
@@ -201,11 +201,11 @@ class _App:
 
         from erp.modules.companies.infrastructure.models import CompanyModel
         from erp.modules.identity.infrastructure.models import user_company_role
-        from erp.modules.identity.presentation.select_company_view import (
-            SelectCompanyDialog,
-        )
         from erp.modules.identity.presentation.select_company_presenter import (
             SelectCompanyPresenter,
+        )
+        from erp.modules.identity.presentation.select_company_view import (
+            SelectCompanyDialog,
         )
 
         dialog = SelectCompanyDialog(parent=self._main_window)
@@ -232,6 +232,7 @@ class _App:
                 companies = [(row.id, row.name) for row in results]
         except Exception as exc:
             from PySide6.QtWidgets import QMessageBox
+
             QMessageBox.warning(dialog, "Erro", f"Erro ao carregar empresas: {exc}")
             return False
 
@@ -256,6 +257,7 @@ class _App:
                 enable_bypass,
             )
             from erp.modules.identity.infrastructure.models import UserModel
+
             enable_bypass(engine)
             try:
                 with SASession(engine) as session:
@@ -283,6 +285,7 @@ class _App:
                     enable_bypass,
                 )
                 from erp.modules.identity.infrastructure.models import UserModel
+
                 enable_bypass(engine)
                 try:
                     with SASession(engine) as session:
@@ -425,9 +428,9 @@ class _App:
     def _on_cash_requested(self) -> None:
         from PySide6.QtWidgets import (
             QDialog,
+            QMessageBox,
             QPushButton,
             QVBoxLayout,
-            QMessageBox,
         )
 
         from erp.modules.cash.presentation.open_cash_session_view import (
@@ -438,7 +441,12 @@ class _App:
         cash_services = _AppContextHolder.cash_services
         sales_services = _AppContextHolder.sales_services
         supervisor_auth = _AppContextHolder.supervisor_auth
-        if engine is None or cash_services is None or sales_services is None or supervisor_auth is None:
+        if (
+            engine is None
+            or cash_services is None
+            or sales_services is None
+            or supervisor_auth is None
+        ):
             return
 
         dialog = QDialog(self._main_window)
@@ -449,12 +457,14 @@ class _App:
         btn_open = QPushButton("Abrir Sessão de Caixa")
         btn_open.setMinimumHeight(50)
         btn_open.setStyleSheet("font-size: 14px; font-weight: bold;")
-        
+
         btn_pdv = QPushButton("Abrir PDV (Venda)")
         btn_pdv.setMinimumHeight(50)
-        btn_pdv.setStyleSheet("font-size: 14px; font-weight: bold; background-color: #27ae60; color: white;")
+        btn_pdv.setStyleSheet(
+            "font-size: 14px; font-weight: bold; background-color: #27ae60; color: white;"
+        )
         btn_pdv.setEnabled(False)  # Habilitado apenas após abrir caixa
-        
+
         btn_close = QPushButton("Sair")
 
         for btn in (btn_open, btn_pdv, btn_close):
@@ -470,29 +480,38 @@ class _App:
             if dlg.exec():
                 # Caixa aberto com sucesso - habilitar PDV
                 btn_pdv.setEnabled(True)
-                QMessageBox.information(dialog, "Sucesso", "Caixa aberto! O PDV está disponível para vendas.")
+                QMessageBox.information(
+                    dialog, "Sucesso", "Caixa aberto! O PDV está disponível para vendas."
+                )
 
         def _open_pdv() -> None:
-            from erp.modules.sales.presentation.pos_view import create_pos_dialog
             # Obter a sessão de caixa aberta
-            from erp.modules.cash.application.services import CashServices
             from erp.modules.cash.infrastructure.unit_of_work import SqlAlchemyCashUnitOfWork
-            from erp.shared.application.session import CurrentSession
-            
+            from erp.modules.sales.presentation.pos_view import create_pos_dialog
+
             # Buscar sessão aberta para o usuário/empresa atual
             try:
                 with SqlAlchemyCashUnitOfWork(engine) as uow:
                     assert uow.sessions is not None
                     sessions = uow.sessions.list_by_company(company_id=self._session.company_id)
-                    open_sessions = [s for s in sessions if s.status == "open" and s.opened_by_user_id == self._session.user_id]
-                    
+                    open_sessions = [
+                        s
+                        for s in sessions
+                        if s.status == "open" and s.opened_by_user_id == self._session.user_id
+                    ]
+
                     if not open_sessions:
-                        QMessageBox.warning(dialog, "Aviso", "Nenhuma sessão de caixa aberta encontrada para este usuário.")
+                        QMessageBox.warning(
+                            dialog,
+                            "Aviso",
+                            "Nenhuma sessão de caixa aberta encontrada para este usuário.",
+                        )
                         return
-                    
+
                     # Usar a sessão mais recente
                     session_id = open_sessions[0].id
             except Exception:
+                _logger.exception("Erro ao buscar sessão de caixa aberta.")
                 QMessageBox.warning(dialog, "Erro", "Erro ao buscar sessão de caixa.")
                 return
 
@@ -548,7 +567,9 @@ class _App:
         dialog.exec()
 
     def _on_graphical_reports_requested(self) -> None:
-        from erp.modules.reports.presentation.graphical_reports_dialog import create_graphical_reports_dialog
+        from erp.modules.reports.presentation.graphical_reports_dialog import (
+            create_graphical_reports_dialog,
+        )
 
         report_service = _AppContextHolder.report_service
         if report_service is None:
@@ -560,7 +581,9 @@ class _App:
 
         # Create session factory for the dialog
         from sqlalchemy.orm import Session
-        session_factory = lambda: Session(_AppContextHolder.engine)
+
+        def session_factory() -> Session:
+            return Session(_AppContextHolder.engine)
 
         dialog = create_graphical_reports_dialog(
             report_service=report_service,
@@ -636,7 +659,9 @@ class _App:
 
     def _on_credit_notebook_requested(self) -> None:
         from erp.modules.credit_notebook.application.services import CreditNotebookServices
-        from erp.modules.credit_notebook.presentation.credit_notebook_view import create_credit_notebook_dialog
+        from erp.modules.credit_notebook.presentation.credit_notebook_view import (
+            create_credit_notebook_dialog,
+        )
 
         engine = _AppContextHolder.engine
         if engine is None:

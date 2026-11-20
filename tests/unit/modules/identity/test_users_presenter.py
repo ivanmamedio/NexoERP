@@ -167,9 +167,7 @@ def test_users_presenter_create_user_success() -> None:
 
     assert services.create_calls == 1
     assert view.cleared is True
-    assert view.infos == [
-        "Usuário 'João' criado com papel 'Caixa'. Número para login: 0"
-    ]
+    assert view.infos == ["Usuário 'João' criado com papel 'Caixa'. Número para login: 0"]
     assert services.list_users_calls == 1  # recarrega após criar
 
 

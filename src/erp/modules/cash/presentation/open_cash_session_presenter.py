@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Protocol, runtime_checkable
 
 from sqlalchemy.engine import Engine
@@ -14,6 +15,8 @@ from erp.modules.cash.application.services import CashServices
 from erp.modules.cash.infrastructure.unit_of_work import SqlAlchemyCashUnitOfWork
 from erp.shared.application.session import CurrentSession
 from erp.shared.domain.errors import NotFound, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -50,35 +53,48 @@ class OpenCashSessionPresenter:
             company_id = self._session.company_id
             if company_id is None:
                 from erp.shared.application.session import CurrentSession
+
                 company_id = CurrentSession().company_id
-            
+
             with SqlAlchemyCashUnitOfWork(self._engine) as uow:
                 assert uow.registers is not None
                 registers = uow.registers.list_all(company_id=company_id)
                 # Only show active registers
-                items = [(r.id, r.terminal_code) for r in registers if r.id is not None and r.active]
-                
+                items = [
+                    (r.id, r.terminal_code) for r in registers if r.id is not None and r.active
+                ]
+
                 if not items:
                     # Fallback: show all registers if none found for company
                     all_registers = uow.registers.list_all(company_id=None)
-                    items = [(r.id, r.terminal_code) for r in all_registers if r.id is not None and r.active]
-                
+                    items = [
+                        (r.id, r.terminal_code)
+                        for r in all_registers
+                        if r.id is not None and r.active
+                    ]
+
                 if not items:
                     # Create a default register if none exists
                     self._view.show_error("Nenhum caixa cadastrado. Criando caixa padrão...")
                     self._create_default_register(company_id, uow)
                     # Reload after creation
                     registers = uow.registers.list_all(company_id=company_id)
-                    items = [(r.id, r.terminal_code) for r in registers if r.id is not None and r.active]
-                
+                    items = [
+                        (r.id, r.terminal_code) for r in registers if r.id is not None and r.active
+                    ]
+
                 self._view.set_registers(items)
         except Exception as exc:
             self._view.show_error(str(exc))
 
-    def _create_default_register(self, company_id: int | None, uow: SqlAlchemyCashUnitOfWork) -> None:
+    def _create_default_register(
+        self, company_id: int | None, uow: SqlAlchemyCashUnitOfWork
+    ) -> None:
         """Cria um caixa padrão se nenhum existir."""
         try:
+            assert uow.registers is not None
             from erp.modules.cash.domain.cash_register import CashRegister
+
             default_register = CashRegister(
                 name="Caixa Principal",
                 terminal_code="CX01",
@@ -88,7 +104,7 @@ class OpenCashSessionPresenter:
             uow.registers.add(default_register)
             uow.commit()
         except Exception:
-            pass  # Silencioso - erro será mostrado no load_registers
+            _logger.exception("Erro ao registrar caixa padrão.")
 
     def open_session(self) -> bool:
         """Tenta abrir a sessão de caixa."""

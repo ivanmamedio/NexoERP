@@ -32,7 +32,7 @@ class CreditCustomerModel(Base, TimestampMixin):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
 
-    entries: Mapped[list["CreditEntryModel"]] = relationship(
+    entries: Mapped[list[CreditEntryModel]] = relationship(
         back_populates="customer", cascade="all, delete-orphan", lazy="selectin"
     )
 
@@ -50,7 +50,9 @@ class CreditEntryModel(Base):
         Integer, ForeignKey("credit_customers.id", ondelete="CASCADE"), nullable=False, index=True
     )
     company_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    entry_type: Mapped[str] = mapped_column(String(20), nullable=False, default="charge", index=True)
+    entry_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="charge", index=True
+    )
     description: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     amount_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
@@ -64,7 +66,10 @@ class CreditEntryModel(Base):
     created_by_username: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, nullable=False)
 
-    customer: Mapped["CreditCustomerModel"] = relationship(back_populates="entries")
+    customer: Mapped[CreditCustomerModel] = relationship(back_populates="entries")
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
-        return f"<CreditEntryModel(id={self.id!r}, customer_id={self.customer_id}, type={self.entry_type!r})>"
+        return (
+            f"<CreditEntryModel(id={self.id!r}, customer_id={self.customer_id}, "
+            f"type={self.entry_type!r})>"
+        )

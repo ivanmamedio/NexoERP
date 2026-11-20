@@ -6,6 +6,7 @@ from erp.modules.identity.application.authenticate import AuthenticateOutput
 from erp.modules.identity.application.services import IdentityServices
 from erp.modules.identity.presentation.login_presenter import LoginPresenter
 from erp.shared.application.session import CurrentSession
+from erp.shared.domain.errors import ValidationError
 
 
 class FakeIdentityServices(IdentityServices):
@@ -24,7 +25,7 @@ class FakeIdentityServices(IdentityServices):
         self.authenticate_calls += 1
         self.last_identifier = identifier
         if self.should_fail:
-            raise ValueError(self.fail_message)
+            raise ValidationError(self.fail_message)
 
         return AuthenticateOutput(
             user_id=self.return_user_id,

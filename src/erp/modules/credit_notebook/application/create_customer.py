@@ -36,9 +36,7 @@ class CreateCreditCustomer:
             raise ValidationError("Telefone é obrigatório")
 
         # Check if phone already exists for this company
-        existing = self._repository.get_by_phone(
-            input_data.phone, input_data.company_id
-        )
+        existing = self._repository.get_by_phone(input_data.phone, input_data.company_id)
         if existing:
             raise ValidationError(f"Já existe cliente com este telefone: {existing.name}")
 

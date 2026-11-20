@@ -27,17 +27,17 @@ Baseado na auditoria de 18/10/2026 e na varredura de arquivos vazios, atualizado
 | 2.4 Receipts (NOVA) | ✅ Implementada (gerador, preview, ESC/POS, Windows spooler, CUPS, settings dialog) — mypy zerado |
 | 2.5 Compras/Inventário (NOVA) | ✅ Implementada (`purchases` module: RegisterPurchase, CountInventory) |
 | 3.1 Treasury | ✅ Implementada (domínio, app, infra: payables, receivables, financial_entries, subscribers) |
-| 3.2 Fluxo de Caixa UI (NOVA) | ⚠️ Parcial (`treasury/presentation` só tem `cash_flow_presenter.py` básico) |
+| 3.2 Fluxo de Caixa UI (NOVA) | ✅ Implementada (`treasury/presentation`: cash_flow_presenter, cash_flow_view, treasury_dashboard, reconciliação com sangria/suprimento) |
 | 3.3 Clientes/Fiado (NOVA, opcional) | ✅ Implementada (`customers` module) |
 | 4.1 Backup | ✅ Implementada (sqlite3.backup, rotação, checksum, triggers, restore guiado) |
 | 4.2 Reports | ✅ Implementada (vendas/estoque/margem/DRE/fechamento, CSV/PDF, SQL direto) |
 | 4.3 FiscalPort | ✅ Implementada (apenas Protocol, sem emissão real) |
 | 4.4 Import CSV (NOVA) | ✅ Implementada (`import_csv` module: preview, validação, transação única, auditoria) |
-| 5.x Endurecimento | ❌ Não iniciado |
+| 5.x Endurecimento | ✅ Implementada (5.1 carga/índices, 5.2 exceções/docs, 5.3 build PyInstaller) |
 
 **Fase C (C.1 a C.8): ✅ CONCLUÍDA** — Todos os itens resolvidos ou verificados como não aplicáveis/inexistentes.
 
-**Próxima prioridade real:** Completar `treasury/presentation` (Tarefa 3.2) → Tarefa 5.x (Endurecimento: carga 50k/100k, exceções, build real em VM, docs usuário).
+**Próxima prioridade real:** Revisão final de qualidade, documentação de usuário, e preparação para release 1.0.
 
 ---
 

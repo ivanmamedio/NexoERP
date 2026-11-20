@@ -6,29 +6,7 @@ and reduce cross-module dependencies at the domain layer.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-
-@dataclass
-class Entity:
-    """Base entity with identity."""
-
-    id: int | None = field(default=None, init=True)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Entity) or type(self) is not type(other):
-            return False
-        if self.id is None or other.id is None:
-            return False
-        return self.id == other.id
-
-    def __hash__(self) -> int:
-        return hash((type(self), self.id))
-
-
-# Re-export from shared.domain.entities for backward compatibility
-# (kept here to avoid import cycles during gradual migration)
-__all__ = ["Entity"]
+from dataclasses import dataclass
 
 
 # Common value objects and types that multiple modules need

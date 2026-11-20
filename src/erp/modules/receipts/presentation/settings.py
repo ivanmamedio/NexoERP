@@ -133,7 +133,7 @@ class PrinterSettingsDialog(QDialog):
             terminal_code="PDV01",
             operator_name="Operador Teste",
         )
-        test_receipt.add_line("PRODUTO TESTE", 1.0, "UN", Money(1000))
+        test_receipt.add_line("PRODUTO TESTE", 1000, "UN", Money(1000))
         test_receipt.add_payment("DINHEIRO", Money(1000))
         test_receipt.close()
 

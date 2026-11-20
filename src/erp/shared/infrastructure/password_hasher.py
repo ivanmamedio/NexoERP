@@ -12,7 +12,7 @@ class _HashWorker(QObject):
     """Worker that performs bcrypt hashing in a background thread."""
 
     finished = Signal(str)  # hash result
-    error = Signal(str)     # error message
+    error = Signal(str)  # error message
 
     def __init__(self, password: str, cost: int = 12) -> None:
         super().__init__()
@@ -21,9 +21,7 @@ class _HashWorker(QObject):
 
     def run(self) -> None:
         try:
-            hashed = bcrypt.hashpw(
-                self._password.encode("utf-8"), bcrypt.gensalt(self._cost)
-            )
+            hashed = bcrypt.hashpw(self._password.encode("utf-8"), bcrypt.gensalt(self._cost))
             self.finished.emit(hashed.decode("utf-8"))
         except Exception as exc:
             self.error.emit(str(exc))
@@ -33,7 +31,7 @@ class _VerifyWorker(QObject):
     """Worker that verifies bcrypt hash in a background thread."""
 
     finished = Signal(bool)  # verification result
-    error = Signal(str)      # error message
+    error = Signal(str)  # error message
 
     def __init__(self, password: str, password_hash: str) -> None:
         super().__init__()
@@ -79,19 +77,16 @@ class AsyncBcryptHasher:
 
         def _on_finished(hash_str: str) -> None:
             on_success(hash_str)
-            thread.quit()
-            thread.wait()
-            thread.deleteLater()
             worker.deleteLater()
+            thread.quit()
 
         def _on_error(error_msg: str) -> None:
             if on_error:
                 on_error(error_msg)
-            thread.quit()
-            thread.wait()
-            thread.deleteLater()
             worker.deleteLater()
+            thread.quit()
 
+        thread.finished.connect(thread.deleteLater)
         thread.started.connect(worker.run)
         worker.finished.connect(_on_finished)
         worker.error.connect(_on_error)
@@ -119,19 +114,16 @@ class AsyncBcryptHasher:
 
         def _on_finished(result: bool) -> None:
             on_success(result)
-            thread.quit()
-            thread.wait()
-            thread.deleteLater()
             worker.deleteLater()
+            thread.quit()
 
         def _on_error(error_msg: str) -> None:
             if on_error:
                 on_error(error_msg)
-            thread.quit()
-            thread.wait()
-            thread.deleteLater()
             worker.deleteLater()
+            thread.quit()
 
+        thread.finished.connect(thread.deleteLater)
         thread.started.connect(worker.run)
         worker.finished.connect(_on_finished)
         worker.error.connect(_on_error)

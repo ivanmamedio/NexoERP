@@ -11,6 +11,8 @@ Atalhos:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
@@ -48,6 +50,15 @@ from erp.shared.domain.value_objects import Money
 _SEARCH_DEBOUNCE_MS = 300
 
 
+def _load_stylesheet() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent.parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
 def _format_quantity(thousandths: int) -> str:
     whole = thousandths // 1000
     fraction = thousandths % 1000
@@ -78,6 +89,9 @@ class PosDialog(QDialog):
         self.setWindowTitle("PDV — Ponto de Venda")
         self.setModal(True)
         self.resize(900, 620)
+
+        # Carregar e aplicar stylesheet do design system
+        self.setStyleSheet(_load_stylesheet())
 
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
@@ -308,9 +322,7 @@ class PosDialog(QDialog):
         reason = text.strip()
         return reason or None
 
-    def ask_quick_create_product(
-        self, query: str
-    ) -> tuple[str, str, int, str] | None:
+    def ask_quick_create_product(self, query: str) -> tuple[str, str, int, str] | None:
         """Diálogo de cadastro rápido de produto direto no PDV.
 
         Retorna (sku, nome, preço_cents, unidade) ou None se cancelado.

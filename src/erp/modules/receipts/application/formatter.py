@@ -100,7 +100,7 @@ class ReceiptFormatter:
 
     def _format_item_line(self, line: ReceiptLine) -> str:
         """Formats a single item line."""
-        qty_str = f"{line.quantity:.3f}".rstrip("0").rstrip(".")
+        qty_str = f"{line.quantity_thousandths / 1000:.3f}".rstrip("0").rstrip(".")
         if qty_str.endswith("."):
             qty_str = qty_str[:-1]
 

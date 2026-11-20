@@ -79,7 +79,7 @@ class CreditEntry(Entity):
 
     def apply_payment(self, amount_cents: int, paid_at: datetime | None = None) -> bool:
         """Aplica um pagamento a este lançamento.
-        
+
         Returns True se o lançamento foi totalmente quitado.
         """
         if self.status == CreditEntryStatus.PAID:

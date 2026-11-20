@@ -35,15 +35,15 @@ class PriceTableModel(QAbstractTableModel):
         super().__init__()
         self._products = products
 
-    def rowCount(self, parent: QModelIndex | None = None) -> int:
+    def rowCount(self, parent: QModelIndex | None = None) -> int:  # type: ignore[override]
         _ = parent
         return len(self._products)
 
-    def columnCount(self, parent: QModelIndex | None = None) -> int:
+    def columnCount(self, parent: QModelIndex | None = None) -> int:  # type: ignore[override]
         _ = parent
         return 7
 
-    def data(self, index: QModelIndex, role: int) -> object:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> object:  # type: ignore[override]
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         product = self._products[index.row()]
@@ -59,7 +59,7 @@ class PriceTableModel(QAbstractTableModel):
         if column == 4:
             # Margem sobre preço de venda: ((venda - custo) / venda) * 100
             if product.price_cents > 0:
-                margin = ((product.price_cents - product.cost_cents) * 100.0 / product.price_cents)
+                margin = (product.price_cents - product.cost_cents) * 100.0 / product.price_cents
                 return f"{margin:.2f}%"
             return "0.00%"
         if column == 5:
@@ -68,7 +68,9 @@ class PriceTableModel(QAbstractTableModel):
             return "Sim" if product.active else "Não"
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> object | None:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object | None:
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -177,23 +179,22 @@ class PriceEditDialog(QDialog):
     def _on_cost_or_margin_changed(self) -> None:
         cost = self._cost_spin.value()
         margin_pct = self._margin_spin.value()
-        if cost > 0 and margin_pct >= 0:
+        if cost > 0 and margin_pct >= 0 and margin_pct < 100:
             # Preço = Custo / (1 - margem/100) quando margem é sobre preço de venda
             # Ou Preço = Custo * (1 + margem/100) quando margem é sobre custo
             # O sistema usa margem sobre preço de venda: margem = (preco - custo) / preco
             # Logo: preco = custo / (1 - margem/100)
-            if margin_pct < 100:
-                price = cost / (1 - margin_pct / 100)
-                self._price_spin.setValue(round(price, 2))
+            price = cost / (1 - margin_pct / 100)
+            self._price_spin.setValue(round(price, 2))
 
     def _on_save_clicked(self) -> None:
         self.accept()
 
     def get_values(self) -> tuple[int, int, int]:
         """Retorna (cost_cents, margin_pct_basis_points, price_cents)."""
-        cost_cents = int(round(self._cost_spin.value() * 100))
-        margin_pct = int(round(self._margin_spin.value() * 100))  # basis points
-        price_cents = int(round(self._price_spin.value() * 100))
+        cost_cents = round(self._cost_spin.value() * 100)
+        margin_pct = round(self._margin_spin.value() * 100)  # basis points
+        price_cents = round(self._price_spin.value() * 100)
         return cost_cents, margin_pct, price_cents
 
 
@@ -257,7 +258,9 @@ class PriceTableWidget(QWidget):
             output = self._services.list_low_stock(company_id=self._session.company_id)
             self._source_model = PriceTableModel(output.products)
             self._proxy_model.setSourceModel(self._source_model)
-            self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            self._table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
             self._table.horizontalHeader().setStretchLastSection(True)
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar produtos: {exc}")
@@ -266,7 +269,7 @@ class PriceTableWidget(QWidget):
         self._proxy_model.setFilterFixedString(text)
 
     def _on_selection_changed(self) -> None:
-        has_selection = self._table.selectionModel().hasSelection()
+        self._table.selectionModel().hasSelection()
         # Could enable actions here
 
     def _on_edit_price(self) -> None:
@@ -278,18 +281,19 @@ class PriceTableWidget(QWidget):
         product = self._source_model.get_product_at(source_index.row())
         if product is None:
             return
+        assert product.id is not None
 
         dialog = PriceEditDialog(product, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            cost_cents, margin_pct, price_cents = dialog.get_values()
+            cost_cents, margin_pct, _price_cents = dialog.get_values()
             try:
                 from erp.modules.catalog.application.update_product import UpdateProductInput
+
                 self._services.update_product(
                     UpdateProductInput(
                         product_id=product.id,
                         cost_cents=cost_cents,
                         margin_pct=margin_pct,
-                        price_cents=price_cents,
                         company_id=self._session.company_id,
                     )
                 )

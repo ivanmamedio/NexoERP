@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from sqlalchemy.engine import Engine
 
 from erp.modules.credit_notebook.application.apply_payment import (
@@ -21,13 +19,11 @@ from erp.modules.credit_notebook.application.create_entry import (
     CreateCreditEntryOutput,
 )
 from erp.modules.credit_notebook.application.list_customers import (
-    CreditCustomerView,
     ListCreditCustomers,
     ListCreditCustomersInput,
     ListCreditCustomersOutput,
 )
 from erp.modules.credit_notebook.application.list_entries import (
-    CreditEntryView,
     ListCreditEntries,
     ListCreditEntriesInput,
     ListCreditEntriesOutput,
@@ -63,11 +59,15 @@ class CreditNotebookServices:
             uow.commit()
             return result
 
-    def list_customers(self, *, company_id: int | None = None, status: str | None = None, search_query: str = "") -> ListCreditCustomersOutput:
+    def list_customers(
+        self, *, company_id: int | None = None, status: str | None = None, search_query: str = ""
+    ) -> ListCreditCustomersOutput:
         with SqlAlchemyCreditNotebookUnitOfWork(self._engine) as uow:
             assert uow.customers is not None
             result = ListCreditCustomers(uow.customers).execute(
-                ListCreditCustomersInput(company_id=company_id, status=status, search_query=search_query)
+                ListCreditCustomersInput(
+                    company_id=company_id, status=status, search_query=search_query
+                )
             )
             uow.commit()
             return result

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
@@ -28,12 +27,10 @@ from PySide6.QtWidgets import (
 from sqlalchemy.engine import Engine
 
 from erp.modules.treasury.application.services import TreasuryServices
-from erp.modules.treasury.domain.payable import PayableStatus, RecurrenceType
-from erp.modules.treasury.domain.receivable import ReceivableStatus
 from erp.shared.application.session import CurrentSession
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    pass
 
 
 class PayableEditDialog(QDialog):
@@ -86,7 +83,9 @@ class PayableEditDialog(QDialog):
         form.addRow("Data de emissão:", self._issue_date)
 
         self._recurrence_combo = QComboBox()
-        self._recurrence_combo.addItems(["Única (sem recorrência)", "Mensal", "Quinzenal", "Semanal"])
+        self._recurrence_combo.addItems(
+            ["Única (sem recorrência)", "Mensal", "Quinzenal", "Semanal"]
+        )
         self._recurrence_combo.currentIndexChanged.connect(self._on_recurrence_changed)
         form.addRow("Recorrência:", self._recurrence_combo)
 
@@ -153,17 +152,22 @@ class PayableEditDialog(QDialog):
             return
 
         try:
-            from erp.modules.treasury.application.create_payable import CreatePayableInput
+            from erp.modules.treasury.application.payable import CreatePayableInput
+
             input_data = CreatePayableInput(
-                supplier_id=int(self._supplier_edit.text()) if self._supplier_edit.text().strip() else None,
-                category_id=int(self._category_edit.text()) if self._category_edit.text().strip() else None,
+                supplier_id=int(self._supplier_edit.text())
+                if self._supplier_edit.text().strip()
+                else None,
+                category_id=int(self._category_edit.text())
+                if self._category_edit.text().strip()
+                else None,
                 description=desc,
-                total_amount_cents=int(round(amount * 100)),
+                total_amount_cents=round(amount * 100),
                 issue_date=datetime(
                     self._issue_date.date().year(),
                     self._issue_date.date().month(),
                     self._issue_date.date().day(),
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 ),
                 recurrence_type={
                     0: "none",
@@ -171,20 +175,30 @@ class PayableEditDialog(QDialog):
                     2: "biweekly",
                     3: "weekly",
                 }[self._recurrence_combo.currentIndex()],
-                recurrence_count=self._recurrence_count_spin.value() if self._recurrence_combo.currentIndex() > 0 else 1,
+                recurrence_count=self._recurrence_count_spin.value()
+                if self._recurrence_combo.currentIndex() > 0
+                else 1,
                 first_due_date=datetime(
                     self._first_due_date.date().year(),
                     self._first_due_date.date().month(),
                     self._first_due_date.date().day(),
-                    tzinfo=UTC
-                ) if self._recurrence_combo.currentIndex() > 0 else None,
-                interval_days=self._interval_days_spin.value() if self._recurrence_combo.currentIndex() > 0 else 30,
+                    tzinfo=UTC,
+                )
+                if self._recurrence_combo.currentIndex() > 0
+                else None,
+                interval_days=self._interval_days_spin.value()
+                if self._recurrence_combo.currentIndex() > 0
+                else 30,
                 source_type=self._source_type_edit.text().strip(),
-                source_id=int(self._source_id_edit.text()) if self._source_id_edit.text().strip() else None,
+                source_id=int(self._source_id_edit.text())
+                if self._source_id_edit.text().strip()
+                else None,
                 company_id=self._session.company_id,
             )
             output = self._services.create_payable(input_data)
-            QMessageBox.information(self, "Sucesso", f"Conta a pagar criada (ID: {output.payable_id})")
+            QMessageBox.information(
+                self, "Sucesso", f"Conta a pagar criada (ID: {output.payable_id})"
+            )
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao criar conta a pagar: {exc}")
@@ -280,30 +294,39 @@ class ReceivableEditDialog(QDialog):
             return
 
         try:
-            from erp.modules.treasury.application.create_receivable import CreateReceivableInput
+            from erp.modules.treasury.application.receivable import CreateReceivableInput
+
             input_data = CreateReceivableInput(
-                customer_id=int(self._customer_edit.text()) if self._customer_edit.text().strip() else None,
-                category_id=int(self._category_edit.text()) if self._category_edit.text().strip() else None,
+                customer_id=int(self._customer_edit.text())
+                if self._customer_edit.text().strip()
+                else None,
+                category_id=int(self._category_edit.text())
+                if self._category_edit.text().strip()
+                else None,
                 description=desc,
-                total_amount_cents=int(round(amount * 100)),
+                total_amount_cents=round(amount * 100),
                 issue_date=datetime(
                     self._issue_date.date().year(),
                     self._issue_date.date().month(),
                     self._issue_date.date().day(),
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 ),
                 due_date=datetime(
                     self._due_date.date().year(),
                     self._due_date.date().month(),
                     self._due_date.date().day(),
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 ),
                 source_type=self._source_type_edit.text().strip(),
-                source_id=int(self._source_id_edit.text()) if self._source_id_edit.text().strip() else None,
+                source_id=int(self._source_id_edit.text())
+                if self._source_id_edit.text().strip()
+                else None,
                 company_id=self._session.company_id,
             )
             output = self._services.create_receivable(input_data)
-            QMessageBox.information(self, "Sucesso", f"Conta a receber criada (ID: {output.receivable_id})")
+            QMessageBox.information(
+                self, "Sucesso", f"Conta a receber criada (ID: {output.receivable_id})"
+            )
             self.accept()
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao criar conta a receber: {exc}")
@@ -371,16 +394,17 @@ class PayableInstallmentDialog(QDialog):
 
     def _on_save_clicked(self) -> None:
         try:
-            from erp.modules.treasury.application.pay_payable import PayPayableInput
+            from erp.modules.treasury.application.payable import PayPayableInput
+
             input_data = PayPayableInput(
                 payable_id=self._payable_id,
                 installment_number=self._installment_spin.value(),
-                amount_cents=int(round(self._amount_spin.value() * 100)),
+                amount_cents=round(self._amount_spin.value() * 100),
                 paid_at=datetime(
                     self._paid_date.date().year(),
                     self._paid_date.date().month(),
                     self._paid_date.date().day(),
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 ),
             )
             self._services.pay_payable(input_data)
@@ -447,15 +471,16 @@ class ReceivableReceiveDialog(QDialog):
 
     def _on_save_clicked(self) -> None:
         try:
-            from erp.modules.treasury.application.receive_receivable import ReceiveReceivableInput
+            from erp.modules.treasury.application.receivable import ReceiveReceivableInput
+
             input_data = ReceiveReceivableInput(
                 receivable_id=self._receivable_id,
-                amount_cents=int(round(self._amount_spin.value() * 100)),
+                amount_cents=round(self._amount_spin.value() * 100),
                 received_at=datetime(
                     self._received_date.date().year(),
                     self._received_date.date().month(),
                     self._received_date.date().day(),
-                    tzinfo=UTC
+                    tzinfo=UTC,
                 ),
             )
             self._services.receive_receivable(input_data)
@@ -536,7 +561,16 @@ class PayableReceivableManagementWidget(QWidget):
         self._payables_table = QTableWidget()
         self._payables_table.setColumnCount(8)
         self._payables_table.setHorizontalHeaderLabels(
-            ["ID", "Descrição", "Fornecedor", "Total", "Status", "Emissão", "Recorrência", "Parcelas Pend."]
+            [
+                "ID",
+                "Descrição",
+                "Fornecedor",
+                "Total",
+                "Status",
+                "Emissão",
+                "Recorrência",
+                "Parcelas Pend.",
+            ]
         )
         self._payables_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._payables_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -567,7 +601,9 @@ class PayableReceivableManagementWidget(QWidget):
         self._receivables_table.setHorizontalHeaderLabels(
             ["ID", "Descrição", "Cliente", "Total", "Status", "Emissão", "Vencimento"]
         )
-        self._receivables_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._receivables_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
         self._receivables_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._receivables_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self._receivables_table)
@@ -594,11 +630,21 @@ class PayableReceivableManagementWidget(QWidget):
                 )
                 self._payables_table.setItem(row, 4, QTableWidgetItem(p.status))
                 self._payables_table.setItem(
-                    row, 5, QTableWidgetItem(p.issue_date.strftime("%d/%m/%Y") if p.issue_date else "N/A")
+                    row,
+                    5,
+                    QTableWidgetItem(p.issue_date.strftime("%d/%m/%Y") if p.issue_date else "N/A"),
                 )
                 self._payables_table.setItem(row, 6, QTableWidgetItem(p.recurrence_type))
                 self._payables_table.setItem(
-                    row, 7, QTableWidgetItem(str(len([i for i in getattr(p, 'installments', []) if i.status == 'pending'])))
+                    row,
+                    7,
+                    QTableWidgetItem(
+                        str(
+                            len(
+                                [i for i in getattr(p, "installments", []) if i.status == "pending"]
+                            )
+                        )
+                    ),
                 )
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar contas a pagar: {exc}")
@@ -618,10 +664,14 @@ class PayableReceivableManagementWidget(QWidget):
                 )
                 self._receivables_table.setItem(row, 4, QTableWidgetItem(r.status))
                 self._receivables_table.setItem(
-                    row, 5, QTableWidgetItem(r.issue_date.strftime("%d/%m/%Y") if r.issue_date else "N/A")
+                    row,
+                    5,
+                    QTableWidgetItem(r.issue_date.strftime("%d/%m/%Y") if r.issue_date else "N/A"),
                 )
                 self._receivables_table.setItem(
-                    row, 6, QTableWidgetItem(r.due_date.strftime("%d/%m/%Y") if r.due_date else "N/A")
+                    row,
+                    6,
+                    QTableWidgetItem(r.due_date.strftime("%d/%m/%Y") if r.due_date else "N/A"),
                 )
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar contas a receber: {exc}")
@@ -641,7 +691,11 @@ class PayableReceivableManagementWidget(QWidget):
         if row < 0:
             QMessageBox.warning(self, "Aviso", "Selecione uma conta a pagar.")
             return
-        payable_id = int(self._payables_table.item(row, 0).text())
+        item = self._payables_table.item(row, 0)
+        if item is None:
+            QMessageBox.warning(self, "Erro", "Não foi possível ler o ID da conta a pagar.")
+            return
+        payable_id = int(item.text())
         dialog = PayableInstallmentDialog(self._services, self._session, payable_id, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.refresh()
@@ -651,14 +705,21 @@ class PayableReceivableManagementWidget(QWidget):
         if row < 0:
             QMessageBox.warning(self, "Aviso", "Selecione uma conta a pagar.")
             return
-        payable_id = int(self._payables_table.item(row, 0).text())
+        item = self._payables_table.item(row, 0)
+        if item is None:
+            QMessageBox.warning(self, "Erro", "Não foi possível ler o ID da conta a pagar.")
+            return
+        payable_id = int(item.text())
         reply = QMessageBox.question(
-            self, "Confirmar", "Cancelar esta conta a pagar?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            self,
+            "Confirmar",
+            "Cancelar esta conta a pagar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 from erp.modules.treasury.application.cancel_payable import CancelPayableInput
+
                 self._services.cancel_payable(CancelPayableInput(payable_id=payable_id))
                 self.refresh()
             except Exception as exc:
@@ -669,7 +730,11 @@ class PayableReceivableManagementWidget(QWidget):
         if row < 0:
             QMessageBox.warning(self, "Aviso", "Selecione uma conta a receber.")
             return
-        receivable_id = int(self._receivables_table.item(row, 0).text())
+        item = self._receivables_table.item(row, 0)
+        if item is None:
+            QMessageBox.warning(self, "Erro", "Não foi possível ler o ID da conta a receber.")
+            return
+        receivable_id = int(item.text())
         dialog = ReceivableReceiveDialog(self._services, self._session, receivable_id, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.refresh()
@@ -679,14 +744,21 @@ class PayableReceivableManagementWidget(QWidget):
         if row < 0:
             QMessageBox.warning(self, "Aviso", "Selecione uma conta a receber.")
             return
-        receivable_id = int(self._receivables_table.item(row, 0).text())
+        item = self._receivables_table.item(row, 0)
+        if item is None:
+            QMessageBox.warning(self, "Erro", "Não foi possível ler o ID da conta a receber.")
+            return
+        receivable_id = int(item.text())
         reply = QMessageBox.question(
-            self, "Confirmar", "Cancelar esta conta a receber?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            self,
+            "Confirmar",
+            "Cancelar esta conta a receber?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 from erp.modules.treasury.application.cancel_receivable import CancelReceivableInput
+
                 self._services.cancel_receivable(CancelReceivableInput(receivable_id=receivable_id))
                 self.refresh()
             except Exception as exc:

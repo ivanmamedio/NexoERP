@@ -74,9 +74,7 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
 
     def get_by_employee_name(self, employee_name: str) -> User | None:
         """Busca usuário pelo nome do funcionário (case-insensitive)."""
-        stmt = select(UserModel).where(
-            UserModel.employee_name.ilike(employee_name.strip())
-        )
+        stmt = select(UserModel).where(UserModel.employee_name.ilike(employee_name.strip()))
         stmt = self._apply_company_filter(stmt)
         model = self._session.execute(stmt).scalar_one_or_none()
         return self._to_domain(model) if model else None
@@ -139,9 +137,7 @@ class SqlAlchemyUserRepository(SqlAlchemyRepository[UserModel, User, int], UserR
         )
         self._session.flush()
 
-    def assign_user_to_company(
-        self, user_id: int, company_id: int, role_name: str
-    ) -> None:
+    def assign_user_to_company(self, user_id: int, company_id: int, role_name: str) -> None:
         """Associa um usuário a uma empresa com um papel específico.
 
         Implementa a porta UserCompanyAssigner para o módulo de empresas.

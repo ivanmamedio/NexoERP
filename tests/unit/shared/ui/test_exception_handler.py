@@ -31,7 +31,7 @@ class TestGlobalExceptionHandler:
         # Test the logging directly without installing the handler
         exc = ValueError("test error")
         tb = exc.__traceback__
-        tb_lines = __import__('traceback').format_exception(type(exc), exc, tb)
+        tb_lines = __import__("traceback").format_exception(type(exc), exc, tb)
         tb_text = "".join(tb_lines)
 
         with caplog.at_level(logging.CRITICAL):
@@ -64,15 +64,14 @@ class TestGlobalExceptionHandler:
     def test_exception_with_none_traceback(self, app: QApplication) -> None:
         """Test handling exception with None traceback."""
         exc = ValueError("no traceback")
-        tb_lines = __import__('traceback').format_exception(type(exc), exc, None)
+        tb_lines = __import__("traceback").format_exception(type(exc), exc, None)
         tb_text = "".join(tb_lines)
         assert "ValueError: no traceback" in tb_text
 
-    def test_exception_shows_dialog(
-        self, app: QApplication
-    ) -> None:
+    def test_exception_shows_dialog(self, app: QApplication) -> None:
         """Test that exception triggers dialog via QTimer."""
         from collections.abc import Callable
+
         timer_called: list[Callable[[], None]] = []
 
         def mock_single_shot(delay: int, callback: Callable[[], None]) -> None:
@@ -87,9 +86,7 @@ class TestGlobalExceptionHandler:
         assert len(timer_called) == 1
         timer_called[0]()
 
-    def test_show_error_dialog_creates_message_box(
-        self, app: QApplication
-    ) -> None:
+    def test_show_error_dialog_creates_message_box(self, app: QApplication) -> None:
         """Test that _show_error_dialog creates a message box with correct content."""
         handler = GlobalExceptionHandler(app)
         exc = ValueError("test error message")
@@ -164,9 +161,7 @@ class TestGlobalExceptionHandler:
 
         assert sys.excepthook is original
 
-    def test_install_global_exception_handler_returns_instance(
-        self, app: QApplication
-    ) -> None:
+    def test_install_global_exception_handler_returns_instance(self, app: QApplication) -> None:
         """Test that install_global_exception_handler returns handler instance."""
         handler = install_global_exception_handler(app)
         assert isinstance(handler, GlobalExceptionHandler)

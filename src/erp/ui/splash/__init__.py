@@ -29,7 +29,6 @@ class NexoERPSplashScreen(QSplashScreen):
             pixmap = pixmap.scaledToWidth(500, Qt.TransformationMode.SmoothTransformation)
 
         super().__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.setEnabled(False)
 
         # Centraliza na tela

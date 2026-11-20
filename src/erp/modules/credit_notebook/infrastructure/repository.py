@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from erp.modules.credit_notebook.application.ports import (
@@ -85,7 +85,9 @@ class SqlAlchemyCreditCustomerRepository(CreditCustomerRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
-    def list_all(self, company_id: int | None = None, status: str | None = None) -> list[CreditCustomer]:
+    def list_all(
+        self, company_id: int | None = None, status: str | None = None
+    ) -> list[CreditCustomer]:
         stmt = select(CreditCustomerModel)
         cid = company_id if company_id is not None else CurrentSession().company_id
         if cid is not None:
@@ -163,7 +165,9 @@ class SqlAlchemyCreditEntryRepository(CreditEntryRepository):
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 
-    def list_by_company(self, company_id: int | None = None, status: str | None = None) -> list[CreditEntry]:
+    def list_by_company(
+        self, company_id: int | None = None, status: str | None = None
+    ) -> list[CreditEntry]:
         stmt = select(CreditEntryModel)
         cid = company_id if company_id is not None else CurrentSession().company_id
         if cid is not None:
@@ -179,7 +183,9 @@ class SqlAlchemyCreditEntryRepository(CreditEntryRepository):
             CreditEntryModel.customer_id == customer_id,
             CreditEntryModel.status.in_(["pending", "partial"]),
         )
-        stmt = stmt.order_by(CreditEntryModel.due_date.asc().nulls_last(), CreditEntryModel.created_at)
+        stmt = stmt.order_by(
+            CreditEntryModel.due_date.asc().nulls_last(), CreditEntryModel.created_at
+        )
         models = self._session.execute(stmt).scalars().all()
         return [self._model_to_domain(m) for m in models]
 

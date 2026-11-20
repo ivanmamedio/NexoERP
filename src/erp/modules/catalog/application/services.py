@@ -52,9 +52,7 @@ class CatalogServices(Protocol):
     def list_low_stock(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
     def list_all(self, *, company_id: int | None = None) -> ListLowStockOutput: ...
     def delete_product(self, product_id: int, *, company_id: int | None = None) -> None: ...
-    def quick_create_product(
-        self, input: QuickCreateProductInput
-    ) -> QuickCreateProductOutput: ...
+    def quick_create_product(self, input: QuickCreateProductInput) -> QuickCreateProductOutput: ...
 
 
 class SqlAlchemyCatalogServices:
@@ -117,9 +115,7 @@ class SqlAlchemyCatalogServices:
             uow.products.delete(product_id)
             uow.commit()
 
-    def quick_create_product(
-        self, input: QuickCreateProductInput
-    ) -> QuickCreateProductOutput:
+    def quick_create_product(self, input: QuickCreateProductInput) -> QuickCreateProductOutput:
         with SqlAlchemyCatalogUnitOfWork(self._engine) as uow:
             assert uow.products is not None
             result = QuickCreateProduct(uow.products).execute(input)

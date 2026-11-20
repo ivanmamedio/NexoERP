@@ -186,4 +186,4 @@ if __name__ == "__main__":
     import json
 
     results = run_security_audit()
-    print(json.dumps(results, indent=2, ensure_ascii=False))
+    logging.info(json.dumps(results, indent=2, ensure_ascii=False))

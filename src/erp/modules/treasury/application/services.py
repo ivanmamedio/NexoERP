@@ -7,26 +7,9 @@ from datetime import datetime
 from sqlalchemy.engine import Engine
 
 from erp.modules.treasury.application.cancel_payable import CancelPayable, CancelPayableInput
-from erp.modules.treasury.application.cancel_receivable import CancelReceivable, CancelReceivableInput
-from erp.modules.treasury.application.payable import (
-    CreatePayable,
-    CreatePayableInput,
-    CreatePayableOutput,
-    ListPayables,
-    ListPayablesInput,
-    ListPayablesOutput,
-    PayPayable,
-    PayPayableInput,
-)
-from erp.modules.treasury.application.receivable import (
-    CreateReceivable,
-    CreateReceivableInput,
-    CreateReceivableOutput,
-    ListReceivables,
-    ListReceivablesInput,
-    ListReceivablesOutput,
-    ReceiveReceivable,
-    ReceiveReceivableInput,
+from erp.modules.treasury.application.cancel_receivable import (
+    CancelReceivable,
+    CancelReceivableInput,
 )
 from erp.modules.treasury.application.get_cash_flow import (
     CashFlowInput,
@@ -57,6 +40,26 @@ from erp.modules.treasury.application.list_receivables_by_due_date import (
     ListReceivablesByDueDate,
     ListReceivablesByDueDateInput,
     ListReceivablesByDueDateOutput,
+)
+from erp.modules.treasury.application.payable import (
+    CreatePayable,
+    CreatePayableInput,
+    CreatePayableOutput,
+    ListPayables,
+    ListPayablesInput,
+    ListPayablesOutput,
+    PayPayable,
+    PayPayableInput,
+)
+from erp.modules.treasury.application.receivable import (
+    CreateReceivable,
+    CreateReceivableInput,
+    CreateReceivableOutput,
+    ListReceivables,
+    ListReceivablesInput,
+    ListReceivablesOutput,
+    ReceiveReceivable,
+    ReceiveReceivableInput,
 )
 from erp.modules.treasury.infrastructure.unit_of_work import (
     SqlAlchemyTreasuryUnitOfWork,
@@ -195,7 +198,9 @@ class TreasuryServices:
             uow.commit()
             return result
 
-    def list_payables(self, *, company_id: int | None = None, status: str | None = None) -> ListPayablesOutput:
+    def list_payables(
+        self, *, company_id: int | None = None, status: str | None = None
+    ) -> ListPayablesOutput:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.payables is not None
             result = ListPayables(uow.payables).execute(
@@ -224,14 +229,16 @@ class TreasuryServices:
             uow.commit()
             return result
 
-    def list_receivables(self, *, company_id: int | None = None, status: str | None = None) -> ListReceivablesOutput:
+    def list_receivables(
+        self, *, company_id: int | None = None, status: str | None = None
+    ) -> ListReceivablesOutput:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:
             assert uow.receivables is not None
-            result = ListReceivables(uow.receivables).execute(
+            receivables = ListReceivables(uow.receivables).execute(
                 ListReceivablesInput(company_id=company_id, status=status)
             )
             uow.commit()
-            return result
+            return ListReceivablesOutput(receivables=tuple(receivables))
 
     def receive_receivable(self, input_data: ReceiveReceivableInput) -> None:
         with SqlAlchemyTreasuryUnitOfWork(self._engine) as uow:

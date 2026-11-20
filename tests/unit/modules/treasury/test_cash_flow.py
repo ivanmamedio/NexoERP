@@ -103,3 +103,28 @@ def test_get_cash_flow_isolation_between_companies() -> None:
     )
     assert output_1.total_sales_cents == 10000
     assert output_2.total_sales_cents == 20000
+
+
+def test_get_cash_flow_reconciliation_with_sangria() -> None:
+    """Reconciliação: fluxo = vendas + recebíveis - pagáveis - sangrias no período."""
+    repo = FakeFinancialEntryRepository()
+    repo.add(_make_entry("sale", 10000, company_id=1))  # +100,00
+    repo.add(_make_entry("receivable", 5000, company_id=1))  # +50,00
+    repo.add(_make_entry("payable", 3000, company_id=1))  # -30,00
+    repo.add(_make_entry("cash_sangria", -2000, company_id=1))  # -20,00 (sangria)
+    repo.add(_make_entry("cash_suprimento", 1000, company_id=1))  # +10,00 (suprimento)
+
+    now = datetime.now(UTC)
+    output = GetCashFlow(repo).execute(
+        CashFlowInput(
+            start_date=now.replace(hour=0, minute=0, second=0, microsecond=0),
+            end_date=now.replace(hour=23, minute=59, second=59, microsecond=999999),
+            company_id=1,
+        )
+    )
+    # net = 10000 + 5000 - 3000 + (-2000) + 1000 = 11000
+    assert output.total_sales_cents == 10000
+    assert output.total_receivables_cents == 5000
+    assert output.total_payables_cents == 3000
+    assert output.total_cash_movements_cents == -1000  # -2000 + 1000
+    assert output.net_flow_cents == 11000  # 10000 + 5000 - 3000 + (-1000)

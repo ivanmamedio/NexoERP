@@ -106,7 +106,7 @@ class OpenCashSessionDialog(QDialog):
 
     def get_opening_amount_cents(self) -> int:
         # Convert from reais to centavos
-        return int(round(self._amount_spin.value() * 100))
+        return round(self._amount_spin.value() * 100)
 
     def accept(self) -> None:
         super().accept()

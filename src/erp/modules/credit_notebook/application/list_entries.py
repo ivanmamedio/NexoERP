@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.credit_notebook.application.ports import CreditEntryRepository
-from erp.modules.credit_notebook.domain.credit_entry import CreditEntry
 
 
 @dataclass(slots=True, frozen=True)
@@ -43,13 +42,9 @@ class ListCreditEntries:
 
     def execute(self, input_data: ListCreditEntriesInput) -> ListCreditEntriesOutput:
         if input_data.customer_id is not None:
-            entries = self._repository.list_by_customer(
-                input_data.customer_id, input_data.status
-            )
+            entries = self._repository.list_by_customer(input_data.customer_id, input_data.status)
         else:
-            entries = self._repository.list_by_company(
-                input_data.company_id, input_data.status
-            )
+            entries = self._repository.list_by_company(input_data.company_id, input_data.status)
 
         # Filter by entry_type if provided
         if input_data.entry_type:

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 import bcrypt
 
 from erp.modules.identity.application.ports import PasswordHasher
+
+_logger = logging.getLogger(__name__)
 
 
 class BcryptHasher(PasswordHasher):
@@ -18,4 +22,5 @@ class BcryptHasher(PasswordHasher):
         try:
             return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
         except Exception:
+            _logger.exception("Erro ao verificar hash de senha.")
             return False

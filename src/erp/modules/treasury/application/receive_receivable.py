@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
 from erp.modules.treasury.application.ports import ReceivableRepository
 from erp.shared.domain.errors import NotFound

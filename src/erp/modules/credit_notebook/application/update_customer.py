@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from erp.modules.credit_notebook.application.ports import CreditCustomerRepository
-from erp.modules.credit_notebook.domain.credit_customer import CreditCustomer
 from erp.shared.domain.errors import NotFound, ValidationError
 
 
@@ -45,9 +44,7 @@ class UpdateCreditCustomer:
             if not input_data.phone.strip():
                 raise ValidationError("Telefone não pode ser vazio")
             # Check if phone already exists for another customer
-            existing = self._repository.get_by_phone(
-                input_data.phone, input_data.company_id
-            )
+            existing = self._repository.get_by_phone(input_data.phone, input_data.company_id)
             if existing and existing.id != input_data.customer_id:
                 raise ValidationError(f"Telefone já cadastrado para: {existing.name}")
             customer.phone = input_data.phone.strip()
@@ -72,6 +69,7 @@ class UpdateCreditCustomer:
         customer.updated_at = customer.__dataclass_fields__["updated_at"].default_factory()  # type: ignore
         # Actually just use datetime.now(UTC)
         from datetime import UTC, datetime
+
         customer.updated_at = datetime.now(UTC)
 
         self._repository.save(customer)

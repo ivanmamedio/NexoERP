@@ -17,7 +17,9 @@ class CreditCustomerRepository(Protocol):
     def search(
         self, query: str, company_id: int | None = None, limit: int = 50
     ) -> list[CreditCustomer]: ...
-    def list_all(self, company_id: int | None = None, status: str | None = None) -> list[CreditCustomer]: ...
+    def list_all(
+        self, company_id: int | None = None, status: str | None = None
+    ) -> list[CreditCustomer]: ...
 
 
 @runtime_checkable

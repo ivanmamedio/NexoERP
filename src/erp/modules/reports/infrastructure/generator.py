@@ -334,7 +334,8 @@ class SqlReportGenerator(ReportGeneratorPort):
                 cs.opening_amount_cents as opening_amount,
                 cs.expected_cash_cents as expected_amount,
                 cs.closing_amount_cents as actual_amount,
-                COALESCE(cs.closing_amount_cents, 0) - COALESCE(cs.expected_cash_cents, 0) as difference,
+                COALESCE(cs.closing_amount_cents, 0)
+                - COALESCE(cs.expected_cash_cents, 0) as difference,
                 COALESCE((
                     SELECT SUM(amount_cents) FROM cash_movements
                     WHERE session_id = cs.id AND movement_type = 'sangria'

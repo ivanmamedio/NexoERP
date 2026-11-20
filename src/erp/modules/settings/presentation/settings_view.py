@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -19,13 +21,14 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from erp.modules.companies.infrastructure.models import CompanyModel
-from erp.modules.companies.infrastructure.repository import SqlAlchemyCompanyRepository
 from erp.modules.identity.infrastructure.models import user_company_role
 from erp.modules.settings.application.services import SettingsServices
 from erp.modules.settings.presentation.settings_presenter import (
     SettingsPresenter,
 )
 from erp.shared.application.session import CurrentSession
+
+_logger = logging.getLogger(__name__)
 
 
 class SettingsDialog(QDialog):
@@ -68,6 +71,7 @@ class SettingsDialog(QDialog):
 
         # Separator
         from PySide6.QtWidgets import QFrame
+
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
@@ -129,10 +133,11 @@ class SettingsDialog(QDialog):
             with Session(self._engine) as session:
                 # Get companies user has access to
                 from sqlalchemy import select
+
                 user_id = self._session.user_id
                 if user_id is None:
                     return
-                
+
                 stmt = (
                     select(CompanyModel.company_id, CompanyModel.name)
                     .join(
@@ -145,7 +150,7 @@ class SettingsDialog(QDialog):
                 results = session.execute(stmt).all()
                 for row in results:
                     self._company_combo.addItem(row.name, row.company_id)
-                
+
                 # Select current company
                 current_company_id = self._session.company_id
                 if current_company_id:
@@ -167,12 +172,13 @@ class SettingsDialog(QDialog):
         """Atualiza a empresa padrão do usuário no banco."""
         try:
             from sqlalchemy.orm import Session as SASession
+
             from erp.modules.audit.infrastructure.triggers import (
                 disable_bypass,
                 enable_bypass,
             )
             from erp.modules.identity.infrastructure.models import UserModel
-            
+
             engine = self._engine
             enable_bypass(engine)
             try:
@@ -184,7 +190,7 @@ class SettingsDialog(QDialog):
             finally:
                 disable_bypass(engine)
         except Exception:
-            pass  # Silencioso - erro será mostrado no save
+            _logger.exception("Erro ao atualizar empresa padrão do usuário.")
 
     def _on_save_clicked(self) -> None:
         if self._presenter is not None:

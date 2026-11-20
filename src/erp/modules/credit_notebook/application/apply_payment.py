@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
 from erp.modules.credit_notebook.application.ports import CreditEntryRepository
-from erp.modules.credit_notebook.domain.credit_entry import CreditEntry, CreditEntryStatus
+from erp.modules.credit_notebook.domain.credit_entry import CreditEntryStatus
 from erp.shared.domain.errors import NotFound, ValidationError
 
 

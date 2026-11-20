@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -98,15 +98,17 @@ class SelectCompanyDialog(QDialog):
 
     def show_error(self, message: str) -> None:
         from PySide6.QtWidgets import QMessageBox
+
         QMessageBox.warning(self, "Erro", message)
 
     def show_info(self, message: str) -> None:
         from PySide6.QtWidgets import QMessageBox
+
         QMessageBox.information(self, "Informação", message)
 
     def render_companies(self, companies: list[tuple[int, str]]) -> None:
         """Renderiza a lista de empresas disponíveis.
-        
+
         Args:
             companies: Lista de tuplas (company_id, company_name)
         """
@@ -115,7 +117,7 @@ class SelectCompanyDialog(QDialog):
             item = QListWidgetItem(name)
             item.setData(Qt.ItemDataRole.UserRole, company_id)
             self._list.addItem(item)
-        
+
         if companies:
             self._list.setCurrentRow(0)
 
@@ -123,7 +125,8 @@ class SelectCompanyDialog(QDialog):
         item = self._list.currentItem()
         if item is None:
             return None
-        return item.data(Qt.ItemDataRole.UserRole)
+        data = item.data(Qt.ItemDataRole.UserRole)
+        return cast(int, data) if data is not None else None
 
     def accept(self) -> None:
         if self._presenter is not None:

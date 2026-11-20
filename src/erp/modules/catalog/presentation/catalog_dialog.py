@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QModelIndex,
+    QPersistentModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -40,15 +46,17 @@ class ProductTableModel(QAbstractTableModel):
         super().__init__()
         self._products = products
 
-    def rowCount(self, parent: QModelIndex | None = None) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return len(self._products)
 
-    def columnCount(self, parent: QModelIndex | None = None) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:
         _ = parent
         return 8
 
-    def data(self, index: QModelIndex, role: int) -> object:
+    def data(
+        self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object:
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         product = self._products[index.row()]
@@ -71,7 +79,9 @@ class ProductTableModel(QAbstractTableModel):
             return "Sim" if product.is_low_stock() else "Não"
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> object | None:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object | None:
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -211,9 +221,9 @@ class ProductEditDialog(QDialog):
                 name=self._name_edit.text().strip(),
                 description=self._desc_edit.text().strip(),
                 unit=self._unit_combo.currentText().strip(),
-                cost_cents=int(round(self._cost_spin.value() * 100)),
-                margin_pct=int(round(self._margin_spin.value() * 100)),  # store as basis points
-                price_cents=int(round(self._price_spin.value() * 100)),
+                cost_cents=round(self._cost_spin.value() * 100),
+                margin_pct=round(self._margin_spin.value() * 100),  # store as basis points
+                price_cents=round(self._price_spin.value() * 100),
                 min_stock_qty=self._min_stock_spin.value(),
                 stock_qty=self._stock_spin.value() * 1000,  # convert to thousandths
                 sold_by_weight=self._sold_by_weight_check.currentIndex() == 1,
@@ -273,7 +283,7 @@ class CatalogWidget(QWidget):
             session=session,
         )
         self._edit_presenter = ProductEditPresenter(
-            view=self,
+            view=self,  # type: ignore[arg-type]
             services=services,
             session=session,
         )
@@ -336,7 +346,9 @@ class CatalogWidget(QWidget):
             output = self._services.list_low_stock(company_id=self._session.company_id)
             self._source_model = ProductTableModel(output.products)
             self._proxy_model.setSourceModel(self._source_model)
-            self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            self._table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
             self._table.horizontalHeader().setStretchLastSection(True)
         except Exception as exc:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar produtos: {exc}")
@@ -351,7 +363,7 @@ class CatalogWidget(QWidget):
 
     def _on_new_product(self) -> None:
         dialog = ProductEditDialog(None, self._session, self)
-        self._edit_presenter.view = dialog
+        self._edit_presenter._view = dialog
         dialog.set_presenter(self._edit_presenter)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._load_products()
@@ -367,7 +379,7 @@ class CatalogWidget(QWidget):
             return
 
         dialog = ProductEditDialog(None, self._session, self)
-        self._edit_presenter.view = dialog
+        self._edit_presenter._view = dialog
         dialog.set_presenter(self._edit_presenter)
         dialog.load_product(product)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -392,6 +404,7 @@ class CatalogWidget(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             try:
+                assert product.id is not None
                 self._services.delete_product(product.id, company_id=self._session.company_id)
                 self._load_products()
             except Exception as exc:

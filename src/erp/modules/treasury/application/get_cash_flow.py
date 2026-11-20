@@ -85,7 +85,7 @@ class GetCashFlow:
             ):
                 total_cash += entry.amount_cents
 
-        net_flow = total_sales + total_receivables - total_payables
+        net_flow = total_sales + total_receivables - total_payables + total_cash
 
         # Agrupar por dia
         daily_data = self._group_by_day(entries)
@@ -133,7 +133,7 @@ class GetCashFlow:
                 ):
                     day_cash += entry.amount_cents
 
-            net = day_sales + day_receivables - day_payables
+            net = day_sales + day_receivables - day_payables + day_cash
             daily.append(
                 DailyBreakdownItem(
                     date=day,
@@ -174,7 +174,7 @@ class GetCashFlow:
                 ):
                     month_cash += entry.amount_cents
 
-            net = month_sales + month_receivables - month_payables
+            net = month_sales + month_receivables - month_payables + month_cash
             # Usar o primeiro dia do mês como representante
             month_date = date(month[0], month[1], 1)
             monthly.append(

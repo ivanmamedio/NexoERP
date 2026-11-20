@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from alembic.config import Config
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
@@ -136,6 +137,7 @@ class _SqlSupervisorAuth(SupervisorAuthPort):
         try:
             output = self._identity.authenticate(username, password)
         except Exception:
+            _logger.exception("Supervisor authentication failed for user %r", username)
             return None
         return _SupervisorAuthInfo(user_id=output.user_id, username=output.username)
 
@@ -184,25 +186,52 @@ def bootstrap(*, data_dir: Path | None = None) -> AppContext:
     event.listen(engine, "connect", _apply_pragmas)
 
     # Backup automático antes de qualquer migração (tabela backups pode não
-    # existir ainda em primeira execução)
+    # existir ainda em primeira execução). Só faz backup se houver migrações
+    # pendentes para evitar cópia desnecessária do banco a cada inicialização.
     try:
+        from alembic.script import ScriptDirectory
         from sqlalchemy import inspect as sa_inspect
 
         inspector = sa_inspect(engine)
-        if "backups" in inspector.get_table_names():
-            _logger.info("Running pre-migration backup")
-
-            def _temp_session_factory() -> Session:
-                return Session(engine)
-
-            temp_service = BackupService(
-                session_factory=_temp_session_factory,
-                backup_dir=backup_dir,
-                secondary_dir=Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None,
-            )
-            temp_service.create_backup("pre_migration", str(db_path), "pre_migration")
-        else:
+        if "backups" not in inspector.get_table_names():
             _logger.warning("Pre-migration backup skipped (backup table not ready yet)")
+        else:
+            # Verifica se há migrações pendentes
+            cfg = Config()
+            cfg.set_main_option(
+                "script_location",
+                str(
+                    Path(__file__).resolve().parent
+                    / "shared"
+                    / "infrastructure"
+                    / "database"
+                    / "alembic"
+                ),
+            )
+            cfg.set_main_option("sqlalchemy.url", db_url)
+            script = ScriptDirectory.from_config(cfg)
+            head = script.get_current_head()
+            with engine.connect() as conn:
+                from alembic.runtime.migration import MigrationContext
+
+                context = MigrationContext.configure(conn)
+                current = context.get_current_revision()
+            if current != head:
+                _logger.info(
+                    "Running pre-migration backup (migrations pending: %s -> %s)", current, head
+                )
+
+                def _temp_session_factory() -> Session:
+                    return Session(engine)
+
+                temp_service = BackupService(
+                    session_factory=_temp_session_factory,
+                    backup_dir=backup_dir,
+                    secondary_dir=Path(os.environ.get("NEXOERP_BACKUP_SECONDARY", "")) or None,
+                )
+                temp_service.create_backup("pre_migration", str(db_path), "pre_migration")
+            else:
+                _logger.info("Pre-migration backup skipped (database already at head %s)", head)
     except Exception:
         _logger.warning("Pre-migration backup skipped")
 

@@ -6,6 +6,7 @@ from typing import Protocol, runtime_checkable
 
 from erp.modules.identity.application.services import IdentityServices
 from erp.shared.application.session import CurrentSession
+from erp.shared.domain.errors import DomainError
 
 
 @runtime_checkable
@@ -46,7 +47,7 @@ class LoginPresenter:
 
         try:
             output = self._services.authenticate(identifier.strip(), password)
-        except ValueError as exc:
+        except DomainError as exc:
             self._view.show_error(str(exc))
             self._view.clear_password()
             return False
