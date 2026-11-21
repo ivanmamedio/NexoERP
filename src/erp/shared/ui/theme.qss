@@ -397,70 +397,127 @@ QSplitter::handle:hover {
 
 /* ===== TOOLTIP ===== */
 QToolTip {
-    background-color: #1F2937.
-    color: #F9FAFB.
-    border: 1px solid #374151.
-    border-radius: 6px.
-    padding: 8px 12px.
-    font-size: 13px.
+    background-color: #1F2937;
+    color: #F9FAFB;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
 }
 
 /* ===== DOCK WIDGET TITLE ===== */
 QDockWidget::title {
-    background-color: #F8F9FA.
-    padding: 8px 12px.
-    font-weight: 600.
-    color: #374151.
-    border-bottom: 1px solid #E5E7EB.
+    background-color: #F8F9FA;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #E5E7EB;
 }
 
 /* ===== SPLITTER ===== */
 QSplitter::handle {
-    background-color: #E5E7EB.
-    width: 2px.
-    height: 2px.
+    background-color: #E5E7EB;
+    width: 2px;
+    height: 2px;
 }
 QSplitter::handle:hover {
-    background-color: #2563EB.
+    background-color: #2563EB;
 }
 
-/* ===== TOOLTIP ===== */
-QToolTip {
-    background-color: #1F2937.
-    color: #F9FAFB.
-    border: 1px solid #374151.
-    border-radius: 6px.
-    padding: 8px 12px.
-    font-size: 13px.
+/* ===== SUMMARY CARD (KPI) ===== */
+QFrame#SummaryCard {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+QFrame#SummaryCard[variant="primary"] {
+    background-color: #2563EB;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#SummaryCard[variant="success"] {
+    background-color: #059669;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#SummaryCard[variant="warning"] {
+    background-color: #D97706;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#SummaryCard[variant="danger"] {
+    background-color: #DC2626;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#SummaryCard[variant="info"] {
+    background-color: #2980b9;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#SummaryCard[variant="neutral"] {
+    background-color: #2c3e50;
+    color: #FFFFFF;
+    border: none;
 }
 
-/* ===== DOCK WIDGET TITLE ===== */
-QDockWidget::title {
-    background-color: #F8F9FA.
-    padding: 8px 12px.
-    font-weight: 600.
-    color: #374151.
-    border-bottom: 1px solid #E5E7EB.
+QLabel#SummaryCardTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: inherit;
+}
+QLabel#SummaryCardValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: inherit;
 }
 
-/* ===== SPLITTER ===== */
-QSplitter::handle {
-    background-color: #E5E7EB.
-    width: 2px.
-    height: 2px.
+/* ===== ALERT COUNTER ===== */
+QFrame#AlertCounter {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
 }
-QSplitter::handle:hover {
-    background-color: #2563EB.
+QFrame#AlertCounter[severity="critical"] {
+    background-color: #DC2626;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#AlertCounter[severity="warning"] {
+    background-color: #D97706;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#AlertCounter[severity="info"] {
+    background-color: #2563EB;
+    color: #FFFFFF;
+    border: none;
+}
+QFrame#AlertCounter[severity="success"] {
+    background-color: #059669;
+    color: #FFFFFF;
+    border: none;
 }
 
-/* ===== TOOLTIP ===== */
-QToolTip {
-    background-color: #1F2937.
-    color: #F9FAFB.
-    border: 1px solid #374151.
-    border-radius: 6px.
-    padding: 8px 12px.
-    font-size: 13px.
+QLabel#AlertCounterTitle {
+    font-size: 11px;
+    font-weight: 600;
+    color: inherit;
+}
+QLabel#AlertCounterValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: inherit;
+}
+
+/* ===== FORM FIELD HELPER ===== */
+QLabel#FormHelper {
+    color: #6B7280;
+    font-size: 12px;
+}
+QLabel#FormError {
+    color: #DC2626;
+    font-size: 12px;
 }
 
 /* ===== CHECKBOX / RADIO ===== */

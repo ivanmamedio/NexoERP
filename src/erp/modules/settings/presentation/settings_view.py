@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QComboBox,
@@ -31,6 +32,16 @@ from erp.shared.application.session import CurrentSession
 _logger = logging.getLogger(__name__)
 
 
+def _load_theme_qss() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent.parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - fallback silencioso
+        _logger.warning("Falha ao carregar stylesheet: %s", exc)
+        return ""
+
+
 class SettingsDialog(QDialog):
     """Diálogo de configurações da empresa.
 
@@ -54,6 +65,7 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Configurações da Empresa")
         self.setModal(True)
         self.resize(520, 580)
+        self.setStyleSheet(_load_theme_qss())
 
         self._setup_ui()
         self._load_companies()
@@ -110,17 +122,19 @@ class SettingsDialog(QDialog):
         # Hint
         hint = QLabel("Esses dados aparecem no cabeçalho e rodapé do cupom de venda.")
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: #666; font-size: 12px;")
+        hint.setObjectName("FormHelper")
         layout.addWidget(hint)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
         self._cancel_btn = QPushButton("Cancelar")
+        self._cancel_btn.setObjectName("btnSecondary")
         self._cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self._cancel_btn)
 
         self._save_btn = QPushButton("Salvar")
+        self._save_btn.setObjectName("btnPrimary")
         self._save_btn.setDefault(True)
         self._save_btn.clicked.connect(self._on_save_clicked)
         btn_layout.addWidget(self._save_btn)

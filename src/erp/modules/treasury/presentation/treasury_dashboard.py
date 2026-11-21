@@ -28,6 +28,7 @@ from sqlalchemy.engine import Engine
 from erp.modules.treasury.application.services import TreasuryServices
 from erp.modules.treasury.presentation.treasury_presenter import TreasuryDashboardPresenter
 from erp.shared.application.session import CurrentSession
+from erp.shared.ui import AlertCounter, SummaryCard
 
 
 class TreasuryDashboardDialog(QDialog):
@@ -122,24 +123,23 @@ class TreasuryDashboardDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Cards de resumo
+        # Cards de resumo usando componentes do design system
         summary_layout = QHBoxLayout()
 
-        self._cf_sales_card, self._cf_sales_value = self._create_summary_card(
-            "Vendas", "R$ 0,00", "#27ae60"
-        )
-        self._cf_receivables_card, self._cf_receivables_value = self._create_summary_card(
-            "Recebimentos", "R$ 0,00", "#2980b9"
-        )
-        self._cf_payables_card, self._cf_payables_value = self._create_summary_card(
-            "Pagamentos", "R$ 0,00", "#c0392b"
-        )
-        self._cf_cash_card, self._cf_cash_value = self._create_summary_card(
-            "Mov. Caixa", "R$ 0,00", "#8e44ad"
-        )
-        self._cf_net_card, self._cf_net_value = self._create_summary_card(
-            "Fluxo Líquido", "R$ 0,00", "#2c3e50"
-        )
+        self._cf_sales_card = SummaryCard("Vendas", "R$ 0,00", "success")
+        self._cf_sales_value = self._cf_sales_card._value_label
+
+        self._cf_receivables_card = SummaryCard("Recebimentos", "R$ 0,00", "info")
+        self._cf_receivables_value = self._cf_receivables_card._value_label
+
+        self._cf_payables_card = SummaryCard("Pagamentos", "R$ 0,00", "danger")
+        self._cf_payables_value = self._cf_payables_card._value_label
+
+        self._cf_cash_card = SummaryCard("Mov. Caixa", "R$ 0,00", "warning")
+        self._cf_cash_value = self._cf_cash_card._value_label
+
+        self._cf_net_card = SummaryCard("Fluxo Líquido", "R$ 0,00", "neutral")
+        self._cf_net_value = self._cf_net_card._value_label
 
         for card in [
             self._cf_sales_card,
@@ -156,6 +156,7 @@ class TreasuryDashboardDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         self._detail_btn = QPushButton("Ver Detalhamento Diário/Mensal")
+        self._detail_btn.setObjectName("btnSecondary")
         self._detail_btn.clicked.connect(self._open_cash_flow_detail)
         btn_layout.addWidget(self._detail_btn)
         layout.addLayout(btn_layout)
@@ -220,32 +221,6 @@ class TreasuryDashboardDialog(QDialog):
             parent=self,
         )
         dialog.exec()
-
-    def _create_summary_card(self, title: str, value: str, color: str) -> tuple[QWidget, QLabel]:
-        card = QWidget()
-        card.setFixedHeight(100)
-        card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
-        layout = QVBoxLayout(card)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        title_label = QLabel(title)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 12px; font-weight: bold;")
-        layout.addWidget(title_label)
-
-        value_label = QLabel(value)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet("font-size: 20px; font-weight: bold;")
-        value_label.setObjectName("valueLabel")
-        layout.addWidget(value_label)
-
-        return card, value_label
 
     def _create_payables_tab(self) -> QWidget:
         widget = QWidget()
@@ -313,20 +288,20 @@ class TreasuryDashboardDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Contadores
+        # Contadores usando componentes do design system
         counters_layout = QHBoxLayout()
-        self._alert_overdue_pay, self._alert_overdue_pay_value = self._create_alert_counter(
-            "Pagar Vencidas", "0", "#c0392b"
-        )
-        self._alert_due_soon_pay, self._alert_due_soon_pay_value = self._create_alert_counter(
-            "Pagar Próx. 7d", "0", "#e67e22"
-        )
-        self._alert_overdue_recv, self._alert_overdue_recv_value = self._create_alert_counter(
-            "Receber Vencidas", "0", "#c0392b"
-        )
-        self._alert_due_soon_recv, self._alert_due_soon_recv_value = self._create_alert_counter(
-            "Receber Próx. 7d", "0", "#27ae60"
-        )
+
+        self._alert_overdue_pay = AlertCounter("Pagar Vencidas", "0", "critical")
+        self._alert_overdue_pay_value = self._alert_overdue_pay._value_label
+
+        self._alert_due_soon_pay = AlertCounter("Pagar Próx. 7d", "0", "warning")
+        self._alert_due_soon_pay_value = self._alert_due_soon_pay._value_label
+
+        self._alert_overdue_recv = AlertCounter("Receber Vencidas", "0", "critical")
+        self._alert_overdue_recv_value = self._alert_overdue_recv._value_label
+
+        self._alert_due_soon_recv = AlertCounter("Receber Próx. 7d", "0", "success")
+        self._alert_due_soon_recv_value = self._alert_due_soon_recv._value_label
 
         for c in [
             self._alert_overdue_pay,
@@ -372,47 +347,21 @@ class TreasuryDashboardDialog(QDialog):
 
         return widget
 
-    def _create_alert_counter(self, title: str, value: str, color: str) -> tuple[QWidget, QLabel]:
-        card = QWidget()
-        card.setFixedHeight(80)
-        card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
-        layout = QVBoxLayout(card)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        title_label = QLabel(title)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 11px;")
-        layout.addWidget(title_label)
-
-        value_label = QLabel(value)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet("font-size: 24px; font-weight: bold;")
-        value_label.setObjectName("valueLabel")
-        layout.addWidget(value_label)
-
-        return card, value_label
-
     def _create_category_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Cards de totais
+        # Cards de totais usando componentes do design system
         totals_layout = QHBoxLayout()
-        self._cat_income_card, self._cat_income_value = self._create_summary_card(
-            "Total Receitas", "R$ 0,00", "#27ae60"
-        )
-        self._cat_expense_card, self._cat_expense_value = self._create_summary_card(
-            "Total Despesas", "R$ 0,00", "#c0392b"
-        )
-        self._cat_net_card, self._cat_net_value = self._create_summary_card(
-            "Saldo Líquido", "R$ 0,00", "#2c3e50"
-        )
+
+        self._cat_income_card = SummaryCard("Total Receitas", "R$ 0,00", "success")
+        self._cat_income_value = self._cat_income_card._value_label
+
+        self._cat_expense_card = SummaryCard("Total Despesas", "R$ 0,00", "danger")
+        self._cat_expense_value = self._cat_expense_card._value_label
+
+        self._cat_net_card = SummaryCard("Saldo Líquido", "R$ 0,00", "neutral")
+        self._cat_net_value = self._cat_net_card._value_label
 
         for card in [self._cat_income_card, self._cat_expense_card, self._cat_net_card]:
             totals_layout.addWidget(card)
@@ -444,15 +393,9 @@ class TreasuryDashboardDialog(QDialog):
         self._cf_payables_value.setText(f"R$ {output.total_payables_cents / 100:.2f}")
         self._cf_cash_value.setText(f"R$ {output.total_cash_movements_cents / 100:.2f}")
 
-        net_color = "#27ae60" if output.net_flow_cents >= 0 else "#c0392b"
+        net_variant = "success" if output.net_flow_cents >= 0 else "danger"
         self._cf_net_value.setText(f"R$ {output.net_flow_cents / 100:.2f}")
-        self._cf_net_card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {net_color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
+        self._cf_net_card.set_variant(net_variant)  # type: ignore[arg-type]
 
     def set_payables(self, output: Any) -> None:
         from erp.modules.treasury.application.list_payables_by_due_date import (
@@ -599,15 +542,9 @@ class TreasuryDashboardDialog(QDialog):
         self._cat_income_value.setText(f"R$ {output.total_income_cents / 100:.2f}")
         self._cat_expense_value.setText(f"R$ {output.total_expense_cents / 100:.2f}")
 
-        net_color = "#27ae60" if output.net_cents >= 0 else "#c0392b"
+        net_variant = "success" if output.net_cents >= 0 else "danger"
         self._cat_net_value.setText(f"R$ {output.net_cents / 100:.2f}")
-        self._cat_net_card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {net_color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
+        self._cat_net_card.set_variant(net_variant)  # type: ignore[arg-type]
 
         self._category_table.setRowCount(len(output.rows))
         for row, cat in enumerate(output.rows):

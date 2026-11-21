@@ -723,7 +723,16 @@ def main() -> int:
     services: IdentityServices = SqlIdentityServices(ctx.engine)
     runner = _App(app, services)
 
-    exit_code = runner.run(splash=splash)
+    exit_code = 0
+    try:
+        exit_code = runner.run(splash=splash)
+    finally:
+        # Garante que o splash seja fechado mesmo se houver erro
+        if splash is not None:
+            try:
+                splash.close()
+            except Exception:
+                _logger.exception("Erro ao fechar splash screen")
 
     # Backup no fechamento do app
     try:

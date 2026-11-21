@@ -28,7 +28,10 @@ class NexoERPSplashScreen(QSplashScreen):
         if pixmap.width() > 500:
             pixmap = pixmap.scaledToWidth(500, Qt.TransformationMode.SmoothTransformation)
 
-        super().__init__(pixmap, Qt.WindowType.WindowStaysOnTopHint)
+        # Não usar WindowStaysOnTopHint para não ficar sobre a tela de login
+        # O finish() fecha corretamente quando a main window abre
+        super().__init__(pixmap)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
         self.setEnabled(False)
 
         # Centraliza na tela

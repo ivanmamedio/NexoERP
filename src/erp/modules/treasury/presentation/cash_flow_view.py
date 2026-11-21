@@ -31,6 +31,7 @@ from erp.modules.treasury.application.get_cash_flow import (
 )
 from erp.modules.treasury.presentation.cash_flow_presenter import CashFlowPresenter
 from erp.shared.application.session import CurrentSession
+from erp.shared.ui import SummaryCard
 
 if TYPE_CHECKING:
     from erp.modules.treasury.application.services import TreasuryServices
@@ -88,24 +89,23 @@ class CashFlowDialog(QDialog):
 
         layout.addLayout(filter_layout)
 
-        # Cards de resumo
+        # Cards de resumo usando componentes do design system
         summary_layout = QHBoxLayout()
 
-        self._sales_card, self._sales_value = self._create_summary_card(
-            "Vendas", "R$ 0,00", "#27ae60"
-        )
-        self._receivables_card, self._receivables_value = self._create_summary_card(
-            "Recebimentos", "R$ 0,00", "#2980b9"
-        )
-        self._payables_card, self._payables_value = self._create_summary_card(
-            "Pagamentos", "R$ 0,00", "#c0392b"
-        )
-        self._cash_card, self._cash_value = self._create_summary_card(
-            "Mov. Caixa", "R$ 0,00", "#8e44ad"
-        )
-        self._net_card, self._net_value = self._create_summary_card(
-            "Fluxo Líquido", "R$ 0,00", "#2c3e50"
-        )
+        self._sales_card = SummaryCard("Vendas", "R$ 0,00", "success")
+        self._sales_value = self._sales_card._value_label
+
+        self._receivables_card = SummaryCard("Recebimentos", "R$ 0,00", "info")
+        self._receivables_value = self._receivables_card._value_label
+
+        self._payables_card = SummaryCard("Pagamentos", "R$ 0,00", "danger")
+        self._payables_value = self._payables_card._value_label
+
+        self._cash_card = SummaryCard("Mov. Caixa", "R$ 0,00", "warning")
+        self._cash_value = self._cash_card._value_label
+
+        self._net_card = SummaryCard("Fluxo Líquido", "R$ 0,00", "neutral")
+        self._net_value = self._net_card._value_label
 
         for card in [
             self._sales_card,
@@ -140,32 +140,6 @@ class CashFlowDialog(QDialog):
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         layout.addLayout(btn_layout)
-
-    def _create_summary_card(self, title: str, value: str, color: str) -> tuple[QWidget, QLabel]:
-        card = QWidget()
-        card.setFixedHeight(90)
-        card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
-        lay = QVBoxLayout(card)
-        lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        title_label = QLabel(title)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 11px; font-weight: bold;")
-        lay.addWidget(title_label)
-
-        value_label = QLabel(value)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        value_label.setObjectName("valueLabel")
-        lay.addWidget(value_label)
-
-        return card, value_label
 
     def _create_daily_tab(self) -> QWidget:
         widget = QWidget()
@@ -211,15 +185,9 @@ class CashFlowDialog(QDialog):
         self._payables_value.setText(f"R$ {output.total_payables_cents / 100:.2f}")
         self._cash_value.setText(f"R$ {output.total_cash_movements_cents / 100:.2f}")
 
-        net_color = "#27ae60" if output.net_flow_cents >= 0 else "#c0392b"
+        net_variant = "success" if output.net_flow_cents >= 0 else "danger"
         self._net_value.setText(f"R$ {output.net_flow_cents / 100:.2f}")
-        self._net_card.setStyleSheet(f"""
-            QWidget {{
-                background-color: {net_color};
-                border-radius: 8px;
-                color: white;
-            }}
-        """)
+        self._net_card.set_variant(net_variant)  # type: ignore[arg-type]
 
         # Atualiza tabelas detalhadas
         self._populate_daily_table(output.daily_breakdown)

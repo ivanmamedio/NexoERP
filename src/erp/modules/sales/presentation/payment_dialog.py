@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
@@ -18,6 +21,18 @@ from PySide6.QtWidgets import (
 from erp.modules.sales.presentation.pos_presenter import PaymentEntry
 from erp.shared.domain.value_objects import Money
 
+_logger = logging.getLogger(__name__)
+
+
+def _load_theme_qss() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent.parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - fallback silencioso
+        _logger.warning("Falha ao carregar stylesheet: %s", exc)
+        return ""
+
 
 class PaymentDialog(QDialog):
     """Coleta os valores por meio de pagamento e mostra o troco em tempo real."""
@@ -30,6 +45,7 @@ class PaymentDialog(QDialog):
         self.setWindowTitle("Pagamento")
         self.setModal(True)
         self.resize(380, 300)
+        self.setStyleSheet(_load_theme_qss())
 
         layout = QVBoxLayout(self)
 
@@ -53,19 +69,22 @@ class PaymentDialog(QDialog):
         layout.addWidget(self._summary_label)
 
         hint = QLabel("Zere o dinheiro para pagamento misto.")
-        hint.setStyleSheet("color: gray;")
+        hint.setObjectName("FormHelper")
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(hint)
 
         buttons = QHBoxLayout()
         clear_button = QPushButton("Limpar")
+        clear_button.setObjectName("btnSecondary")
         clear_button.clicked.connect(self._clear_values)
         buttons.addWidget(clear_button)
         buttons.addStretch()
         cancel_button = QPushButton("Cancelar (Esc)")
+        cancel_button.setObjectName("btnSecondary")
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(cancel_button)
         self._confirm_button = QPushButton("Confirmar (Enter)")
+        self._confirm_button.setObjectName("btnPrimary")
         self._confirm_button.setDefault(True)
         self._confirm_button.clicked.connect(self._on_confirm)
         buttons.addWidget(self._confirm_button)
@@ -111,9 +130,11 @@ class PaymentDialog(QDialog):
         elif change < 0:
             parts.append(f"Falta: {Money(-change).format_brl()}")
         self._summary_label.setText("  |  ".join(parts))
-        self._summary_label.setStyleSheet(
-            "font-size: 16px; color: #b40404;" if change < 0 else "font-size: 16px; color: #0b7a31;"
-        )
+        # Use theme semantic colors: danger for negative, success for positive
+        if change < 0:
+            self._summary_label.setStyleSheet("font-size: 16px; color: #DC2626;")
+        else:
+            self._summary_label.setStyleSheet("font-size: 16px; color: #059669;")
 
     def _on_confirm(self) -> None:
         entries = self._values()

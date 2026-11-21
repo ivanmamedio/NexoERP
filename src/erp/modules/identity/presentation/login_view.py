@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLayout,
     QLineEdit,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -31,72 +33,15 @@ _LOGO_WIDTH = 160
 _SHADOW_MARGIN = 24
 _CARD_MIN_WIDTH = 380
 
-# Estilo único por objectName (definido em um único lugar).
-_QSS = """
-QDialog#LoginDialog {
-    background-color: #f2f4f7;
-}
-QLabel {
-    color: #2c3e50;
-}
-QFrame#ShadowFrame {
-    background-color: transparent;
-    border: none;
-}
-QWidget#LoginCard {
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-}
-QLineEdit#UserNumberInput,
-QLineEdit#PasswordInput {
-    padding: 8px 12px;
-    border: 1px solid #bdc3c7;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #ffffff;
-    color: #2c3e50;
-    selection-background-color: #3498db;
-    min-height: 40px;
-}
-QLineEdit#UserNumberInput:focus,
-QLineEdit#PasswordInput:focus {
-    border: 2px solid #3498db;
-}
-QPushButton#EnterButton {
-    background-color: #3498db;
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 24px;
-    font-size: 14px;
-    font-weight: 600;
-    min-width: 120px;
-    min-height: 40px;
-}
-QPushButton#EnterButton:hover {
-    background-color: #2980b9;
-}
-QPushButton#EnterButton:pressed {
-    background-color: #1a6fa0;
-}
-QLabel#ErrorLabel {
-    color: #e74c3c;
-    font-size: 12px;
-}
-QLabel#TitleLabel {
-    font-size: 22px;
-    font-weight: 600;
-    color: #2c3e50;
-}
-QLabel#SubtitleLabel {
-    font-size: 12px;
-    color: #7f8c8d;
-}
-QLabel#LogoLabel {
-    min-height: 72px;
-}
-"""
+
+def _load_theme_qss() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent.parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - fallback silencioso
+        logger.warning("Falha ao carregar stylesheet: %s", exc)
+        return ""
 
 
 class LoginDialog(QDialog):
@@ -111,7 +56,7 @@ class LoginDialog(QDialog):
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.setObjectName("LoginDialog")
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.setStyleSheet(_QSS)
+        self.setStyleSheet(_load_theme_qss())
 
         # Widgets criados uma única vez.
         self._logo_label = QLabel()
@@ -122,36 +67,32 @@ class LoginDialog(QDialog):
         self._title_label = QLabel("NexoERP")
         self._title_label.setObjectName("TitleLabel")
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title_label.setStyleSheet("font-size: 22px; font-weight: 600;")
 
         self._subtitle_label = QLabel("Sistema de Gestão Comercial")
         self._subtitle_label.setObjectName("SubtitleLabel")
         self._subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._subtitle_label.setStyleSheet("font-size: 12px; color: #6B7280;")
 
         self._user_number = QLineEdit()
-        self._user_number.setObjectName("UserNumberInput")
         self._user_number.setPlaceholderText("Usuário (número ou nome)")
         self._user_number.setAccessibleName("Usuário (número ou nome)")
 
         self._password = QLineEdit()
-        self._password.setObjectName("PasswordInput")
         self._password.setPlaceholderText("Senha")
         self._password.setAccessibleName("Senha")
         self._password.setEchoMode(QLineEdit.EchoMode.Password)
 
         self._error_label = QLabel()
-        self._error_label.setObjectName("ErrorLabel")
+        self._error_label.setObjectName("FormError")
         self._error_label.setWordWrap(True)
         self._error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._error_label.hide()
 
-        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        self._buttons.setObjectName("EnterButtons")
-        submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
-        if submit_button is not None:
-            submit_button.setObjectName("EnterButton")
-            submit_button.setText("Entrar")
-            submit_button.setDefault(True)
-        self._buttons.accepted.connect(self._on_submit)
+        self._submit_button = QPushButton("Entrar")
+        self._submit_button.setObjectName("btnPrimary")
+        self._submit_button.setDefault(True)
+        self._submit_button.clicked.connect(self._on_submit)
 
         self._load_logo()
 
@@ -183,7 +124,7 @@ class LoginDialog(QDialog):
 
     def _build_card(self) -> QFrame:
         card = QFrame(self)
-        card.setObjectName("LoginCard")
+        card.setObjectName("cardPrincipal")
         card.setMinimumWidth(_CARD_MIN_WIDTH)
 
         layout = QVBoxLayout(card)
@@ -196,7 +137,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self._user_number)
         layout.addWidget(self._password)
         layout.addWidget(self._error_label)
-        layout.addWidget(self._buttons, alignment=center)
+        layout.addWidget(self._submit_button, alignment=center)
         return card
 
     def _load_logo(self) -> None:

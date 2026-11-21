@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate
@@ -32,6 +34,18 @@ from erp.shared.application.session import CurrentSession
 if TYPE_CHECKING:
     pass
 
+_logger = logging.getLogger(__name__)
+
+
+def _load_theme_qss() -> str:
+    """Carrega o arquivo QSS do design system."""
+    qss_path = Path(__file__).resolve().parent.parent.parent.parent / "shared" / "ui" / "theme.qss"
+    try:
+        return qss_path.read_text(encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - fallback silencioso
+        _logger.warning("Falha ao carregar stylesheet: %s", exc)
+        return ""
+
 
 class PayableEditDialog(QDialog):
     """Diálogo para criar/editar conta a pagar."""
@@ -49,6 +63,7 @@ class PayableEditDialog(QDialog):
         self.setWindowTitle("Nova Conta a Pagar")
         self.setModal(True)
         self.resize(500, 550)
+        self.setStyleSheet(_load_theme_qss())
 
         self._setup_ui()
 
@@ -121,10 +136,12 @@ class PayableEditDialog(QDialog):
         btn_layout.addStretch()
 
         self._cancel_btn = QPushButton("Cancelar")
+        self._cancel_btn.setObjectName("btnSecondary")
         self._cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self._cancel_btn)
 
         self._save_btn = QPushButton("Salvar")
+        self._save_btn.setObjectName("btnPrimary")
         self._save_btn.setDefault(True)
         self._save_btn.clicked.connect(self._on_save_clicked)
         btn_layout.addWidget(self._save_btn)
@@ -220,6 +237,7 @@ class ReceivableEditDialog(QDialog):
         self.setWindowTitle("Nova Conta a Receber")
         self.setModal(True)
         self.resize(500, 500)
+        self.setStyleSheet(_load_theme_qss())
 
         self._setup_ui()
 
@@ -272,10 +290,12 @@ class ReceivableEditDialog(QDialog):
         btn_layout.addStretch()
 
         self._cancel_btn = QPushButton("Cancelar")
+        self._cancel_btn.setObjectName("btnSecondary")
         self._cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self._cancel_btn)
 
         self._save_btn = QPushButton("Salvar")
+        self._save_btn.setObjectName("btnPrimary")
         self._save_btn.setDefault(True)
         self._save_btn.clicked.connect(self._on_save_clicked)
         btn_layout.addWidget(self._save_btn)
@@ -350,6 +370,7 @@ class PayableInstallmentDialog(QDialog):
         self.setWindowTitle("Pagar Parcela")
         self.setModal(True)
         self.resize(400, 300)
+        self.setStyleSheet(_load_theme_qss())
 
         self._setup_ui()
 
@@ -382,10 +403,12 @@ class PayableInstallmentDialog(QDialog):
         btn_layout.addStretch()
 
         self._cancel_btn = QPushButton("Cancelar")
+        self._cancel_btn.setObjectName("btnSecondary")
         self._cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self._cancel_btn)
 
         self._save_btn = QPushButton("Confirmar Pagamento")
+        self._save_btn.setObjectName("btnPrimary")
         self._save_btn.setDefault(True)
         self._save_btn.clicked.connect(self._on_save_clicked)
         btn_layout.addWidget(self._save_btn)
@@ -432,6 +455,7 @@ class ReceivableReceiveDialog(QDialog):
         self.setWindowTitle("Receber Conta")
         self.setModal(True)
         self.resize(400, 300)
+        self.setStyleSheet(_load_theme_qss())
 
         self._setup_ui()
 
@@ -459,10 +483,12 @@ class ReceivableReceiveDialog(QDialog):
         btn_layout.addStretch()
 
         self._cancel_btn = QPushButton("Cancelar")
+        self._cancel_btn.setObjectName("btnSecondary")
         self._cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(self._cancel_btn)
 
         self._save_btn = QPushButton("Confirmar Recebimento")
+        self._save_btn.setObjectName("btnPrimary")
         self._save_btn.setDefault(True)
         self._save_btn.clicked.connect(self._on_save_clicked)
         btn_layout.addWidget(self._save_btn)
@@ -512,16 +538,19 @@ class PayableReceivableManagementWidget(QWidget):
         toolbar = QHBoxLayout()
 
         self._btn_new_payable = QPushButton("Nova Conta a Pagar")
+        self._btn_new_payable.setObjectName("btnPrimary")
         self._btn_new_payable.clicked.connect(self._on_new_payable)
         toolbar.addWidget(self._btn_new_payable)
 
         self._btn_new_receivable = QPushButton("Nova Conta a Receber")
+        self._btn_new_receivable.setObjectName("btnPrimary")
         self._btn_new_receivable.clicked.connect(self._on_new_receivable)
         toolbar.addWidget(self._btn_new_receivable)
 
         toolbar.addStretch()
 
         self._btn_refresh = QPushButton("Atualizar")
+        self._btn_refresh.setObjectName("btnSecondary")
         self._btn_refresh.clicked.connect(self.refresh)
         toolbar.addWidget(self._btn_refresh)
 
@@ -548,10 +577,12 @@ class PayableReceivableManagementWidget(QWidget):
         actions.addStretch()
 
         self._btn_pay_installment = QPushButton("Pagar Parcela")
+        self._btn_pay_installment.setObjectName("btnPrimary")
         self._btn_pay_installment.clicked.connect(self._on_pay_installment)
         actions.addWidget(self._btn_pay_installment)
 
         self._btn_cancel_payable = QPushButton("Cancelar Conta")
+        self._btn_cancel_payable.setObjectName("btnDanger")
         self._btn_cancel_payable.clicked.connect(self._on_cancel_payable)
         actions.addWidget(self._btn_cancel_payable)
 
@@ -587,10 +618,12 @@ class PayableReceivableManagementWidget(QWidget):
         actions.addStretch()
 
         self._btn_receive_receivable = QPushButton("Receber")
+        self._btn_receive_receivable.setObjectName("btnPrimary")
         self._btn_receive_receivable.clicked.connect(self._on_receive_receivable)
         actions.addWidget(self._btn_receive_receivable)
 
         self._btn_cancel_receivable = QPushButton("Cancelar Conta")
+        self._btn_cancel_receivable.setObjectName("btnDanger")
         self._btn_cancel_receivable.clicked.connect(self._on_cancel_receivable)
         actions.addWidget(self._btn_cancel_receivable)
 
@@ -775,6 +808,7 @@ def create_payable_receivable_dialog(
     dialog = QDialog(parent)
     dialog.setWindowTitle("Gestão de Contas a Pagar / Receber")
     dialog.resize(900, 600)
+    dialog.setStyleSheet(_load_theme_qss())
 
     layout = QVBoxLayout(dialog)
 
@@ -782,6 +816,7 @@ def create_payable_receivable_dialog(
     layout.addWidget(widget)
 
     btn_close = QPushButton("Fechar")
+    btn_close.setObjectName("btnSecondary")
     btn_close.clicked.connect(dialog.accept)
     btn_layout = QHBoxLayout()
     btn_layout.addStretch()

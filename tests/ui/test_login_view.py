@@ -114,7 +114,7 @@ def test_login_dialog_enter_button_calls_presenter(qtbot):
     dialog._user_number.setText("0")
     dialog._password.setText("senha123")
 
-    submit_button = dialog._buttons.button(QDialogButtonBox.StandardButton.Ok)
+    submit_button = dialog._submit_button
     assert submit_button is not None
     assert submit_button.isDefault()
     submit_button.click()
