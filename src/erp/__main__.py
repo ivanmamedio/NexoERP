@@ -120,7 +120,9 @@ class _App:
             return len(user_repo.list_all()) > 0
 
     def _show_first_use(self) -> bool:
-        """Mostra a tela de primeiro uso para criar o primeiro administrador."""
+        """Mostra a tela de primeiro uso para criar o primeiro administrador e a empresa."""
+        from erp.modules.companies.application.ports import CompanyRepository
+        from erp.modules.companies.infrastructure.repository import SqlAlchemyCompanyRepository
         from erp.modules.identity.presentation.first_use_presenter import (
             FirstUsePresenter,
         )
@@ -135,6 +137,7 @@ class _App:
             hasher = BcryptHasher()
             user_repo = SqlAlchemyUserRepository(session)
             role_repo = SqlAlchemyRoleRepository(session)
+            company_repo = SqlAlchemyCompanyRepository(session)
             dialog = FirstUseDialog()
             presenter = FirstUsePresenter(
                 view=dialog,
@@ -142,6 +145,7 @@ class _App:
                 password_hasher=hasher,
                 session=self._session,
                 role_repository=role_repo,
+                company_repo=company_repo,
             )
             dialog.set_presenter(presenter)
             result = dialog.exec()

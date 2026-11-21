@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 class FirstUseDialog(QDialog):
-    """Janela modal de primeiro uso: cria o primeiro administrador."""
+    """Janela modal de primeiro uso: cria o primeiro administrador e a empresa."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -33,7 +33,7 @@ class FirstUseDialog(QDialog):
 
         self.setWindowTitle("NexoERP — Primeiro Uso")
         self.setModal(True)
-        self.setMinimumSize(480, 520)
+        self.setMinimumSize(480, 620)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setObjectName("FirstUseDialog")
         self.setStyleSheet(_QSS)
@@ -53,10 +53,15 @@ class FirstUseDialog(QDialog):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(title)
 
-        subtitle = QLabel("Crie o primeiro administrador do NexoERP.", card)
+        subtitle = QLabel("Configure o primeiro administrador e a empresa.", card)
         subtitle.setObjectName("SubtitleLabel")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(subtitle)
+
+        # --- Dados do Administrador ---
+        admin_section = QLabel("<b>Administrador do Sistema</b>", card)
+        admin_section.setStyleSheet("margin-top: 8px; margin-bottom: 4px;")
+        card_layout.addWidget(admin_section)
 
         hint = QLabel(
             "A senha deve ter no mínimo 8 caracteres, com pelo menos uma letra e um dígito.",
@@ -66,31 +71,64 @@ class FirstUseDialog(QDialog):
         hint.setStyleSheet("color: #666; font-size: 12px;")
         card_layout.addWidget(hint)
 
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        form.setVerticalSpacing(12)
+
         self._username = QLineEdit(card)
         self._username.setObjectName("UsernameInput")
-        self._username.setPlaceholderText("Usuário (ex: admin)")
-        card_layout.addWidget(self._username)
+        self._username.setPlaceholderText("Nome do administrador (ex: Admin)")
+        self._username.setAccessibleName("Nome do administrador")
+        form.addRow("Nome:", self._username)
 
         self._password = QLineEdit(card)
         self._password.setObjectName("PasswordInput")
-        self._password.setPlaceholderText("Nova senha")
+        self._password.setPlaceholderText("Senha")
         self._password.setEchoMode(QLineEdit.EchoMode.Password)
-        card_layout.addWidget(self._password)
+        self._password.setAccessibleName("Senha")
+        form.addRow("Senha:", self._password)
 
         self._confirm = QLineEdit(card)
         self._confirm.setObjectName("ConfirmPasswordInput")
         self._confirm.setPlaceholderText("Confirmar senha")
         self._confirm.setEchoMode(QLineEdit.EchoMode.Password)
-        card_layout.addWidget(self._confirm)
-
-        form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        form.setVerticalSpacing(14)
-        form.addRow("Usuário:", self._username)
-        form.addRow("Senha:", self._password)
+        self._confirm.setAccessibleName("Confirmar senha")
         form.addRow("Confirmar:", self._confirm)
+
         card_layout.addLayout(form)
+
+        # --- Dados da Empresa ---
+        company_section = QLabel("<b>Empresa (será criada automaticamente)</b>", card)
+        company_section.setStyleSheet("margin-top: 16px; margin-bottom: 4px;")
+        card_layout.addWidget(company_section)
+
+        company_hint = QLabel(
+            "Informe o nome da empresa. O CNPJ é opcional (será gerado um placeholder se vazio).",
+            card,
+        )
+        company_hint.setWordWrap(True)
+        company_hint.setStyleSheet("color: #666; font-size: 12px;")
+        card_layout.addWidget(company_hint)
+
+        company_form = QFormLayout()
+        company_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        company_form.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        company_form.setVerticalSpacing(12)
+
+        self._company_name = QLineEdit(card)
+        self._company_name.setObjectName("CompanyNameInput")
+        self._company_name.setPlaceholderText("Nome da empresa (ex: Minha Loja)")
+        self._company_name.setAccessibleName("Nome da empresa")
+        company_form.addRow("Nome da empresa:", self._company_name)
+
+        self._company_tax_id = QLineEdit(card)
+        self._company_tax_id.setObjectName("CompanyTaxIdInput")
+        self._company_tax_id.setPlaceholderText("CNPJ (opcional - ex: 00.000.000/0001-00)")
+        self._company_tax_id.setAccessibleName("CNPJ da empresa (opcional)")
+        company_form.addRow("CNPJ (opcional):", self._company_tax_id)
+
+        card_layout.addLayout(company_form)
 
         self._error_label = QLabel(card)
         self._error_label.setObjectName("ErrorLabel")
@@ -120,7 +158,7 @@ class FirstUseDialog(QDialog):
         submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
         if submit_button is not None:
             submit_button.setObjectName("CreateButton")
-            submit_button.setText("Criar Primeiro Administrador")
+            submit_button.setText("Criar Administrador e Empresa")
             submit_button.setDefault(True)
 
         self._buttons.accepted.connect(self._on_submit)
@@ -155,6 +193,12 @@ class FirstUseDialog(QDialog):
 
     # --- FirstUseView protocol extensions -----------------------------------
 
+    def get_company_name(self) -> str:
+        return self._company_name.text()
+
+    def get_company_tax_id(self) -> str:
+        return self._company_tax_id.text()
+
     def set_loading(self, loading: bool) -> None:
         """Show/hide loading indicator and disable/enable inputs."""
         if loading:
@@ -162,6 +206,8 @@ class FirstUseDialog(QDialog):
             self._username.setEnabled(False)
             self._password.setEnabled(False)
             self._confirm.setEnabled(False)
+            self._company_name.setEnabled(False)
+            self._company_tax_id.setEnabled(False)
             submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
             if submit_button is not None:
                 submit_button.setEnabled(False)
@@ -171,10 +217,12 @@ class FirstUseDialog(QDialog):
             self._username.setEnabled(True)
             self._password.setEnabled(True)
             self._confirm.setEnabled(True)
+            self._company_name.setEnabled(True)
+            self._company_tax_id.setEnabled(True)
             submit_button = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
             if submit_button is not None:
                 submit_button.setEnabled(True)
-                submit_button.setText("Criar Primeiro Administrador")
+                submit_button.setText("Criar Administrador e Empresa")
 
     def show_confirmation(
         self,

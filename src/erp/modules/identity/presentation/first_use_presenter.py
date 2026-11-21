@@ -1,4 +1,4 @@
-"""FirstUsePresenter — cria o primeiro administrador sem dependência de Qt."""
+"""FirstUsePresenter — cria o primeiro administrador e a empresa sem dependência de Qt."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from typing import Protocol, runtime_checkable
 
 from PySide6.QtWidgets import QApplication
 
+from erp.modules.companies.application.create_company import CreateCompany, CreateCompanyInput
+from erp.modules.companies.application.ports import CompanyRepository
 from erp.modules.identity.application.create_first_user import (
     CreateFirstUser,
     CreateFirstUserInput,
@@ -35,10 +37,12 @@ class FirstUseView(Protocol):
         on_confirm: Callable[[], None],
         on_cancel: Callable[[], None],
     ) -> None: ...
+    def get_company_name(self) -> str: ...
+    def get_company_tax_id(self) -> str: ...
 
 
 class FirstUsePresenter:
-    """Cria o primeiro usuário administrador do sistema.
+    """Cria o primeiro usuário administrador do sistema e a empresa associada.
 
     Não exige permissão user.manage (não há usuário autenticado ainda).
     """
@@ -50,12 +54,14 @@ class FirstUsePresenter:
         password_hasher: PasswordHasher,
         session: CurrentSession,
         role_repository: SqlAlchemyRoleRepository,
+        company_repo: CompanyRepository,
     ) -> None:
         self._view = view
         self._user_repo = user_repo
         self._password_hasher = password_hasher
         self._session = session
         self._role_repository = role_repository
+        self._company_repo = company_repo
 
     def create_first_user(
         self,
@@ -63,9 +69,10 @@ class FirstUsePresenter:
         password: str,
         confirm_password: str,
     ) -> bool:
-        """Cria o primeiro admin. Retorna True em caso de sucesso."""
+        """Cria o primeiro admin e a empresa. Retorna True em caso de sucesso."""
+        # Validações do admin
         if not username or not password or not confirm_password:
-            self._view.show_error("Informe usuário, senha e confirmação.")
+            self._view.show_error("Informe nome, senha e confirmação do administrador.")
             self._view.clear_passwords()
             return False
 
@@ -80,6 +87,15 @@ class FirstUsePresenter:
             self._view.show_error(str(exc))
             self._view.clear_passwords()
             return False
+
+        # Validações da empresa
+        company_name = self._view.get_company_name().strip()
+        if not company_name:
+            self._view.show_error("Informe o nome da empresa.")
+            self._view.clear_passwords()
+            return False
+
+        company_tax_id = self._view.get_company_tax_id().strip()
 
         # Verifica se já existe usuário (segurança em profundidade)
         existing = self._user_repo.get_by_user_number(0)  # Admin sempre tem user_number 0
@@ -99,33 +115,44 @@ class FirstUsePresenter:
             self._view.show_error("Papel 'Administrador' não encontrado.")
             return False
 
-        # Show confirmation dialog with user ID preview (0 for first admin)
+        # Show confirmation dialog
         confirm_msg = (
-            f"Confirma a criação do primeiro administrador?\n\n"
-            f"Usuário: {username}\n"
+            f"Confirma a criação do primeiro administrador e da empresa?\n\n"
+            f"<b>Administrador:</b>\n"
+            f"Nome: {username}\n"
             f"Perfil: Administrador\n"
             f"ID (Número do Usuário): 0\n\n"
-            f"IMPORTANTE: O login será feito com o NÚMERO DO USUÁRIO (0).\n"
-            f"Essa informação será mostrada novamente após a criação."
+            f"<b>Empresa:</b>\n"
+            f"Nome: {company_name}\n"
+            f"CNPJ: {company_tax_id if company_tax_id else '(será gerado placeholder)'}\n\n"
+            f"IMPORTANTE: O login será feito com o NÚMERO DO USUÁRIO (0)."
         )
 
         self._view.show_confirmation(
             confirm_msg,
-            on_confirm=lambda: self._do_create_first_user(username, password, role),
+            on_confirm=lambda: self._do_create_first_user(username, password, role, company_name, company_tax_id),
             on_cancel=lambda: self._view.clear_passwords(),
         )
         return True
 
-    def _do_create_first_user(self, username: str, password: str, role: Role) -> None:
-        """Executa a criação com hash síncrono (setup único - não precisa de async)."""
+    def _do_create_first_user(
+        self,
+        username: str,
+        password: str,
+        role: Role,
+        company_name: str,
+        company_tax_id: str,
+    ) -> None:
+        """Executa a criação do admin + empresa com hash síncrono."""
         self._view.set_loading(True)
-        self._view.show_info("Criando usuário... Isso pode levar alguns segundos.")
-        QApplication.processEvents()  # Atualiza UI antes do hash
+        self._view.show_info("Criando administrador e empresa... Aguarde.")
+        QApplication.processEvents()
 
         try:
-            # Hash síncrono - rápido o suficiente para operação única de setup
+            # 1. Hash síncrono da senha
             password_hash = self._password_hasher.hash(password)
 
+            # 2. Cria o usuário administrador
             use_case = CreateFirstUser(self._user_repo, self._password_hasher)
             output = use_case.execute(
                 CreateFirstUserInput(
@@ -135,6 +162,54 @@ class FirstUsePresenter:
                 ),
                 role=role,
             )
+
+            # 3. Prepara dados da empresa
+            tax_id = company_tax_id if company_tax_id else self._generate_placeholder_cnpj()
+
+            # 4. Cria a empresa
+            company_use_case = CreateCompany(self._company_repo)
+            company_output = company_use_case.execute(
+                CreateCompanyInput(
+                    name=company_name,
+                    trade_name=company_name,
+                    tax_id=tax_id,
+                    address="",
+                    phone="",
+                    email="",
+                    active=True,
+                )
+            )
+            company = company_output.company
+
+            # 5. Associa o usuário à empresa com role de Administrador
+            from erp.modules.identity.infrastructure.models import user_company_role
+            from sqlalchemy import insert
+
+            # Precisa acessar a sessão/engine para inserir na tabela de associação
+            # Usamos o repositório de usuário que tem acesso à sessão
+            user_repo_impl = self._user_repo
+            if hasattr(user_repo_impl, '_session') and user_repo_impl._session:
+                session = user_repo_impl._session
+                # Insere na tabela user_company_roles
+                stmt = insert(user_company_role).values(
+                    user_id=output.user_id,
+                    role_id=role.id,
+                    company_id=company.company_id,
+                )
+                session.execute(stmt)
+                session.commit()
+
+            # 6. Define a empresa como padrão do usuário
+            from erp.modules.identity.infrastructure.models import UserModel
+            from sqlalchemy.orm import Session as SASession
+
+            if hasattr(user_repo_impl, '_session') and user_repo_impl._session:
+                session = user_repo_impl._session
+                user_model = session.get(UserModel, output.user_id)
+                if user_model:
+                    user_model.company_id = company.company_id
+                    session.commit()
+
         except (ValueError, DomainError) as exc:
             self._view.set_loading(False)
             self._view.show_error(str(exc))
@@ -149,21 +224,27 @@ class FirstUsePresenter:
         # Define a sessão para o usuário recém-criado
         self._session.user_id = output.user_id
         self._session.username = output.employee_name
-        self._session.company_id = None  # Será selecionado após o login
+        self._session.company_id = company.company_id  # Empresa já selecionada!
 
-        # Mostra o número gerado (0 para o primeiro admin)
-        if output.is_first_admin:
-            self._view.show_info(
-                f"Primeiro administrador criado com sucesso!\n\n"
-                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
-                f"IMPORTANTE: Guarde este número para fazer login!\n"
-                f"O login é feito com o NÚMERO DO USUÁRIO, não com o nome."
-            )
-        else:
-            self._view.show_info(
-                f"Usuário '{output.employee_name}' criado com sucesso!\n\n"
-                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
-                f"Guarde este número para fazer login."
-            )
+        # Mostra sucesso com número do usuário e empresa
+        self._view.show_info(
+            f"Administrador e empresa criados com sucesso!\n\n"
+            f"<b>Administrador:</b>\n"
+            f"Nome: {output.employee_name}\n"
+            f"Número do Usuário (ID): {output.user_number}\n\n"
+            f"<b>Empresa:</b>\n"
+            f"Nome: {company.name}\n"
+            f"CNPJ: {company.tax_id}\n\n"
+            f"IMPORTANTE: Guarde o número do usuário ({output.user_number}) para fazer login!\n"
+            f"O login é feito com o NÚMERO DO USUÁRIO, não com o nome."
+        )
         self._view.set_loading(False)
         self._view.accept()
+
+    def _generate_placeholder_cnpj(self) -> str:
+        """Gera um CNPJ placeholder único para primeiro uso."""
+        import random
+        import time
+        # Formato: 00.000.000/0001-XX onde XX é aleatório baseado no timestamp
+        suffix = int(time.time() * 1000) % 100
+        return f"00.000.000/0001-{suffix:02d}"
