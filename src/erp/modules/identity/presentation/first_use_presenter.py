@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
+from PySide6.QtWidgets import QApplication
+
 from erp.modules.identity.application.create_first_user import (
     CreateFirstUser,
     CreateFirstUserInput,
@@ -15,7 +17,7 @@ from erp.modules.identity.domain.role import Role
 from erp.modules.identity.infrastructure.repository import SqlAlchemyRoleRepository
 from erp.shared.application.session import CurrentSession
 from erp.shared.domain.errors import DomainError
-from erp.shared.infrastructure.password_hasher import AsyncBcryptHasher
+from erp.shared.infrastructure.password_hasher import SyncBcryptHasher
 
 
 @runtime_checkable
@@ -54,7 +56,6 @@ class FirstUsePresenter:
         self._password_hasher = password_hasher
         self._session = session
         self._role_repository = role_repository
-        self._async_hasher = AsyncBcryptHasher()
 
     def create_first_user(
         self,
@@ -116,57 +117,53 @@ class FirstUsePresenter:
         return True
 
     def _do_create_first_user(self, username: str, password: str, role: Role) -> None:
-        """Executa a criação com hash assíncrono."""
+        """Executa a criação com hash síncrono (setup único - não precisa de async)."""
         self._view.set_loading(True)
         self._view.show_info("Criando usuário... Isso pode levar alguns segundos.")
+        QApplication.processEvents()  # Atualiza UI antes do hash
 
-        def _on_hash_success(password_hash: str) -> None:
-            try:
-                use_case = CreateFirstUser(self._user_repo, self._password_hasher)
-                output = use_case.execute(
-                    CreateFirstUserInput(
-                        employee_name=username,
-                        password_hash=password_hash,
-                        role_name=role.name,
-                    ),
-                    role=role,
-                )
-            except (ValueError, DomainError) as exc:
-                self._view.set_loading(False)
-                self._view.show_error(str(exc))
-                self._view.clear_passwords()
-                return
+        try:
+            # Hash síncrono - rápido o suficiente para operação única de setup
+            password_hash = self._password_hasher.hash(password)
 
-            # Define a sessão para o usuário recém-criado
-            self._session.user_id = output.user_id
-            self._session.username = output.employee_name
-            self._session.company_id = None  # Será selecionado após o login
-
-            # Mostra o número gerado (0 para o primeiro admin)
-            if output.is_first_admin:
-                self._view.show_info(
-                    f"Primeiro administrador criado com sucesso!\n\n"
-                    f"Seu número de usuário (ID) é: {output.user_number}\n\n"
-                    f"IMPORTANTE: Guarde este número para fazer login!\n"
-                    f"O login é feito com o NÚMERO DO USUÁRIO, não com o nome."
-                )
-            else:
-                self._view.show_info(
-                    f"Usuário '{output.employee_name}' criado com sucesso!\n\n"
-                    f"Seu número de usuário (ID) é: {output.user_number}\n\n"
-                    f"Guarde este número para fazer login."
-                )
+            use_case = CreateFirstUser(self._user_repo, self._password_hasher)
+            output = use_case.execute(
+                CreateFirstUserInput(
+                    employee_name=username,
+                    password_hash=password_hash,
+                    role_name=role.name,
+                ),
+                role=role,
+            )
+        except (ValueError, DomainError) as exc:
             self._view.set_loading(False)
-            self._view.accept()
-
-        def _on_hash_error(error_msg: str) -> None:
-            self._view.set_loading(False)
-            self._view.show_error(f"Erro ao processar senha: {error_msg}")
+            self._view.show_error(str(exc))
             self._view.clear_passwords()
+            return
+        except Exception as exc:
+            self._view.set_loading(False)
+            self._view.show_error(f"Erro inesperado: {exc}")
+            self._view.clear_passwords()
+            return
 
-        # Hash assíncrono
-        self._async_hasher.hash_async(
-            password,
-            on_success=_on_hash_success,
-            on_error=_on_hash_error,
-        )
+        # Define a sessão para o usuário recém-criado
+        self._session.user_id = output.user_id
+        self._session.username = output.employee_name
+        self._session.company_id = None  # Será selecionado após o login
+
+        # Mostra o número gerado (0 para o primeiro admin)
+        if output.is_first_admin:
+            self._view.show_info(
+                f"Primeiro administrador criado com sucesso!\n\n"
+                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
+                f"IMPORTANTE: Guarde este número para fazer login!\n"
+                f"O login é feito com o NÚMERO DO USUÁRIO, não com o nome."
+            )
+        else:
+            self._view.show_info(
+                f"Usuário '{output.employee_name}' criado com sucesso!\n\n"
+                f"Seu número de usuário (ID) é: {output.user_number}\n\n"
+                f"Guarde este número para fazer login."
+            )
+        self._view.set_loading(False)
+        self._view.accept()
