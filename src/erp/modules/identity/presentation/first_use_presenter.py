@@ -182,33 +182,25 @@ class FirstUsePresenter:
             company = company_output.company
 
             # 5. Associa o usuário à empresa com role de Administrador
-            from erp.modules.identity.infrastructure.models import user_company_role
-            from sqlalchemy import insert
+            # Usa o método do repositório que já lida com a tabela user_company_role
+            assert company.company_id is not None, "Empresa deve ter ID após criação"
+            self._user_repo.assign_user_to_company(
+                user_id=output.user_id,
+                company_id=company.company_id,
+                role_name="Administrador",
+            )
 
-            # Precisa acessar a sessão/engine para inserir na tabela de associação
-            # Usamos o repositório de usuário que tem acesso à sessão
-            user_repo_impl = self._user_repo
-            if hasattr(user_repo_impl, '_session') and user_repo_impl._session:
-                session = user_repo_impl._session
-                # Insere na tabela user_company_roles
-                stmt = insert(user_company_role).values(
-                    user_id=output.user_id,
-                    role_id=role.id,
-                    company_id=company.company_id,
-                )
-                session.execute(stmt)
-                session.commit()
-
-            # 6. Define a empresa como padrão do usuário
+            # 6. Define a empresa como padrão do usuário (default company)
+            # Atualiza o campo company_id no UserModel
             from erp.modules.identity.infrastructure.models import UserModel
-            from sqlalchemy.orm import Session as SASession
 
+            user_repo_impl = self._user_repo
             if hasattr(user_repo_impl, '_session') and user_repo_impl._session:
                 session = user_repo_impl._session
                 user_model = session.get(UserModel, output.user_id)
                 if user_model:
                     user_model.company_id = company.company_id
-                    session.commit()
+                    session.flush()
 
         except (ValueError, DomainError) as exc:
             self._view.set_loading(False)
@@ -243,8 +235,7 @@ class FirstUsePresenter:
 
     def _generate_placeholder_cnpj(self) -> str:
         """Gera um CNPJ placeholder único para primeiro uso."""
-        import random
         import time
-        # Formato: 00.000.000/0001-XX onde XX é aleatório baseado no timestamp
+        # Formato: 00.000.000/0001-XX onde XX é baseado no timestamp
         suffix = int(time.time() * 1000) % 100
         return f"00.000.000/0001-{suffix:02d}"
