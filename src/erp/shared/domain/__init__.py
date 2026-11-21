@@ -1,3 +1,4 @@
+from .cnpj import format_cnpj, is_valid_cnpj, normalize_cnpj
 from .entities import Entity
 from .errors import DomainError, NotFound, PermissionDenied, ValidationError
 from .types import CompanyRef, ProductRef, UserRef
@@ -14,4 +15,7 @@ __all__ = [
     "Quantity",
     "UserRef",
     "ValidationError",
+    "format_cnpj",
+    "is_valid_cnpj",
+    "normalize_cnpj",
 ]

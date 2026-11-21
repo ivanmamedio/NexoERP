@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from erp.modules.companies.application.ports import CompanyRepository
 from erp.modules.companies.domain.company import Company
+from erp.shared.domain.cnpj import is_valid_cnpj, normalize_cnpj
 from erp.shared.domain.errors import ValidationError
 
 
@@ -46,14 +47,27 @@ class CreateCompany:
         if not input.name:
             raise ValidationError("Nome da empresa é obrigatório.")
 
-        existing = self._repository.get_by_tax_id(input.tax_id)
+        # Normalize CNPJ (remove non-digits)
+        normalized_tax_id = normalize_cnpj(input.tax_id)
+
+        # Validate CNPJ format (must be 14 digits)
+        if len(normalized_tax_id) != 14:
+            raise ValidationError("CNPJ inválido. Deve conter 14 dígitos numéricos.")
+
+        # Validate CNPJ using modulus 11 algorithm
+        if not is_valid_cnpj(normalized_tax_id):
+            raise ValidationError("CNPJ inválido.")
+
+        existing = self._repository.get_by_tax_id(normalized_tax_id)
         if existing is not None:
-            raise ValidationError(f"Já existe uma empresa cadastrada com o CNPJ {input.tax_id}.")
+            # Format for display in error message
+            formatted_tax_id = normalized_tax_id[:2] + "." + normalized_tax_id[2:5] + "." + normalized_tax_id[5:8] + "/" + normalized_tax_id[8:12] + "-" + normalized_tax_id[12:]
+            raise ValidationError(f"Já existe uma empresa cadastrada com o CNPJ {formatted_tax_id}.")
 
         company = Company(
             name=input.name.strip(),
             trade_name=input.trade_name.strip(),
-            tax_id=input.tax_id.strip(),
+            tax_id=normalized_tax_id,
             address=input.address,
             phone=input.phone,
             email=input.email,

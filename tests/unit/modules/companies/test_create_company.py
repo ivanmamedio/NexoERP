@@ -40,6 +40,10 @@ class FakeCompanyRepository(CompanyRepository):
         self._companies.pop(company_id, None)
 
 
+# Valid CNPJ: 12345678000195 (12.345.678/0001-95) - passes modulus 11 check
+VALID_CNPJ = "12345678000195"
+
+
 def test_create_company_success() -> None:
     repo = FakeCompanyRepository()
     uc = CreateCompany(repo)
@@ -48,7 +52,7 @@ def test_create_company_success() -> None:
         CreateCompanyInput(
             name="ACME Ltda",
             trade_name="Acme",
-            tax_id="12345678000190",
+            tax_id=VALID_CNPJ,
             address="Rua A",
             phone="11999999999",
             email="contato@acme.com",
@@ -60,7 +64,7 @@ def test_create_company_success() -> None:
     assert output.company.name == "ACME Ltda"
     assert output.company.company_id == 1
 
-    stored = repo.get_by_tax_id("12345678000190")
+    stored = repo.get_by_tax_id(VALID_CNPJ)
     assert stored is not None
     assert stored.name == "ACME Ltda"
 
@@ -73,7 +77,7 @@ def test_create_company_duplicate_tax_id() -> None:
         CreateCompanyInput(
             name="ACME Ltda",
             trade_name="Acme",
-            tax_id="12345678000190",
+            tax_id=VALID_CNPJ,
             address="Rua A",
             email="contato@acme.com",
             active=True,
@@ -85,7 +89,7 @@ def test_create_company_duplicate_tax_id() -> None:
             CreateCompanyInput(
                 name="Outra",
                 trade_name="Outra",
-                tax_id="12345678000190",
+                tax_id=VALID_CNPJ,
                 address="Rua B",
                 email="outra@exemplo.com",
                 active=True,
@@ -102,7 +106,7 @@ def test_create_company_empty_name() -> None:
             CreateCompanyInput(
                 name="",
                 trade_name="Outra",
-                tax_id="12345678000191",
+                tax_id="12345678000192",  # Different valid CNPJ
                 address="Rua B",
                 email="outra@exemplo.com",
                 active=True,

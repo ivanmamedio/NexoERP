@@ -18,6 +18,7 @@ from erp.modules.companies.presentation.create_company_presenter import (
     CompaniesCreatePresenter,
 )
 from erp.shared.application.session import CurrentSession
+from erp.shared.domain.cnpj import normalize_cnpj
 
 
 class CompaniesCreateWidget(QDialog):
@@ -93,7 +94,7 @@ class CompaniesCreateWidget(QDialog):
         self._presenter.save(
             name=self._name.text().strip(),
             trade_name=self._trade_name.text().strip(),
-            tax_id=self._tax_id.text().strip(),
+            tax_id=normalize_cnpj(self._tax_id.text()),
             address=self._address.text().strip(),
             phone=self._phone.text().strip(),
             email=self._email.text().strip(),

@@ -18,6 +18,7 @@ from erp.modules.identity.domain.password_policy import validate_password_policy
 from erp.modules.identity.domain.role import Role
 from erp.modules.identity.infrastructure.repository import SqlAlchemyRoleRepository
 from erp.shared.application.session import CurrentSession
+from erp.shared.domain.cnpj import normalize_cnpj
 from erp.shared.domain.errors import DomainError
 from erp.shared.infrastructure.password_hasher import SyncBcryptHasher
 
@@ -95,7 +96,7 @@ class FirstUsePresenter:
             self._view.clear_passwords()
             return False
 
-        company_tax_id = self._view.get_company_tax_id().strip()
+        company_tax_id = normalize_cnpj(self._view.get_company_tax_id())
 
         # Verifica se já existe usuário (segurança em profundidade)
         existing = self._user_repo.get_by_user_number(0)  # Admin sempre tem user_number 0
@@ -163,7 +164,7 @@ class FirstUsePresenter:
                 role=role,
             )
 
-            # 3. Prepara dados da empresa
+            # 3. Prepara dados da empresa (já normalizado)
             tax_id = company_tax_id if company_tax_id else self._generate_placeholder_cnpj()
 
             # 4. Cria a empresa
@@ -234,8 +235,8 @@ class FirstUsePresenter:
         self._view.accept()
 
     def _generate_placeholder_cnpj(self) -> str:
-        """Gera um CNPJ placeholder único para primeiro uso."""
+        """Gera um CNPJ placeholder único para primeiro uso (formato normalizado: apenas dígitos)."""
         import time
-        # Formato: 00.000.000/0001-XX onde XX é baseado no timestamp
+        # 14 dígitos: 000000000001 + sufixo de 2 dígitos baseado no timestamp
         suffix = int(time.time() * 1000) % 100
-        return f"00.000.000/0001-{suffix:02d}"
+        return f"000000000001{suffix:02d}"
